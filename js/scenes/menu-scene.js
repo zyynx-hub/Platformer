@@ -31,10 +31,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.introParticles = null;
     this.introLines = [];
     this.introConfig = {
-      totalMs: 7200,
-      uiFadeMs: 620,
-      titleRevealDelayMs: 380,
-      titleRevealMs: 1300,
+      totalMs: 3600,
+      uiFadeMs: 420,
+      titleRevealDelayMs: 220,
+      titleRevealMs: 760,
       skyColor: 0x67c8ff,
       midColor: 0x75e0bc,
       groundColor: 0x5ea800,
@@ -141,13 +141,20 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.createMenuUpdateWidget();
     this.createWhatsChangedWidget();
     this.collectMenuUiElements();
-    this.setMenuUiVisible(false);
-    this.setMenuInteractive(false);
+    const shouldPlayMenuIntro = !Platformer._menuBootIntroPlayed;
+    if (shouldPlayMenuIntro) {
+      Platformer._menuBootIntroPlayed = true;
+      this.setMenuUiVisible(false);
+      this.setMenuInteractive(false);
+    } else {
+      this.setMenuUiVisible(true);
+      this.setMenuInteractive(true);
+    }
     this.createMenuIntroFx();
     this.layoutMenu();
     this.onResize = () => this.layoutMenu();
     this.scale.on("resize", this.onResize);
-    this.playMenuIntro();
+    if (shouldPlayMenuIntro) this.playMenuIntro();
 
     this.input.keyboard.on("keydown-ENTER", startGame);
   }
