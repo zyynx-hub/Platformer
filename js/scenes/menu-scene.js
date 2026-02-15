@@ -25,14 +25,30 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.comingSoonText = null;
     this.menuButtons = {};
     this.onResize = null;
+    this.menuUiElements = [];
+    this.menuInteractive = false;
+    this.introFx = null;
+    this.introParticles = null;
+    this.introLines = [];
+    this.introConfig = {
+      totalMs: 7200,
+      uiFadeMs: 620,
+      titleRevealDelayMs: 380,
+      titleRevealMs: 1300,
+      skyColor: 0x67c8ff,
+      midColor: 0x75e0bc,
+      groundColor: 0x5ea800,
+      glowCyan: 0x53e0ff,
+      glowPink: 0xff71c7,
+    };
   }
 
   create() {
     const textScale = Platformer.Settings.textScale();
 
-    this.bgSky = this.add.rectangle(0, 0, 10, 10, 0x7dd3fc, 1).setOrigin(0, 0);
-    this.bgMid = this.add.rectangle(0, 0, 10, 10, 0x86efac, 1).setOrigin(0, 0);
-    this.bgGround = this.add.rectangle(0, 0, 10, 10, 0x65a30d, 1).setOrigin(0, 0);
+    this.bgSky = this.add.rectangle(0, 0, 10, 10, this.introConfig.skyColor, 1).setOrigin(0, 0);
+    this.bgMid = this.add.rectangle(0, 0, 10, 10, this.introConfig.midColor, 1).setOrigin(0, 0);
+    this.bgGround = this.add.rectangle(0, 0, 10, 10, this.introConfig.groundColor, 1).setOrigin(0, 0);
 
     this.titleText = this.add.text(0, 72, "ANIME PLATFORMER", {
       fontFamily: "Verdana",
@@ -40,7 +56,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       color: "#0f172a",
       stroke: "#f8fafc",
       strokeThickness: 8,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(14);
     this.setupMenuMusic();
 
     const makeButton = (id, y, label, onClick, opts = {}) => {
@@ -87,6 +103,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     };
 
     const startGame = () => {
+      if (!this.menuInteractive) return;
       Platformer.beeper.unlock();
       if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Play clicked.");
       if (this.sound && this.sound.context && this.sound.context.state === "suspended") {
@@ -123,11 +140,16 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
     this.createWhatsChangedWidget();
+    this.collectMenuUiElements();
+    this.setMenuUiVisible(false);
+    this.setMenuInteractive(false);
+    this.createMenuIntroFx();
     this.layoutMenu();
     this.onResize = () => this.layoutMenu();
     this.scale.on("resize", this.onResize);
+    this.playMenuIntro();
 
-    this.input.keyboard.once("keydown-ENTER", startGame);
+    this.input.keyboard.on("keydown-ENTER", startGame);
   }
 
   layoutMenu() {
@@ -184,6 +206,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
         .setWordWrapWidth(panelW - 32);
     }
     if (this.versionInfoText) this.versionInfoText.setPosition(14, h - 12);
+    this.layoutMenuIntroFx();
   }
 
   createMenuUpdateWidget() {
@@ -381,6 +404,165 @@ Platformer.MenuScene = class extends Phaser.Scene {
     });
   }
 
+  collectMenuUiElements() {
+    this.menuUiElements = [];
+    if (this.titleText) this.menuUiElements.push(this.titleText);
+    Object.values(this.menuButtons).forEach((b) => {
+      if (b && b.box) this.menuUiElements.push(b.box);
+      if (b && b.txt) this.menuUiElements.push(b.txt);
+    });
+    if (this.comingSoonText) this.menuUiElements.push(this.comingSoonText);
+    if (this.updateButton) this.menuUiElements.push(this.updateButton);
+    if (this.updateButtonText) this.menuUiElements.push(this.updateButtonText);
+    if (this.changeButton) this.menuUiElements.push(this.changeButton);
+    if (this.changeButtonText) this.menuUiElements.push(this.changeButtonText);
+    if (this.changePanel) this.menuUiElements.push(this.changePanel);
+    if (this.changePanelTitle) this.menuUiElements.push(this.changePanelTitle);
+    if (this.changePanelBody) this.menuUiElements.push(this.changePanelBody);
+    if (this.versionInfoText) this.menuUiElements.push(this.versionInfoText);
+  }
+
+  setMenuUiVisible(visible) {
+    const a = visible ? 1 : 0;
+    this.menuUiElements.forEach((el) => {
+      if (!el || !el.active) return;
+      el.setAlpha(a);
+      if (this.changePanelOpen && (el === this.changePanel || el === this.changePanelTitle || el === this.changePanelBody)) {
+        el.setVisible(visible);
+      }
+    });
+  }
+
+  setMenuInteractive(enabled) {
+    this.menuInteractive = !!enabled;
+    const interactiveIds = ["play", "options", "credits", "exit"];
+    interactiveIds.forEach((id) => {
+      const b = this.menuButtons[id];
+      if (!b || !b.box) return;
+      if (enabled) b.box.setInteractive({ useHandCursor: true });
+      else b.box.disableInteractive();
+    });
+    if (this.updateButton) {
+      if (enabled) this.updateButton.setInteractive({ useHandCursor: true });
+      else this.updateButton.disableInteractive();
+    }
+    if (this.changeButton) {
+      if (enabled) this.changeButton.setInteractive({ useHandCursor: true });
+      else this.changeButton.disableInteractive();
+    }
+  }
+
+  ensureMenuIntroTextures() {
+    if (!this.textures.exists("menu-intro-dot")) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(4, 4, 4);
+      g.generateTexture("menu-intro-dot", 8, 8);
+      g.destroy();
+    }
+    if (!this.textures.exists("menu-intro-line")) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(0, 0, 140, 2);
+      g.generateTexture("menu-intro-line", 140, 2);
+      g.destroy();
+    }
+  }
+
+  createMenuIntroFx() {
+    this.ensureMenuIntroTextures();
+    const w = this.scale.width;
+    const h = this.scale.height;
+    this.introFx = this.add.container(0, 0).setDepth(9);
+    this.introLines = [];
+
+    for (let i = 0; i < 12; i += 1) {
+      const isPink = i % 3 === 0;
+      const line = this.add.image(
+        Phaser.Math.Between(0, w),
+        Phaser.Math.Between(40, h - 80),
+        "menu-intro-line"
+      )
+        .setOrigin(0, 0.5)
+        .setTint(isPink ? this.introConfig.glowPink : this.introConfig.glowCyan)
+        .setAlpha(isPink ? 0.18 : 0.24)
+        .setBlendMode(Phaser.BlendModes.SCREEN);
+      line.introSpeed = Phaser.Math.FloatBetween(38, 90);
+      line.introParallax = Phaser.Math.FloatBetween(0.3, 1);
+      this.introLines.push(line);
+      this.introFx.add(line);
+    }
+
+    this.introParticles = this.add.particles(0, 0, "menu-intro-dot", {
+      x: { min: 0, max: w },
+      y: { min: 0, max: h * 0.72 },
+      lifespan: { min: 1500, max: 3600 },
+      speedX: { min: -8, max: 8 },
+      speedY: { min: -36, max: -10 },
+      scale: { start: 0.55, end: 0 },
+      alpha: { start: 0.36, end: 0 },
+      tint: [this.introConfig.glowCyan, this.introConfig.glowPink, 0xffffff],
+      blendMode: "ADD",
+      frequency: 90,
+      quantity: 1,
+    }).setDepth(10);
+  }
+
+  layoutMenuIntroFx() {
+    if (!this.introParticles) return;
+    const w = this.scale.width;
+    const h = this.scale.height;
+    this.introParticles.setConfig({
+      x: { min: 0, max: w },
+      y: { min: 0, max: h * 0.72 },
+    });
+  }
+
+  playMenuIntro() {
+    if (!this.titleText) return;
+
+    this.titleText.setAlpha(0).setScale(0.94).setY(42);
+    this.cameras.main.fadeIn(520, 0, 0, 0);
+
+    this.tweens.add({
+      targets: this.titleText,
+      delay: this.introConfig.titleRevealDelayMs,
+      y: 72,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      ease: "Cubic.Out",
+      duration: this.introConfig.titleRevealMs,
+    });
+
+    const glow = this.add.circle(this.scale.width / 2, 86, 220, this.introConfig.glowCyan, 0.08)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(13);
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0.15, to: 0.03 },
+      scale: { from: 0.8, to: 1.14 },
+      ease: "Sine.InOut",
+      yoyo: true,
+      repeat: -1,
+      duration: 2200,
+    });
+
+    this.time.delayedCall(this.introConfig.totalMs - this.introConfig.uiFadeMs, () => {
+      this.tweens.add({
+        targets: this.menuUiElements.filter((el) => el !== this.titleText),
+        alpha: 1,
+        duration: this.introConfig.uiFadeMs,
+        ease: "Sine.Out",
+      });
+    });
+
+    this.time.delayedCall(this.introConfig.totalMs, () => {
+      this.setMenuInteractive(true);
+      if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Menu intro complete. UI interactive.");
+    });
+  }
+
   normalizeReleaseNotes(rawText) {
     const text = String(rawText || "").replace(/\r/g, "").trim();
     const isPlaceholder = text.toLowerCase() === "none" || text.toLowerCase() === "null" || text === "-";
@@ -574,11 +756,33 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }
   }
 
+  update(_time, delta) {
+    if (!this.introLines || this.introLines.length === 0) return;
+    const w = this.scale.width;
+    const dt = Math.max(0.001, delta / 1000);
+    this.introLines.forEach((line) => {
+      if (!line || !line.active) return;
+      line.x -= line.introSpeed * line.introParallax * dt;
+      if (line.x < -line.width - 10) {
+        line.x = w + Phaser.Math.Between(10, 80);
+      }
+    });
+  }
+
   shutdown() {
     // Keep menu music alive across Menu <-> Options transitions.
     if (this.onResize) {
       this.scale.off("resize", this.onResize);
       this.onResize = null;
     }
+    if (this.introParticles) {
+      this.introParticles.destroy();
+      this.introParticles = null;
+    }
+    if (this.introFx) {
+      this.introFx.destroy(true);
+      this.introFx = null;
+    }
+    this.introLines = [];
   }
 };
