@@ -42,10 +42,13 @@ if not exist "%NEW_EXE%" (
   exit /b 1
 )
 
+taskkill /F /IM AnimePlatformer.exe /T >nul 2>&1
+timeout /t 1 /nobreak >nul
+
 copy /Y "%NEW_EXE%" "%~dp0AnimePlatformer.exe" >nul 2>&1
 if errorlevel 1 (
-  echo [build] Root EXE is in use; kept existing AnimePlatformer.exe running.
-  echo [build] Fresh build is still available at: %NEW_EXE%
+  echo [build] Failed to replace root AnimePlatformer.exe.
+  echo [build] Fresh build is available at: %NEW_EXE%
 ) else (
   echo [build] Root EXE updated: %~dp0AnimePlatformer.exe
 )

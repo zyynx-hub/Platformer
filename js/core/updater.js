@@ -18,17 +18,6 @@ Platformer.Updater = {
       };
     }
 
-    // Legacy fallback for older builds only.
-    if (cfg.manifestUrl) {
-      return {
-        enabled: cfg.enabled !== false,
-        kind: "manifest",
-        manifestUrl: cfg.manifestUrl,
-        currentVersion: cfg.currentVersion || "0.0.0",
-        fallbackDownloadUrl: cfg.downloadUrl || "",
-      };
-    }
-
     return {
       enabled: cfg.enabled !== false,
       kind: "none",
@@ -83,6 +72,10 @@ Platformer.Updater = {
       return { ok: true, enabled: false, message: "Auto updates are off." };
     }
 
+    if (source.kind === "none") {
+      return { ok: false, enabled: true, message: "Updates are not configured yet." };
+    }
+
     if (source.kind === "github" && window.pywebview && window.pywebview.api) {
       if (typeof window.pywebview.api.check_update_github !== "function") {
         return { ok: false, enabled: true, transient: true, message: "Update bridge not ready yet." };
@@ -113,54 +106,19 @@ Platformer.Updater = {
       }
     }
 
-    if (
-      source.kind === "manifest"
-      && window.pywebview
-      && window.pywebview.api
-      && typeof window.pywebview.api.check_update === "function"
-    ) {
-      try {
-        const res = await window.pywebview.api.check_update(source.manifestUrl, source.currentVersion);
-        if (res && res.ok) {
-          return {
-            ok: true,
-            enabled: true,
-            hasUpdate: !!res.hasUpdate,
-            latestVersion: res.latestVersion || source.currentVersion,
-            downloadUrl: res.downloadUrl || source.fallbackDownloadUrl || "",
-            message: res.message || (res.hasUpdate ? "Update found." : "You're up to date."),
-          };
-        }
-        return { ok: false, enabled: true, message: (res && res.message) || "Can't reach update server." };
-      } catch (e) {
-        return { ok: false, enabled: true, message: this.friendlyError(e && e.message ? e.message : e) };
-      }
-    }
-
-    if (source.kind === "none") {
-      return { ok: false, enabled: true, message: "Updates are not configured yet." };
-    }
-
-    // Browser fallback.
+    // Browser fallback (GitHub only).
     try {
-      const manifestUrl = source.kind === "manifest"
-        ? source.manifestUrl
-        : `https://api.github.com/repos/${source.repo}/releases/latest`;
-      const response = await fetch(manifestUrl, {
+      const response = await fetch(`https://api.github.com/repos/${source.repo}/releases/latest`, {
         cache: "no-store",
-        headers: source.kind === "github" ? { Accept: "application/vnd.github+json" } : undefined,
+        headers: { Accept: "application/vnd.github+json" },
       });
       if (!response.ok) {
         return { ok: false, enabled: true, message: this.friendlyError(`HTTP ${response.status}`) };
       }
       const payload = await response.json();
-      const latest = source.kind === "github"
-        ? (payload.tag_name || payload.name || source.currentVersion)
-        : (payload.version || source.currentVersion);
-      const downloadUrl = source.kind === "github"
-        ? (((payload.assets || []).find((a) => /\.exe$/i.test(a.name || "")) || {}).browser_download_url
-          || (((payload.assets || [])[0] || {}).browser_download_url || ""))
-        : (payload.downloadUrl || source.fallbackDownloadUrl || "");
+      const latest = (payload.tag_name || payload.name || source.currentVersion);
+      const downloadUrl = (((payload.assets || []).find((a) => /\.exe$/i.test(a.name || "")) || {}).browser_download_url
+        || (((payload.assets || [])[0] || {}).browser_download_url || ""));
       const hasUpdate = this.compareVersions(latest, source.currentVersion) > 0;
       return {
         ok: true,

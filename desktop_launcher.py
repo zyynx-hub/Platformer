@@ -150,7 +150,7 @@ class Api:
             if e.code == 403:
                 return {"ok": False, "message": "Update server busy, try later."}
             if e.code == 404:
-                return {"ok": False, "message": "Update service not reachable."}
+                return {"ok": False, "message": "No public release found yet."}
             return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
         except Exception as e:
             return {"ok": False, "message": f"Can't reach update server: {e}"}
