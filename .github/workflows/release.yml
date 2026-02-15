@@ -23,8 +23,8 @@ jobs:
 
       - name: Install build deps
         run: |
-          py -m pip install --upgrade pip
-          py -m pip install "pyinstaller==6.19.0" "pywebview==4.4.1"
+          python -m pip install --upgrade pip
+          python -m pip install "pyinstaller==6.19.0" "pywebview==4.4.1"
 
       - name: Generate build info
         shell: powershell
@@ -35,11 +35,11 @@ jobs:
           if ("${{ github.ref_type }}" -eq "tag") {
             $env:BUILD_VERSION_OVERRIDE = "${{ github.ref_name }}"
           }
-          py scripts\write_build_info.py
+          python scripts\write_build_info.py
 
       - name: Build EXE
         run: |
-          py -m PyInstaller --noconfirm --clean --onefile --name "AnimePlatformer" --distpath "build/portable_out" --workpath "build" --specpath "." --add-data "assets;assets" --add-data "js;js" --add-data "index.html;." desktop_launcher.py
+          python -m PyInstaller --noconfirm --clean --onefile --name "AnimePlatformer" --distpath "build/portable_out" --workpath "build" --specpath "." --add-data "assets;assets" --add-data "js;js" --add-data "index.html;." desktop_launcher.py
 
       - name: Publish Release
         if: github.ref_type == 'tag'
