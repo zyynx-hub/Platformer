@@ -47,6 +47,13 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Anime Platformer ${{ github.ref_name }}
+          body: |
+            Automated build ${{ github.ref_name }}.
+
+            What changed:
+            - Gameplay and updater stability improvements
+            - UI/UX polish and bug fixes
+          generate_release_notes: true
           draft: false
           prerelease: false
           files: |

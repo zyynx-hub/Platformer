@@ -419,7 +419,8 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
   normalizeReleaseNotes(rawText) {
     const text = String(rawText || "").replace(/\r/g, "").trim();
-    if (!text) {
+    const isPlaceholder = text.toLowerCase() === "none" || text.toLowerCase() === "null" || text === "-";
+    if (!text || isPlaceholder) {
       return "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
     }
     return text.length > 1200 ? `${text.slice(0, 1200)}\n...` : text;
