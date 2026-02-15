@@ -40,6 +40,9 @@ Platformer.Updater = {
   friendlyError(message) {
     const raw = String(message || "").toLowerCase();
     if (!raw) return "Update check failed.";
+    if (raw.includes("no public release")) {
+      return "No public release found yet.";
+    }
     if (raw.includes("timed out") || raw.includes("network") || raw.includes("offline") || raw.includes("failed to fetch")) {
       return "Offline, retrying later.";
     }
@@ -47,7 +50,7 @@ Platformer.Updater = {
       return "Update server busy, try later.";
     }
     if (raw.includes("404")) {
-      return "Update service not reachable.";
+      return "No public release found yet.";
     }
     return "Can't reach update server.";
   },
@@ -80,12 +83,10 @@ Platformer.Updater = {
       return { ok: true, enabled: false, message: "Auto updates are off." };
     }
 
-    if (
-      source.kind === "github"
-      && window.pywebview
-      && window.pywebview.api
-      && typeof window.pywebview.api.check_update_github === "function"
-    ) {
+    if (source.kind === "github" && window.pywebview && window.pywebview.api) {
+      if (typeof window.pywebview.api.check_update_github !== "function") {
+        return { ok: false, enabled: true, transient: true, message: "Update bridge not ready yet." };
+      }
       try {
         const res = await window.pywebview.api.check_update_github(
           source.repo,

@@ -305,6 +305,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.setBottomLeftUpdateStatus("Checking for updates...");
     const result = await Platformer.Updater.check();
     if (!result.ok) {
+      if (result.transient) {
+        this.setBottomLeftUpdateStatus("Checking for updates...");
+        this.time.delayedCall(1200, () => this.autoCheckUpdatesForBottomLeft());
+        return;
+      }
       this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
       return;
     }
