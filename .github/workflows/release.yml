@@ -19,12 +19,12 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
       - name: Install build deps
         run: |
           py -m pip install --upgrade pip
-          py -m pip install pyinstaller pywebview
+          py -m pip install "pyinstaller==6.19.0" "pywebview==4.4.1"
 
       - name: Generate build info
         shell: powershell
