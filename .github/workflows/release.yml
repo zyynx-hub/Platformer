@@ -24,7 +24,7 @@ jobs:
       - name: Install build deps
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "pyinstaller==6.19.0" "pywebview==4.4.1"
+          python -m pip install -r requirements-build.txt
 
       - name: Generate build info
         shell: powershell
@@ -37,9 +37,30 @@ jobs:
           }
           python scripts\write_build_info.py
 
+      - name: Build JS bundle + source map
+        run: |
+          python scripts\build_js_bundle.py
+
+      - name: Validate assets
+        run: |
+          python scripts\validate_assets.py
+          python scripts\cleanup_backups.py
+
       - name: Build EXE
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --name "AnimePlatformer" --distpath "build/portable_out" --workpath "build" --specpath "." --add-data "assets;assets" --add-data "js;js" --add-data "index.html;." desktop_launcher.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "AnimePlatformer" --distpath "build/portable_out" --workpath "build" --specpath "." --add-data "assets;assets" --add-data "js;js" --add-data "index.html;." desktop_launcher.py
+
+      - name: Generate SHA256
+        shell: powershell
+        run: |
+          $exe = "build/portable_out/AnimePlatformer.exe"
+          $hash = (Get-FileHash -Path $exe -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "build/portable_out/AnimePlatformer.exe.sha256" -Value $hash -Encoding ascii
+
+      - name: Package debug sources
+        shell: powershell
+        run: |
+          Compress-Archive -Path js,desktop_launcher.py,index.html -DestinationPath build/portable_out/source-debug.zip -Force
 
       - name: Publish Release
         if: github.ref_type == 'tag'
@@ -47,14 +68,10 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Anime Platformer ${{ github.ref_name }}
-          body: |
-            Automated build ${{ github.ref_name }}.
-
-            What changed:
-            - Gameplay and updater stability improvements
-            - UI/UX polish and bug fixes
           generate_release_notes: true
           draft: false
           prerelease: false
           files: |
             build/portable_out/AnimePlatformer.exe
+            build/portable_out/AnimePlatformer.exe.sha256
+            build/portable_out/source-debug.zip

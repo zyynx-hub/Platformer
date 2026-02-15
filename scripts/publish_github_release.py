@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 import sys
+import hashlib
+import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -58,7 +60,7 @@ def get_or_create_release(repo: str, tag: str, channel: str, token: str):
     payload = {
         "tag_name": tag,
         "name": f"Anime Platformer {tag}{name_suffix}",
-        "body": f"Automated build {tag}",
+        "body": build_release_body(tag, repo),
         "draft": False,
         "prerelease": channel.lower() not in ("stable", "latest"),
         "generate_release_notes": True,
@@ -100,6 +102,71 @@ def upload_asset(repo: str, release: dict, exe_path: Path, token: str):
     print(f"[publish] Asset URL: {uploaded.get('browser_download_url', '(missing)')}")
 
 
+def write_sha256_sidecar(exe_path: Path) -> Path:
+    digest = hashlib.sha256(exe_path.read_bytes()).hexdigest().lower()
+    sidecar = exe_path.with_name(f"{exe_path.name}.sha256")
+    sidecar.write_text(f"{digest}\n", encoding="ascii")
+    return sidecar
+
+
+def upload_binary_asset(repo: str, release: dict, asset_path: Path, token: str, content_type: str):
+    release_id = release.get("id")
+    if not release_id:
+        raise RuntimeError("Release id missing.")
+    name = asset_path.name
+    upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={urllib.parse.quote(name)}"
+    headers = {
+        "User-Agent": "AnimePlatformerReleasePublisher/1.0",
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": content_type,
+    }
+    req = urllib.request.Request(upload_url, data=asset_path.read_bytes(), headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        raw = resp.read().decode("utf-8")
+        uploaded = json.loads(raw) if raw else {}
+    print(f"[publish] Uploaded asset: {name} ({asset_path.stat().st_size} bytes)")
+    print(f"[publish] Asset URL: {uploaded.get('browser_download_url', '(missing)')}")
+
+
+def _run_git(args, cwd: Path) -> str:
+    cmd = ["git"] + args
+    out = subprocess.check_output(cmd, cwd=str(cwd), stderr=subprocess.STDOUT)
+    return out.decode("utf-8", errors="ignore").strip()
+
+
+def _safe_git(args, cwd: Path) -> str:
+    try:
+        return _run_git(args, cwd)
+    except Exception:
+        return ""
+
+
+def build_release_body(tag: str, repo: str) -> str:
+    root = Path(__file__).resolve().parent.parent
+    prev_tag = _safe_git(["describe", "--tags", "--abbrev=0", "--exclude", tag], root)
+    lines = []
+    if prev_tag:
+        log_raw = _safe_git(["log", "--oneline", f"{prev_tag}..HEAD"], root)
+        if log_raw:
+            commits = [l.strip() for l in log_raw.splitlines() if l.strip()]
+            lines.extend(commits[:12])
+    else:
+        log_raw = _safe_git(["log", "--oneline", "-n", "8"], root)
+        if log_raw:
+            lines.extend([l.strip() for l in log_raw.splitlines() if l.strip()])
+
+    body = [f"Automated build {tag}."]
+    if lines:
+        body.append("")
+        body.append("What changed:")
+        body.extend([f"- {l}" for l in lines])
+    if prev_tag:
+        body.append("")
+        body.append(f"**Full Changelog**: https://github.com/{repo}/compare/{prev_tag}...{tag}")
+    return "\n".join(body)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Publish AnimePlatformer.exe to GitHub Releases")
     parser.add_argument("--repo", required=True, help="owner/repo")
@@ -130,9 +197,12 @@ def main() -> int:
     try:
         release = get_or_create_release(repo, tag, channel, token)
         delete_asset_if_exists(repo, release, exe_path.name, token)
+        delete_asset_if_exists(repo, release, f"{exe_path.name}.sha256", token)
         # Refresh release state if asset deleted.
         release = gh_request(f"https://api.github.com/repos/{repo}/releases/{release.get('id')}", token, "GET")
         upload_asset(repo, release, exe_path, token)
+        checksum_path = write_sha256_sidecar(exe_path)
+        upload_binary_asset(repo, release, checksum_path, token, "text/plain")
         print(f"[publish] Success repo={repo} tag={tag} channel={channel}")
         return 0
     except urllib.error.HTTPError as e:

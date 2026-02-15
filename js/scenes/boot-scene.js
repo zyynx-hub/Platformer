@@ -11,6 +11,10 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.load.audio("game-bgm", "assets/Slaughter to Prevail - K (mp3cut.net).mp3");
     this.load.audio("pause-bgm", "assets/Elevator Music - So Chill (mp3cut.net).mp3");
     this.load.image("player-idle-raw", "assets/IFFY_IDLE.png");
+    this.load.json("level-1", "assets/levels/level-1.json");
+    this.load.json("level-2", "assets/levels/level-2.json");
+    this.load.json("level-3", "assets/levels/level-3.json");
+    this.load.json("level-4", "assets/levels/level-4.json");
     this.load.on("loaderror", (fileObj) => {
       if (fileObj && fileObj.key === "player-idle-raw") {
         this.playerIdleLoadFailed = true;
@@ -18,6 +22,9 @@ Platformer.BootScene = class extends Phaser.Scene {
           this.playerIdleWarned = true;
           Platformer.Debug.warn("BootScene.playerIdle", "Optional asset missing: assets/IFFY_IDLE.png. Using built-in fallback character.");
         }
+      }
+      if (fileObj && /^level-\d+$/.test(fileObj.key || "")) {
+        Platformer.Debug.warn("BootScene.levels", `Level JSON missing for ${fileObj.key}; using built-in fallback.`);
       }
     });
   }
@@ -262,6 +269,14 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.registry.set("health", 3);
     this.registry.set("lives", 2);
     this.registry.set("level", 1);
+    Platformer.LevelJsonCache = {};
+    [1, 2, 3, 4].forEach((n) => {
+      const key = `level-${n}`;
+      const json = this.cache.json.get(key);
+      if (json && typeof json === "object") {
+        Platformer.LevelJsonCache[n] = json;
+      }
+    });
 
     this.scene.start("MenuScene");
   }

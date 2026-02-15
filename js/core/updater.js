@@ -67,10 +67,6 @@ Platformer.Updater = {
       return { ok: true, enabled: false, message: "Auto updates are off." };
     }
 
-    if (source.kind === "none") {
-      return { ok: false, enabled: true, message: "Updates are not configured yet." };
-    }
-
     if (source.kind === "github" && window.pywebview && window.pywebview.api) {
       if (typeof window.pywebview.api.check_update_github !== "function") {
         return { ok: false, enabled: true, transient: true, message: "Update bridge not ready yet." };
@@ -88,6 +84,7 @@ Platformer.Updater = {
             hasUpdate: !!res.hasUpdate,
             latestVersion: res.latestVersion || source.currentVersion,
             downloadUrl: res.downloadUrl || source.fallbackDownloadUrl || "",
+            checksumSha256: res.checksumSha256 || "",
             releaseNotes: res.releaseNotes || "",
             releasePublishedAt: res.releasePublishedAt || "",
             message: res.message || (res.hasUpdate ? "Update found." : "You're up to date."),
@@ -103,33 +100,7 @@ Platformer.Updater = {
       }
     }
 
-    // Browser fallback (GitHub only).
-    try {
-      const response = await fetch(`https://api.github.com/repos/${source.repo}/releases/latest`, {
-        cache: "no-store",
-        headers: { Accept: "application/vnd.github+json" },
-      });
-      if (!response.ok) {
-        return { ok: false, enabled: true, message: this.friendlyError(`HTTP ${response.status}`) };
-      }
-      const payload = await response.json();
-      const latest = (payload.tag_name || payload.name || source.currentVersion);
-      const downloadUrl = (((payload.assets || []).find((a) => /\.exe$/i.test(a.name || "")) || {}).browser_download_url
-        || (((payload.assets || [])[0] || {}).browser_download_url || ""));
-      const hasUpdate = this.compareVersions(latest, source.currentVersion) > 0;
-      return {
-        ok: true,
-        enabled: true,
-        hasUpdate,
-        latestVersion: latest,
-        downloadUrl,
-        releaseNotes: payload.body || "",
-        releasePublishedAt: payload.published_at || "",
-        message: hasUpdate ? "Update found." : "You're up to date.",
-      };
-    } catch (e) {
-      return { ok: false, enabled: true, message: this.friendlyError(e && e.message ? e.message : e) };
-    }
+    return { ok: false, enabled: true, message: "Update service not ready in this runtime." };
   },
 
   openDownload(url) {
@@ -170,7 +141,10 @@ Platformer.Updater = {
 
     try {
       if (Platformer.Debug) Platformer.Debug.log("Updater", `Starting in-app update: ${downloadUrl}`);
-      const start = await window.pywebview.api.start_update_download(downloadUrl);
+      const start = await window.pywebview.api.start_update_download(
+        downloadUrl,
+        Platformer.Updater.latestChecksumSha256 || "",
+      );
       if (!start || !start.ok) {
         const msg = (start && start.message) || "Failed to start update download.";
         if (Platformer.Debug) Platformer.Debug.error("Updater", msg);

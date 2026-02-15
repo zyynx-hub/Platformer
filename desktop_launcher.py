@@ -7,8 +7,10 @@ import ctypes
 import tempfile
 import threading
 import subprocess
+import hashlib
 import urllib.request
 import urllib.error
+import urllib.parse
 import ssl
 import webbrowser
 import webview
@@ -17,6 +19,8 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 USER_LOG_DIR = os.path.join(os.environ.get("LOCALAPPDATA", tempfile.gettempdir()), "AnimePlatformer")
 LOG_PATH = os.path.join(USER_LOG_DIR, "runtime-debug.log")
 USER_UPDATER_LOG_PATH = os.path.join(USER_LOG_DIR, "updater.log")
+UPDATE_STATE_PATH = os.path.join(USER_LOG_DIR, "update_state.json")
+SETTINGS_PATH = os.path.join(USER_LOG_DIR, "settings.json")
 
 
 def host_log(level, source, message):
@@ -44,6 +48,33 @@ def ensure_user_log_dir():
         pass
 
 
+def read_update_state():
+    try:
+        if not os.path.exists(UPDATE_STATE_PATH):
+            return {}
+        with open(UPDATE_STATE_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def write_update_state(data: dict):
+    try:
+        with open(UPDATE_STATE_PATH, "w", encoding="utf-8") as f:
+            json.dump(data or {}, f)
+    except Exception as e:
+        host_log("WARN", "Updater.state", f"Failed to write state: {e}")
+
+
+def clear_update_state():
+    try:
+        if os.path.exists(UPDATE_STATE_PATH):
+            os.remove(UPDATE_STATE_PATH)
+    except Exception:
+        pass
+
+
 def set_dpi_awareness():
     try:
         # Windows 10+: per-monitor v2 awareness for crisp rendering.
@@ -63,6 +94,41 @@ def set_dpi_awareness():
         host_log("INFO", "Launcher", "DPI awareness: System")
     except Exception as e:
         host_log("WARN", "Launcher", f"Failed to set DPI awareness: {e}")
+
+
+def maybe_restore_failed_update():
+    state = read_update_state()
+    if not state or not state.get("pending"):
+        return
+
+    crash_count = int(state.get("crashCount", 0)) + 1
+    state["crashCount"] = crash_count
+    write_update_state(state)
+    host_log("WARN", "Updater.health", f"Pending update health check count={crash_count}")
+
+    if crash_count < 3:
+        return
+
+    target = str(state.get("targetExe") or "")
+    backup = str(state.get("backupExe") or "")
+    if target and backup and os.path.exists(backup):
+        try:
+            subprocess.run(["cmd", "/c", "copy", "/Y", backup, target], check=False, capture_output=True)
+            host_log("WARN", "Updater.health", "Rollback applied from backup after repeated startup failures.")
+        except Exception as e:
+            host_log("ERROR", "Updater.health", f"Rollback failed: {e}")
+    clear_update_state()
+
+
+def mark_update_healthy_later():
+    def _mark():
+        state = read_update_state()
+        if state and state.get("pending"):
+            host_log("INFO", "Updater.health", "Startup healthy; clearing pending update marker.")
+            clear_update_state()
+    t = threading.Timer(20.0, _mark)
+    t.daemon = True
+    t.start()
 
 
 class Api:
@@ -106,6 +172,9 @@ class Api:
         try:
             if not url:
                 return {"ok": False, "message": "URL is empty."}
+            parsed = urllib.parse.urlparse(str(url))
+            if parsed.scheme != "https" or parsed.netloc.lower() != "github.com":
+                return {"ok": False, "message": "Blocked URL: only https://github.com is allowed."}
             webbrowser.open(url)
             return {"ok": True}
         except Exception as e:
@@ -118,27 +187,52 @@ class Api:
         host_log(lvl, src, msg)
         return {"ok": True}
 
-    def check_update(self, manifest_url, current_version):
-        if not manifest_url:
-            return {"ok": False, "message": "Update service not configured."}
+    def read_settings_blob(self):
         try:
-            req = urllib.request.Request(
-                manifest_url,
-                headers={"User-Agent": "AnimePlatformerUpdater/1.0"}
-            )
-            with self._urlopen(req, timeout=6) as resp:
-                raw = resp.read().decode("utf-8")
-            data = json.loads(raw)
-            latest = str(data.get("version", current_version or "0.0.0"))
-            download_url = str(data.get("downloadUrl", ""))
+            if not os.path.exists(SETTINGS_PATH):
+                return {"ok": True, "data": ""}
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = f.read()
+            return {"ok": True, "data": data}
+        except Exception as e:
+            host_log("WARN", "Settings.read", f"{type(e).__name__}: {e}")
+            return {"ok": False, "message": str(e), "data": ""}
+
+    def write_settings_blob(self, data):
+        try:
+            raw = str(data or "")
+            if len(raw) > 200_000:
+                return {"ok": False, "message": "Settings payload too large."}
+            parsed = json.loads(raw)
+            if not isinstance(parsed, dict):
+                return {"ok": False, "message": "Settings payload must be a JSON object."}
+            with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                f.write(raw)
+            return {"ok": True}
+        except Exception as e:
+            host_log("WARN", "Settings.write", f"{type(e).__name__}: {e}")
+            return {"ok": False, "message": str(e)}
+
+    def check_update(self, manifest_url, current_version):
+        return {"ok": False, "message": "Legacy update endpoint disabled. Use GitHub Releases updater."}
+
+    def check_update_github(self, repo, current_version, channel="stable"):
+        repo = str(repo or "").strip()
+        if not repo or "/" not in repo:
+            return {"ok": False, "message": "Updates not configured by developer."}
+        try:
+            payload = self._fetch_github_release(repo, channel)
+            latest = str(payload.get("tag_name") or payload.get("name") or current_version or "0.0.0").strip()
+            download_url, checksum_sha256 = self._choose_release_assets(payload)
             has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
             return {
                 "ok": True,
                 "hasUpdate": has_update,
                 "latestVersion": latest,
                 "downloadUrl": download_url,
-                "releaseNotes": str(data.get("body", "")),
-                "releasePublishedAt": str(data.get("published_at", "")),
+                "checksumSha256": checksum_sha256,
+                "releaseNotes": str(payload.get("body", "")),
+                "releasePublishedAt": str(payload.get("published_at", "")),
                 "message": f"Update found ({latest})." if has_update else "You're up to date.",
             }
         except urllib.error.HTTPError as e:
@@ -148,66 +242,10 @@ class Api:
                 return {"ok": False, "message": "No public release found yet."}
             return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
         except Exception as e:
-            host_log("ERROR", "Updater.check_update", f"{type(e).__name__}: {e}")
+            host_log("ERROR", "Updater.check_update_github", f"{type(e).__name__}: {e}")
             return {"ok": False, "message": f"Can't reach update server: {e}"}
 
-    def check_update_github(self, repo, current_version, channel="stable"):
-        repo = str(repo or "").strip()
-        if not repo or "/" not in repo:
-            return {"ok": False, "message": "Updates not configured by developer."}
-        try:
-            payload = self._fetch_github_release(repo, channel)
-            latest = str(payload.get("tag_name") or payload.get("name") or current_version or "0.0.0").strip()
-            download_url = self._choose_release_asset_url(payload)
-            has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
-            return {
-                "ok": True,
-                "hasUpdate": has_update,
-                "latestVersion": latest,
-                "downloadUrl": download_url,
-                "releaseNotes": str(payload.get("body", "")),
-                "releasePublishedAt": str(payload.get("published_at", "")),
-                "message": f"Update found ({latest})." if has_update else "You're up to date.",
-            }
-        except urllib.error.HTTPError as e:
-            if e.code == 403:
-                # API rate-limit/proxy issues: fall back to GitHub HTML latest redirect.
-                try:
-                    latest, download_url = self._fetch_github_latest_tag_fallback(repo)
-                    has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
-                    return {
-                        "ok": True,
-                        "hasUpdate": has_update,
-                        "latestVersion": latest,
-                        "downloadUrl": download_url,
-                        "releaseNotes": "",
-                        "releasePublishedAt": "",
-                        "message": f"Update found ({latest})." if has_update else "You're up to date.",
-                    }
-                except Exception:
-                    return {"ok": False, "message": "Update server busy, try later."}
-            if e.code == 404:
-                return {"ok": False, "message": "No public release found yet."}
-            return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
-        except Exception as e:
-            # Last-chance fallback: parse latest tag from github.com redirect.
-            try:
-                latest, download_url = self._fetch_github_latest_tag_fallback(repo)
-                has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
-                return {
-                    "ok": True,
-                    "hasUpdate": has_update,
-                    "latestVersion": latest,
-                    "downloadUrl": download_url,
-                    "releaseNotes": "",
-                    "releasePublishedAt": "",
-                    "message": f"Update found ({latest})." if has_update else "You're up to date.",
-                }
-            except Exception:
-                host_log("ERROR", "Updater.check_update_github", f"{type(e).__name__}: {e}")
-                return {"ok": False, "message": f"Can't reach update server: {e}"}
-
-    def start_update_download(self, download_url):
+    def start_update_download(self, download_url, checksum_sha256=""):
         with self._update_lock:
             if self._download_thread and self._download_thread.is_alive():
                 return {"ok": False, "message": "Update download already in progress."}
@@ -220,11 +258,12 @@ class Api:
                 "message": "Starting download...",
                 "downloadedPath": "",
                 "url": str(download_url),
+                "checksumSha256": str(checksum_sha256 or "").strip().lower(),
             }
 
             self._download_thread = threading.Thread(
                 target=self._download_update_worker,
-                args=(str(download_url),),
+                args=(str(download_url), str(checksum_sha256 or "").strip().lower()),
                 daemon=True,
             )
             self._download_thread.start()
@@ -259,6 +298,13 @@ class Api:
             return {"ok": False, "message": "Failed to create updater helper script."}
 
         try:
+            write_update_state({
+                "pending": True,
+                "crashCount": 0,
+                "targetExe": target_exe,
+                "backupExe": backup_exe,
+                "updatedAt": datetime.utcnow().isoformat() + "Z",
+            })
             host_log("INFO", "Updater", f"Helper log expected at: {USER_UPDATER_LOG_PATH}")
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
             launched = False
@@ -312,7 +358,7 @@ class Api:
         with self._update_lock:
             self._update_state.update(kwargs)
 
-    def _download_update_worker(self, download_url):
+    def _download_update_worker(self, download_url, expected_sha256=""):
         tmp_path = ""
         try:
             req = urllib.request.Request(
@@ -355,6 +401,12 @@ class Api:
                 size_bytes = 0
             if size_bytes < min_size:
                 raise RuntimeError(f"Downloaded file is too small ({size_bytes} bytes).")
+
+            if expected_sha256:
+                with open(tmp_path, "rb") as f:
+                    actual = hashlib.sha256(f.read()).hexdigest().lower()
+                if actual != expected_sha256:
+                    raise RuntimeError("Checksum mismatch for downloaded update.")
 
             self._set_update_state(
                 stage="downloaded",
@@ -487,18 +539,8 @@ class Api:
         return json.loads(raw)
 
     def _urlopen(self, request, timeout=8):
-        # Some Windows setups throw WinError 87 due to broken proxy configuration.
-        # Try direct (no proxy) first, then fall back to default opener.
         ctx = ssl.create_default_context()
-        try:
-            return self._direct_opener.open(request, timeout=timeout, context=ctx)
-        except TypeError:
-            # Older Python/openers may not accept context on opener.open.
-            return self._direct_opener.open(request, timeout=timeout)
-        except OSError as e:
-            if getattr(e, "winerror", None) == 87:
-                host_log("WARN", "Updater.network", "WinError 87 on direct opener; retrying with default opener.")
-            return urllib.request.urlopen(request, timeout=timeout, context=ctx)
+        return urllib.request.urlopen(request, timeout=timeout, context=ctx)
 
     def _fetch_github_release(self, repo, channel):
         ch = str(channel or "stable").strip().lower()
@@ -519,41 +561,31 @@ class Api:
                 return releases[0]
         raise RuntimeError("No release found for update channel.")
 
-    def _choose_release_asset_url(self, release_payload):
+    def _choose_release_assets(self, release_payload):
         assets = release_payload.get("assets") or []
         exe_asset = None
+        sha_asset = None
         for asset in assets:
             name = str(asset.get("name", ""))
             if name.lower().endswith(".exe"):
                 exe_asset = asset
-                break
-        if exe_asset:
-            return str(exe_asset.get("browser_download_url", ""))
-        if assets:
-            return str((assets[0] or {}).get("browser_download_url", ""))
-        return ""
-
-    def _fetch_github_latest_tag_fallback(self, repo):
-        # Fallback path that does not use GitHub API rate-limited endpoint.
-        req = urllib.request.Request(
-            f"https://github.com/{repo}/releases/latest",
-            headers={"User-Agent": "AnimePlatformerUpdater/1.0"},
-            method="GET",
-        )
-        with self._urlopen(req, timeout=10) as resp:
-            final_url = str(resp.geturl() or "")
-
-        marker = "/releases/tag/"
-        idx = final_url.find(marker)
-        if idx < 0:
-            raise RuntimeError("Could not resolve latest release tag.")
-        tag = final_url[idx + len(marker):].strip("/")
-        if not tag:
-            raise RuntimeError("Latest release tag is empty.")
-
-        # Default asset naming for this project.
-        download_url = f"https://github.com/{repo}/releases/download/{tag}/AnimePlatformer.exe"
-        return tag, download_url
+            if name.lower().endswith(".exe.sha256"):
+                sha_asset = asset
+        exe_url = str((exe_asset or {}).get("browser_download_url", "")) if exe_asset else ""
+        sha_url = str((sha_asset or {}).get("browser_download_url", "")) if sha_asset else ""
+        checksum = ""
+        if sha_url:
+            try:
+                req = urllib.request.Request(
+                    sha_url,
+                    headers={"User-Agent": "AnimePlatformerUpdater/1.0"},
+                    method="GET",
+                )
+                with self._urlopen(req, timeout=8) as resp:
+                    checksum = resp.read().decode("utf-8", errors="ignore").strip().split()[0].lower()
+            except Exception:
+                checksum = ""
+        return exe_url, checksum
 
     def _compare_versions(self, a, b):
         def parse(v):
@@ -581,12 +613,21 @@ class Api:
 def main():
     ensure_user_log_dir()
     set_dpi_awareness()
+    maybe_restore_failed_update()
+    mark_update_healthy_later()
     host_log("INFO", "Launcher", "Starting Anime Platformer desktop runtime.")
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         root = sys._MEIPASS
     else:
         root = os.path.dirname(os.path.abspath(__file__))
     index_path = os.path.join(root, "index.html")
+    if not os.path.exists(index_path):
+        # Fallback for local/dev launches where _MEIPASS is not the expected root.
+        alt = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+        if os.path.exists(alt):
+            index_path = alt
+        else:
+            raise FileNotFoundError(f"index.html not found in '{root}' or launcher directory.")
     url = f"file:///{index_path.replace(os.sep, '/')}"
 
     window = webview.create_window(

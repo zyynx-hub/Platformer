@@ -1,9 +1,11 @@
 window.Platformer = window.Platformer || {};
 Platformer.LevelBuilders = Platformer.LevelBuilders || {};
+Platformer.LevelJsonCache = Platformer.LevelJsonCache || {};
 
 Platformer.createLevelData = function createLevelData(level = 1) {
-  const width = 90;
-  const height = 18;
+  const jsonLevel = Platformer.LevelJsonCache[level] || null;
+  const width = Number((jsonLevel && jsonLevel.width) || 90);
+  const height = Number((jsonLevel && jsonLevel.height) || 18);
   const rows = Array.from({ length: height }, () => Array.from({ length: width }, () => "."));
 
   const inBounds = (x, y) => x >= 0 && x < width && y >= 0 && y < height;
@@ -24,19 +26,28 @@ Platformer.createLevelData = function createLevelData(level = 1) {
   // Base floor.
   line(0, width - 1, height - 1, "#");
 
-  const builder = Platformer.LevelBuilders[level] || Platformer.LevelBuilders[1];
-  if (builder) {
-    builder({
-      width,
-      height,
-      put,
-      line,
-      rect,
-      many,
-      manyEnemies,
+  if (jsonLevel && Array.isArray(jsonLevel.commands)) {
+    jsonLevel.commands.forEach((cmd) => {
+      const op = String((cmd && cmd.op) || "");
+      if (op === "line") line(Number(cmd.x1), Number(cmd.x2), Number(cmd.y), String(cmd.ch || "."));
+      if (op === "rect") rect(Number(cmd.x1), Number(cmd.y1), Number(cmd.x2), Number(cmd.y2), String(cmd.ch || "."));
+      if (op === "many") many(Array.isArray(cmd.items) ? cmd.items : [], String(cmd.ch || "."));
+      if (op === "manyEnemies") manyEnemies(Array.isArray(cmd.items) ? cmd.items : []);
     });
+  } else {
+    const builder = Platformer.LevelBuilders[level] || Platformer.LevelBuilders[1];
+    if (builder) {
+      builder({
+        width,
+        height,
+        put,
+        line,
+        rect,
+        many,
+        manyEnemies,
+      });
+    }
   }
 
   return rows.map((r) => r.join(""));
 };
-

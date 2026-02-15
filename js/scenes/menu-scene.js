@@ -14,7 +14,21 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.changePanelTitle = null;
     this.changePanelBody = null;
     this.changePanelOpen = false;
-    this.latestReleaseNotes = "No update details yet.\n\nWorking on gameplay pressure, enemy behavior, and update reliability.";
+    this.latestReleaseNotes = [
+      "No update details yet.",
+      "",
+      "Recent changes:",
+      "- Live animated menu lane (runner + enemy stomps)",
+      "- Menu hit feedback (red blink + knockback, non-lethal)",
+      "- Menu ambient state persists after Options return",
+      "- Options opens as live overlay over animated menu",
+      "- Reworked Options into standalone category cards",
+      "- Resize-safe Options layout and anchored back button",
+      "- Stable Options scrolling with fixed action footer",
+      "- Save + Back / Reset defaults always visible",
+      "",
+      "If online notes are available, this panel auto-refreshes from GitHub Releases.",
+    ].join("\n");
     this.latestReleaseTag = "";
     this.pendingUpdateUrl = "";
     this.updateInProgress = false;
@@ -35,6 +49,23 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.introFx = null;
     this.introParticles = null;
     this.introLines = [];
+    this.introGlow = null;
+    this.menuIntroInProgress = false;
+    this.menuIntroUiFadeCall = null;
+    this.menuIntroDoneCall = null;
+    this.menuStage = null;
+    this.menuRunner = null;
+    this.menuRunnerFace = 1;
+    this.menuRunnerGroundY = 0;
+    this.menuRunnerSpeed = 82;
+    this.menuRunnerJumpVy = -270;
+    this.menuRunnerVy = 0;
+    this.menuRunnerGravity = 700;
+    this.menuRunnerJumpCooldown = 0;
+    this.menuRunnerActionTimer = 0;
+    this.menuRunnerDamageCooldown = 0;
+    this.menuRunnerDamageFlashUntil = 0;
+    this.menuEnemies = [];
     this.introConfig = {
       totalMs: 1800,
       uiFadeMs: 260,
@@ -164,13 +195,16 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
     makeButton("options", 0, "OPTIONS", () => {
       if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Opening OptionsScene from menu.");
-      this.scene.start("OptionsScene", { returnTo: "menu" });
+      this.setMenuUiVisible(false);
+      this.setMenuInteractive(false);
+      this.scene.launch("OptionsScene", { returnTo: "menuOverlay" });
     });
     makeButton("credits", 0, "CREDITS", () => this.showCredits());
     makeButton("exit", 0, "EXIT", () => this.handleExit());
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
     this.createWhatsChangedWidget();
+    this.createMenuMiniStage();
     this.menuCard = this.add.rectangle(0, 0, 360, 390, 0x0b1731, 0.46)
       .setStrokeStyle(2, 0x7dd3fc, 0.38)
       .setDepth(8.5);
@@ -186,7 +220,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }
     this.createMenuIntroFx();
     this.layoutMenu();
-    this.onResize = () => this.layoutMenu();
+    this.onResize = () => this.handleResize();
     this.scale.on("resize", this.onResize);
     if (shouldPlayMenuIntro) this.playMenuIntro();
 
@@ -252,7 +286,130 @@ Platformer.MenuScene = class extends Phaser.Scene {
         .setWordWrapWidth(panelW - 32);
     }
     if (this.versionInfoText) this.versionInfoText.setPosition(14, h - 12);
+    this.layoutMenuMiniStage();
     this.layoutMenuIntroFx();
+  }
+
+  createMenuMiniStage() {
+    this.menuStage = this.add.container(0, 0).setDepth(7.8);
+
+    // Invisible logical lane: runner/enemies stay inside the existing green menu band.
+    const lane = this.add.rectangle(0, 0, 10, 10, 0x12815f, 0).setOrigin(0, 0.5);
+    const topStrip = this.add.rectangle(0, 0, 10, 8, 0x4ade80, 0).setOrigin(0, 1);
+    const laneShade = this.add.rectangle(0, 0, 10, 10, 0x0c5e45, 0).setOrigin(0, 0.5);
+    this.menuStage.add([lane, topStrip]);
+    this.menuStage.lane = lane;
+    this.menuStage.topStrip = topStrip;
+    this.menuStage.laneShade = laneShade;
+    this.menuStage.add(laneShade);
+
+    this.menuRunner = this.add.sprite(0, 0, this.textureOr("player-run-1", "player")).setDepth(8.2);
+    this.menuRunner.setDisplaySize(48, 64);
+    this.menuStage.add(this.menuRunner);
+
+    this.menuEnemies = [];
+    for (let i = 0; i < 4; i += 1) {
+      const enemy = this.add.sprite(0, 0, this.textureOr("enemy-e", "enemy")).setDepth(8.15);
+      enemy.setDisplaySize(34, 34);
+      enemy.menuX = 0;
+      enemy.menuDir = i % 2 === 0 ? 1 : -1;
+      enemy.menuSpeed = 30 + (i * 8);
+      enemy.alive = true;
+      enemy.respawnAt = 0;
+      this.menuEnemies.push(enemy);
+      this.menuStage.add(enemy);
+    }
+    this.restoreMenuMiniStageState();
+  }
+
+  layoutMenuMiniStage() {
+    if (!this.menuStage || !this.menuStage.lane || !this.menuStage.topStrip) return;
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const baseGroundTop = this.bgGround ? this.bgGround.y : (h - 160);
+    const baseGroundH = this.bgGround ? this.bgGround.height : 120;
+    const laneY = baseGroundTop + Math.round(baseGroundH * 0.44);
+    const laneH = Math.max(30, Math.round(baseGroundH * 0.34));
+    const margin = 26;
+    const laneX = margin;
+    const laneW = Math.max(280, w - margin * 2);
+    this.menuRunnerGroundY = laneY - 6;
+
+    this.menuStage.lane.setPosition(laneX, laneY).setSize(laneW, laneH);
+    this.menuStage.topStrip.setPosition(laneX, laneY).setSize(laneW, 8);
+    this.menuStage.laneShade.setPosition(laneX, laneY + 12).setSize(laneW, laneH - 12);
+
+    if (this.menuRunner) {
+      if (!Number.isFinite(this.menuRunner.menuX)) {
+        this.menuRunner.menuX = laneX + 60;
+      }
+      this.menuRunner.y = this.menuRunnerGroundY;
+    }
+
+    const slot = laneW / (this.menuEnemies.length + 1);
+    this.menuEnemies.forEach((enemy, idx) => {
+      if (!enemy) return;
+      if (!enemy.alive && this.time.now < enemy.respawnAt) return;
+      enemy.alive = true;
+      enemy.menuX = laneX + slot * (idx + 1) + Phaser.Math.Between(-26, 26);
+      enemy.y = this.menuRunnerGroundY + 2;
+      enemy.setVisible(true);
+      enemy.setAlpha(1);
+    });
+  }
+
+  restoreMenuMiniStageState() {
+    const s = Platformer._menuAmbientState;
+    if (!s) return;
+    if (this.menuRunner && Number.isFinite(s.runnerX)) {
+      this.menuRunner.menuX = s.runnerX;
+      this.menuRunner.y = Number.isFinite(s.runnerY) ? s.runnerY : this.menuRunnerGroundY;
+      this.menuRunnerFace = s.runnerFace === -1 ? -1 : 1;
+      this.menuRunnerVy = Number.isFinite(s.runnerVy) ? s.runnerVy : 0;
+      this.menuRunnerJumpCooldown = Number.isFinite(s.runnerJumpCooldown) ? s.runnerJumpCooldown : 0;
+      this.menuRunnerDamageCooldown = Number.isFinite(s.runnerDamageCooldown) ? s.runnerDamageCooldown : 0;
+      this.menuRunnerActionTimer = Number.isFinite(s.runnerActionTimer) ? s.runnerActionTimer : 0;
+    }
+    if (Array.isArray(s.enemies) && this.menuEnemies && this.menuEnemies.length) {
+      this.menuEnemies.forEach((enemy, idx) => {
+        const se = s.enemies[idx];
+        if (!enemy || !se) return;
+        enemy.menuX = Number.isFinite(se.x) ? se.x : enemy.menuX;
+        enemy.menuDir = se.dir === -1 ? -1 : 1;
+        enemy.alive = se.alive !== false;
+        enemy.respawnAt = Number.isFinite(se.respawnAt) ? se.respawnAt : 0;
+        enemy.setVisible(enemy.alive);
+        if (enemy.alive) {
+          enemy.setAlpha(1);
+          enemy.setScale(1, 1);
+        }
+      });
+    }
+  }
+
+  saveMenuMiniStageState() {
+    Platformer._menuAmbientState = {
+      runnerX: this.menuRunner && Number.isFinite(this.menuRunner.menuX) ? this.menuRunner.menuX : null,
+      runnerY: this.menuRunner ? this.menuRunner.y : null,
+      runnerFace: this.menuRunnerFace,
+      runnerVy: this.menuRunnerVy,
+      runnerJumpCooldown: this.menuRunnerJumpCooldown,
+      runnerDamageCooldown: this.menuRunnerDamageCooldown,
+      runnerActionTimer: this.menuRunnerActionTimer,
+      enemies: (this.menuEnemies || []).map((enemy) => ({
+        x: enemy && Number.isFinite(enemy.menuX) ? enemy.menuX : null,
+        dir: enemy && enemy.menuDir === -1 ? -1 : 1,
+        alive: !!(enemy && enemy.alive),
+        respawnAt: enemy && Number.isFinite(enemy.respawnAt) ? enemy.respawnAt : 0,
+      })),
+    };
+  }
+
+  handleResize() {
+    this.layoutMenu();
+    if (this.menuIntroInProgress) {
+      this.forceCompleteMenuIntro();
+    }
   }
 
   createMenuUpdateWidget() {
@@ -304,12 +461,14 @@ Platformer.MenuScene = class extends Phaser.Scene {
       }
       if (result.hasUpdate) {
         this.pendingUpdateUrl = result.downloadUrl || "";
+        Platformer.Updater.latestChecksumSha256 = result.checksumSha256 || "";
         this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
         const v = result.latestVersion ? `v${result.latestVersion}` : "new";
         this.setBottomLeftUpdateStatus(`Update found (${v}).`);
         if (Platformer.Debug) Platformer.Debug.warn("MenuScene.update", `Update available: ${v}`);
       } else {
         this.pendingUpdateUrl = "";
+        Platformer.Updater.latestChecksumSha256 = "";
         this.updateButtonText.setText("Update");
         this.setBottomLeftUpdateStatus("You're up to date.");
         if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "No update available.");
@@ -396,10 +555,12 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (result.hasUpdate) {
       const v = result.latestVersion ? `v${result.latestVersion}` : "new version";
       this.pendingUpdateUrl = result.downloadUrl || "";
+      Platformer.Updater.latestChecksumSha256 = result.checksumSha256 || "";
       this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
       this.setBottomLeftUpdateStatus(`Update found (${v}). Press Update.`);
     } else {
       this.setBottomLeftUpdateStatus("You're up to date.");
+      Platformer.Updater.latestChecksumSha256 = "";
       this.updateButtonText.setText("Update");
     }
   }
@@ -569,6 +730,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
   playMenuIntro() {
     if (!this.titleText) return;
+    this.menuIntroInProgress = true;
 
     this.titleText.setAlpha(0).setScale(0.94).setY(42);
     this.cameras.main.fadeIn(520, 0, 0, 0);
@@ -584,11 +746,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
       duration: this.introConfig.titleRevealMs,
     });
 
-    const glow = this.add.circle(this.scale.width / 2, 86, 220, this.introConfig.glowCyan, 0.08)
+    this.introGlow = this.add.circle(this.scale.width / 2, 86, 220, this.introConfig.glowCyan, 0.08)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(13);
     this.tweens.add({
-      targets: glow,
+      targets: this.introGlow,
       alpha: { from: 0.15, to: 0.03 },
       scale: { from: 0.8, to: 1.14 },
       ease: "Sine.InOut",
@@ -630,7 +792,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       if (buttonTargets.includes(el)) return false;
       return true;
     });
-    this.time.delayedCall(titleEndAt + orderedButtons.length * this.introConfig.buttonStaggerMs - 40, () => {
+    this.menuIntroUiFadeCall = this.time.delayedCall(titleEndAt + orderedButtons.length * this.introConfig.buttonStaggerMs - 40, () => {
       this.tweens.add({
         targets: remainingUi,
         alpha: 1,
@@ -639,10 +801,47 @@ Platformer.MenuScene = class extends Phaser.Scene {
       });
     });
 
-    this.time.delayedCall(this.introConfig.totalMs, () => {
+    this.menuIntroDoneCall = this.time.delayedCall(this.introConfig.totalMs, () => {
+      this.menuIntroInProgress = false;
       this.setMenuInteractive(true);
       if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Menu intro complete. UI interactive.");
     });
+  }
+
+  forceCompleteMenuIntro() {
+    if (!this.menuIntroInProgress) return;
+    this.menuIntroInProgress = false;
+
+    if (this.menuIntroUiFadeCall) this.menuIntroUiFadeCall.remove(false);
+    if (this.menuIntroDoneCall) this.menuIntroDoneCall.remove(false);
+    this.menuIntroUiFadeCall = null;
+    this.menuIntroDoneCall = null;
+
+    const targets = [
+      this.titleText,
+      this.titleShadow,
+      this.menuCard,
+      this.comingSoonText,
+      this.updateButton,
+      this.updateButtonText,
+      this.changeButton,
+      this.changeButtonText,
+      this.changePanel,
+      this.changePanelTitle,
+      this.changePanelBody,
+      this.versionInfoText,
+    ];
+    Object.values(this.menuButtons).forEach((b) => {
+      if (!b) return;
+      targets.push(b.glow, b.box, b.txt);
+    });
+    this.tweens.killTweensOf(targets.filter(Boolean));
+    if (this.introGlow) this.tweens.killTweensOf(this.introGlow);
+
+    this.layoutMenu();
+    this.setMenuUiVisible(true);
+    this.setMenuInteractive(true);
+    if (Platformer.Debug) Platformer.Debug.warn("MenuScene", "Intro auto-completed due to resize.");
   }
 
   createPrettyBackdrop() {
@@ -877,10 +1076,142 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.bgOrbs[0].x = this.scale.width * 0.78 + Math.cos(t * 0.6) * 16;
       this.bgOrbs[1].x = this.scale.width * 0.2 + Math.sin(t * 0.75) * 18;
     }
+    this.updateMenuMiniStage(delta);
+  }
+
+  updateMenuMiniStage(delta) {
+    if (!this.menuRunner || !this.menuStage || !this.menuStage.lane) return;
+    const dt = Math.max(0.001, delta / 1000);
+    const lane = this.menuStage.lane;
+    const minX = lane.x + 26;
+    const maxX = lane.x + lane.width - 26;
+
+    if (!Number.isFinite(this.menuRunner.menuX)) this.menuRunner.menuX = minX + 40;
+    this.menuRunner.menuX += this.menuRunnerFace * this.menuRunnerSpeed * dt;
+    if (this.menuRunner.menuX <= minX) {
+      this.menuRunner.menuX = minX;
+      this.menuRunnerFace = 1;
+    } else if (this.menuRunner.menuX >= maxX) {
+      this.menuRunner.menuX = maxX;
+      this.menuRunnerFace = -1;
+    }
+
+    this.menuRunnerJumpCooldown -= delta;
+    this.menuRunnerDamageCooldown -= delta;
+    this.menuRunnerActionTimer -= delta;
+    const target = this.menuEnemies.find((e) => {
+      if (!e || !e.alive) return false;
+      const dx = e.menuX - this.menuRunner.menuX;
+      if (Math.abs(dx) > 120) return false;
+      return dx * this.menuRunnerFace > 0;
+    });
+    const grounded = this.menuRunner.y >= this.menuRunnerGroundY - 0.5;
+    const freestyleJump = grounded && this.menuRunnerActionTimer <= 0 && this.menuRunnerJumpCooldown <= 0 && Phaser.Math.Between(0, 100) < 12;
+    if ((target || freestyleJump) && grounded && this.menuRunnerJumpCooldown <= 0) {
+      this.menuRunnerVy = this.menuRunnerJumpVy;
+      this.menuRunnerJumpCooldown = target ? 520 : 900;
+      this.menuRunnerActionTimer = Phaser.Math.Between(650, 1300);
+    }
+
+    this.menuRunnerVy += this.menuRunnerGravity * dt;
+    this.menuRunner.y += this.menuRunnerVy * dt;
+    if (this.menuRunner.y > this.menuRunnerGroundY) {
+      this.menuRunner.y = this.menuRunnerGroundY;
+      this.menuRunnerVy = 0;
+    }
+
+    this.menuRunner.setFlipX(this.menuRunnerFace < 0);
+    if (this.menuRunnerVy < -30) this.menuRunner.setTexture(this.textureOr("player-jump", "player"));
+    else if (this.menuRunnerVy > 70 && this.menuRunner.y < this.menuRunnerGroundY) this.menuRunner.setTexture(this.textureOr("player-jump", "player"));
+    else this.menuRunner.setTexture(this.textureOr(Math.floor(this.time.now / 130) % 2 === 0 ? "player-run-1" : "player-run-2", "player"));
+    this.menuRunner.x = this.menuRunner.menuX;
+    if (this.time.now < this.menuRunnerDamageFlashUntil) {
+      const blinkOn = Math.floor(this.time.now / 70) % 2 === 0;
+      if (blinkOn) this.menuRunner.setTint(0xff4d4d);
+      else this.menuRunner.clearTint();
+    } else {
+      this.menuRunner.clearTint();
+    }
+
+    this.menuEnemies.forEach((enemy) => {
+      if (!enemy) return;
+      if (!enemy.alive) {
+        if (this.time.now >= enemy.respawnAt) {
+          enemy.alive = true;
+          enemy.setVisible(true);
+          enemy.setAlpha(1);
+          enemy.setScale(1, 1);
+          enemy.y = this.menuRunnerGroundY + 2;
+          enemy.menuX = Phaser.Math.Between(minX + 40, maxX - 40);
+          enemy.menuDir = Phaser.Math.Between(0, 1) ? 1 : -1;
+        }
+        return;
+      }
+
+      enemy.menuX += enemy.menuDir * enemy.menuSpeed * dt;
+      if (enemy.menuX <= minX + 18) {
+        enemy.menuX = minX + 18;
+        enemy.menuDir = 1;
+      } else if (enemy.menuX >= maxX - 18) {
+        enemy.menuX = maxX - 18;
+        enemy.menuDir = -1;
+      }
+      enemy.x = enemy.menuX;
+      enemy.setFlipX(enemy.menuDir < 0);
+      const stomp = Math.abs(this.menuRunner.x - enemy.x) < 18
+        && this.menuRunner.y < enemy.y - 10
+        && this.menuRunnerVy > 60;
+      if (stomp) {
+        enemy.alive = false;
+        enemy.respawnAt = this.time.now + Phaser.Math.Between(1300, 2200);
+        this.tweens.add({
+          targets: enemy,
+          scaleX: 1.35,
+          scaleY: 0.45,
+          alpha: 0.25,
+          duration: 120,
+          onComplete: () => {
+            if (enemy && enemy.active) enemy.setVisible(false);
+          },
+        });
+        const puff = this.add.circle(enemy.x, enemy.y - 6, 6, 0xffffff, 0.95).setDepth(8.25).setBlendMode(Phaser.BlendModes.ADD);
+        this.menuStage.add(puff);
+        this.tweens.add({
+          targets: puff,
+          scale: 3.1,
+          alpha: 0,
+          duration: 260,
+          ease: "Cubic.Out",
+          onComplete: () => puff.destroy(),
+        });
+        this.menuRunnerVy = -190;
+        return;
+      }
+
+      const sideHit = Math.abs(this.menuRunner.x - enemy.x) < 22
+        && Math.abs(this.menuRunner.y - enemy.y) < 24
+        && this.menuRunnerDamageCooldown <= 0;
+      if (sideHit) {
+        this.menuRunnerDamageCooldown = 700;
+        this.menuRunnerDamageFlashUntil = this.time.now + 420;
+        this.menuRunnerVy = -120;
+        this.menuRunnerFace = this.menuRunner.x < enemy.x ? -1 : 1;
+        this.menuRunner.menuX += this.menuRunnerFace * 20;
+        this.menuRunner.menuX = Phaser.Math.Clamp(this.menuRunner.menuX, minX, maxX);
+      }
+    });
+    this.saveMenuMiniStageState();
+  }
+
+  textureOr(textureKey, fallbackKey) {
+    if (textureKey && this.textures.exists(textureKey)) return textureKey;
+    if (fallbackKey && this.textures.exists(fallbackKey)) return fallbackKey;
+    return "__WHITE";
   }
 
   shutdown() {
     // Keep menu music alive across Menu <-> Options transitions.
+    this.saveMenuMiniStageState();
     if (this.onResize) {
       this.scale.off("resize", this.onResize);
       this.onResize = null;
@@ -893,6 +1224,16 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.introFx.destroy(true);
       this.introFx = null;
     }
+    if (this.introGlow) {
+      this.introGlow.destroy();
+      this.introGlow = null;
+    }
+    if (this.menuStage) {
+      this.menuStage.destroy(true);
+      this.menuStage = null;
+    }
+    this.menuRunner = null;
+    this.menuEnemies = [];
     this.bgOrbs = [];
     this.introLines = [];
   }

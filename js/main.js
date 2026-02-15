@@ -1,6 +1,11 @@
-﻿window.Platformer = window.Platformer || {};
+window.Platformer = window.Platformer || {};
 
-(() => {
+(async () => {
+  if (!Platformer.BUILD_VERSION || typeof Platformer.BUILD_VERSION !== "string") {
+    document.body.innerHTML = "<div style='font-family:Consolas,monospace;padding:24px;color:#fee2e2;background:#1f2937'>Build metadata missing. Rebuild the game package.</div>";
+    throw new Error("BUILD_VERSION missing.");
+  }
+  await Platformer.Settings.bootstrap();
   const { PLAYER } = Platformer.Config;
   const settings = Platformer.Settings.current;
   const fpsTarget = settings.video.fpsCap === "unlimited" ? 0 : Number(settings.video.fpsCap);
@@ -79,6 +84,11 @@
   };
 
   const game = new Phaser.Game(config);
+  window.AnimePlatformerGame = {
+    play() { if (game && game.scene) game.scene.resume("GameScene"); },
+    pause() { if (game && game.scene) game.scene.pause("GameScene"); },
+    settings() { return Platformer.Settings.current; },
+  };
   Platformer.Debug.attachGameMonitors(game);
   let lastW = initial.w;
   let lastH = initial.h;
@@ -109,6 +119,12 @@
 
   window.addEventListener("resize", syncGameSize);
   window.addEventListener("orientationchange", syncGameSize);
+  window.addEventListener("online", () => {
+    const scene = game && game.scene ? game.scene.getScene("MenuScene") : null;
+    if (scene && typeof scene.autoCheckUpdatesForBottomLeft === "function") {
+      scene.autoCheckUpdatesForBottomLeft();
+    }
+  });
   // Keep a lightweight heartbeat for wrappers that occasionally miss resize events.
   setInterval(syncGameSize, 500);
 
@@ -120,3 +136,5 @@
     });
   }
 })();
+
+

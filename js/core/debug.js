@@ -2,6 +2,7 @@
 
 Platformer.Debug = {
   initialized: false,
+  enabled: false,
   lines: [],
   maxLines: 300,
   panel: null,
@@ -18,6 +19,9 @@ Platformer.Debug = {
   init() {
     if (this.initialized) return;
     this.initialized = true;
+    const desktopHost = !!(window.pywebview && window.pywebview.api);
+    this.enabled = !!(window.DEBUG_MODE || Platformer.BUILD_DEBUG || desktopHost);
+    if (!this.enabled) return;
 
     const root = document.createElement("div");
     root.style.position = "fixed";
@@ -202,6 +206,7 @@ Platformer.Debug = {
   },
 
   append(type, label, message) {
+    if (!this.enabled) return;
     const line = `[${this.timestamp()}] [${type}] ${label}: ${message}`;
     this.lines.push(line);
     if (this.lines.length > this.maxLines) {
@@ -262,6 +267,7 @@ Platformer.Debug = {
   },
 
   attachGameMonitors(game) {
+    if (!this.enabled) return;
     if (this._monitorsAttached || !game) return;
     this._monitorsAttached = true;
 
@@ -330,6 +336,9 @@ Platformer.Debug = {
   },
 
   safe(label, fn, ctx, args) {
+    if (!this.enabled) {
+      return fn.apply(ctx, args || []);
+    }
     try {
       return fn.apply(ctx, args || []);
     } catch (err) {

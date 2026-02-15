@@ -1,6 +1,8 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+if "%PYTHON%"=="" set "PYTHON=py"
 
 REM Offline build script (expects dependencies already installed locally):
 REM py -m pip install pywebview pyinstaller
@@ -12,16 +14,31 @@ echo [build] UPDATE_GH_REPO=%UPDATE_GH_REPO%
 echo [build] UPDATE_CHANNEL=%UPDATE_CHANNEL%
 echo [build] UPDATE_ENABLED=%UPDATE_ENABLED%
 
-py scripts\write_build_info.py
+"%PYTHON%" scripts\write_build_info.py
 if errorlevel 1 (
   echo Failed to write build info.
   exit /b 1
 )
 
-py -m PyInstaller ^
+"%PYTHON%" scripts\build_js_bundle.py
+if errorlevel 1 (
+  echo Failed to build JS bundle/source map.
+  exit /b 1
+)
+
+"%PYTHON%" scripts\validate_assets.py
+if errorlevel 1 (
+  echo Asset validation failed.
+  exit /b 1
+)
+
+"%PYTHON%" scripts\cleanup_backups.py
+
+"%PYTHON%" -m PyInstaller ^
   --noconfirm ^
   --clean ^
   --onefile ^
+  --windowed ^
   --name "AnimePlatformer" ^
   --distpath "%BUILD_DIST%" ^
   --workpath "build" ^
@@ -45,6 +62,8 @@ if not exist "%NEW_EXE%" (
 taskkill /F /IM AnimePlatformer.exe /T >nul 2>&1
 timeout /t 1 /nobreak >nul
 
+del /q "%SCRIPT_DIR%*.bak" >nul 2>&1
+del /q "%BUILD_DIST%\*.bak" >nul 2>&1
 copy /Y "%NEW_EXE%" "%~dp0AnimePlatformer.exe" >nul 2>&1
 if errorlevel 1 (
   echo [build] Failed to replace root AnimePlatformer.exe.
@@ -59,7 +78,7 @@ if "%GH_TOKEN%"=="" if "%GITHUB_TOKEN%"=="" (
   goto :after_publish
 )
 
-py scripts\publish_github_release.py --repo "%UPDATE_GH_REPO%" --channel "%UPDATE_CHANNEL%" --exe "%NEW_EXE%"
+"%PYTHON%" scripts\publish_github_release.py --repo "%UPDATE_GH_REPO%" --channel "%UPDATE_CHANNEL%" --exe "%NEW_EXE%"
 if errorlevel 1 (
   echo [build] GitHub publish failed.
   exit /b 1

@@ -14,6 +14,8 @@ def main() -> int:
     update_channel = os.getenv("UPDATE_CHANNEL", "stable").strip() or "stable"
     update_enabled_raw = os.getenv("UPDATE_ENABLED", "true").strip().lower()
     update_enabled = "false" not in update_enabled_raw and update_enabled_raw not in ("0", "off", "no")
+    debug_raw = os.getenv("DEBUG_MODE", "false").strip().lower()
+    debug_enabled = debug_raw in ("1", "true", "on", "yes")
 
     content = (
         "window.Platformer = window.Platformer || {};\n\n"
@@ -23,6 +25,7 @@ def main() -> int:
         f'Platformer.BUILD_UPDATE_REPO = "{update_repo}";\n'
         f'Platformer.BUILD_UPDATE_CHANNEL = "{update_channel}";\n'
         f"Platformer.BUILD_UPDATE_ENABLED = {str(update_enabled).lower()};\n"
+        f"Platformer.BUILD_DEBUG = {str(debug_enabled).lower()};\n"
     )
     out_path.write_text(content, encoding="utf-8")
     print(f"[build-info] version={version} time={ts}")
