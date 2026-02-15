@@ -428,7 +428,7 @@ class Api:
                 'if "%START_OK%"=="1" (echo [Updater] rollback relaunch ok>>"%LOG%") else (echo [Updater] rollback relaunch failed>>"%LOG%")',
                 ":done",
                 'echo ==== updater end %DATE% %TIME% ====>>"%LOG%"',
-                'del /f /q "%~f0" >nul 2>&1',
+                'start "" /b cmd /c del /f /q "%~f0" >nul 2>&1',
                 "exit /b 0",
             ]
             with open(script_path, "w", encoding="utf-8") as f:
