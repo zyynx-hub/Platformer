@@ -248,16 +248,20 @@ class Api:
             try:
                 subprocess.Popen(
                     ["cmd", "/c", updater_bat],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
                 )
                 launched = True
             except OSError as e:
                 if getattr(e, "winerror", None) == 87:
-                    host_log("WARN", "Updater", "WinError 87 on detached launch; retrying with default flags.")
+                    host_log("WARN", "Updater", "WinError 87 on console launch; retrying plain cmd.")
                     subprocess.Popen(["cmd", "/c", updater_bat])
                     launched = True
                 else:
                     raise
+            except Exception:
+                # Last fallback: invoke via shell.
+                subprocess.Popen(updater_bat, shell=True)
+                launched = True
 
             if not launched:
                 return {"ok": False, "message": "Failed to launch updater helper."}
@@ -357,6 +361,8 @@ class Api:
                 f'set "TARGET={target_exe}"',
                 f'set "NEWEXE={downloaded_exe}"',
                 f'set "BACKUP={backup_exe}"',
+                'set "LOG=%TEMP%\\anime_platformer_updater.log"',
+                'echo ==== updater start %DATE% %TIME% ====>>"%LOG%"',
                 "echo [Updater] Waiting for game process to close...",
                 "timeout /t 2 /nobreak >nul",
                 "echo [Updater] Creating backup...",
@@ -365,7 +371,7 @@ class Api:
                 'copy /Y "%TARGET%" "%BACKUP%" >nul 2>&1',
                 "if not errorlevel 1 goto backup_ok",
                 "set /a RETRIES+=1",
-                "if %RETRIES% GEQ 8 goto rollback",
+                "if %RETRIES% GEQ 12 goto rollback",
                 "timeout /t 1 /nobreak >nul",
                 "goto backup_retry",
                 ":backup_ok",
@@ -375,19 +381,26 @@ class Api:
                 'copy /Y "%NEWEXE%" "%TARGET%" >nul 2>&1',
                 "if not errorlevel 1 goto replace_ok",
                 "set /a RETRIES+=1",
-                "if %RETRIES% GEQ 8 goto rollback",
+                "if %RETRIES% GEQ 12 goto rollback",
                 "timeout /t 1 /nobreak >nul",
                 "goto replace_retry",
                 ":replace_ok",
+                'echo [Updater] replace ok >>"%LOG%"',
                 "echo [Updater] Update applied. Restarting game...",
-                'start "" /B "%TARGET%"',
+                'start "" "%TARGET%"',
+                "if errorlevel 1 powershell -NoProfile -Command \"Start-Process -FilePath $env:TARGET\"",
+                "if errorlevel 1 explorer \"%TARGET%\"",
                 'del /f /q "%NEWEXE%" >nul 2>&1',
                 "goto done",
                 ":rollback",
                 "echo [Updater] Replacement failed. Restoring backup...",
+                'echo [Updater] rollback >>"%LOG%"',
                 'copy /Y "%BACKUP%" "%TARGET%" >nul 2>&1',
-                'start "" /B "%TARGET%"',
+                'start "" "%TARGET%"',
+                "if errorlevel 1 powershell -NoProfile -Command \"Start-Process -FilePath $env:TARGET\"",
+                "if errorlevel 1 explorer \"%TARGET%\"",
                 ":done",
+                'echo ==== updater end %DATE% %TIME% ====>>"%LOG%"',
                 'del /f /q "%~f0" >nul 2>&1',
                 "exit /b 0",
             ]
