@@ -171,7 +171,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }
     if (this.changeButton && this.changeButtonText) {
       const cxRight = w - 96;
-      const cyTop = 84;
+      const cyTop = 118;
       this.changeButton.setPosition(cxRight, cyTop);
       this.changeButtonText.setPosition(cxRight, cyTop);
     }
@@ -420,7 +420,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
   normalizeReleaseNotes(rawText) {
     const text = String(rawText || "").replace(/\r/g, "").trim();
     if (!text) {
-      return "No detailed notes in this release.\n\nWorking on gameplay pressure, enemy behavior, and update reliability.";
+      return "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
     }
     return text.length > 1200 ? `${text.slice(0, 1200)}\n...` : text;
   }
