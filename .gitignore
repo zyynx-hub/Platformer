@@ -1,0 +1,11 @@
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+runtime-debug.log
+AnimePlatformer.spec
+AnimePlatformer.exe
+*.bak
+*.tmp
