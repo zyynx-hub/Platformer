@@ -3,6 +3,8 @@
 Platformer.BootScene = class extends Phaser.Scene {
   constructor() {
     super("BootScene");
+    this.playerIdleLoadFailed = false;
+    this.playerIdleWarned = false;
   }
 
   preload() {
@@ -10,8 +12,12 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.load.audio("pause-bgm", "assets/Elevator Music - So Chill (mp3cut.net).mp3");
     this.load.image("player-idle-raw", "assets/IFFY_IDLE.png");
     this.load.on("loaderror", (fileObj) => {
-      if (fileObj && fileObj.key === "player-idle-raw" && Platformer.Debug) {
-        Platformer.Debug.warn("BootScene.playerIdle", `Preload failed for ${fileObj.src || "assets/IFFY_IDLE.png"}`);
+      if (fileObj && fileObj.key === "player-idle-raw") {
+        this.playerIdleLoadFailed = true;
+        if (Platformer.Debug && !this.playerIdleWarned) {
+          this.playerIdleWarned = true;
+          Platformer.Debug.warn("BootScene.playerIdle", "Optional asset missing: assets/IFFY_IDLE.png. Using built-in fallback character.");
+        }
       }
     });
   }
@@ -262,8 +268,13 @@ Platformer.BootScene = class extends Phaser.Scene {
 
   setupPlayerIdleAnimation() {
     if (!this.textures.exists("player-idle-raw")) {
-      if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", "Texture player-idle-raw not found. Trying runtime URL fallbacks.");
-      this.tryRuntimeLoadPlayerIdle();
+      if (Platformer.Debug && !this.playerIdleWarned) {
+        this.playerIdleWarned = true;
+        const msg = this.playerIdleLoadFailed
+          ? "Player idle spritesheet failed to preload. Using built-in fallback character."
+          : "Player idle spritesheet not found. Using built-in fallback character.";
+        Platformer.Debug.warn("BootScene.playerIdle", msg);
+      }
       return;
     }
 
@@ -300,53 +311,5 @@ Platformer.BootScene = class extends Phaser.Scene {
       repeat: -1,
     });
     if (Platformer.Debug) Platformer.Debug.log("BootScene.playerIdle", `Loaded IFFY idle sheet ${source.width}x${source.height}, frames=${frames}`);
-  }
-
-  tryRuntimeLoadPlayerIdle() {
-    if (this._tryingRuntimeIdleLoad) {
-      return;
-    }
-    this._tryingRuntimeIdleLoad = true;
-
-    const candidates = [
-      "assets/IFFY_IDLE.png",
-      "./assets/IFFY_IDLE.png",
-      "assets/iffy_idle.png",
-      "./assets/iffy_idle.png",
-      "assets/IFFY_IDLE.PNG",
-      "./assets/IFFY_IDLE.PNG",
-    ];
-
-    const tryNext = (idx) => {
-      if (idx >= candidates.length) {
-        if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", "Runtime fallback failed for all IFFY_IDLE paths.");
-        this._tryingRuntimeIdleLoad = false;
-        return;
-      }
-
-      const src = candidates[idx];
-      const img = new Image();
-      img.onload = () => {
-        try {
-          if (this.textures.exists("player-idle-raw")) {
-            this.textures.remove("player-idle-raw");
-          }
-          this.textures.addImage("player-idle-raw", img);
-          if (Platformer.Debug) Platformer.Debug.log("BootScene.playerIdle", `Runtime-loaded player idle from ${src}`);
-          this._tryingRuntimeIdleLoad = false;
-          this.setupPlayerIdleAnimation();
-        } catch (e) {
-          if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", `Runtime addImage failed for ${src}: ${e && e.message ? e.message : e}`);
-          tryNext(idx + 1);
-        }
-      };
-      img.onerror = () => {
-        if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", `Runtime load failed: ${src}`);
-        tryNext(idx + 1);
-      };
-      img.src = src;
-    };
-
-    tryNext(0);
   }
 };
