@@ -254,7 +254,7 @@ class Api:
             return {"ok": False, "message": "Cannot determine current executable path."}
 
         backup_exe = f"{target_exe}.bak"
-        updater_bat = self._write_updater_script(target_exe, downloaded_path, backup_exe)
+        updater_bat = self._write_updater_script(target_exe, downloaded_path, backup_exe, os.getpid())
         if not updater_bat:
             return {"ok": False, "message": "Failed to create updater helper script."}
 
@@ -301,8 +301,8 @@ class Api:
                 self._update_state["stage"] = "applying"
                 self._update_state["progress"] = 100.0
                 self._update_state["message"] = "Applying update and restarting..."
-            # Small delay gives Windows time to schedule detached helper before UI teardown.
-            threading.Timer(0.3, lambda: webview.windows[0].destroy()).start()
+            # Close now; helper explicitly waits on current PID before replacing.
+            webview.windows[0].destroy()
             return {"ok": True, "message": "Applying update and restarting."}
         except Exception as e:
             host_log("ERROR", "Updater", f"Failed to launch updater helper: {e}")
@@ -384,7 +384,7 @@ class Api:
         # Dev fallback path.
         return os.path.join(ROOT_DIR, "AnimePlatformer.exe")
 
-    def _write_updater_script(self, target_exe, downloaded_exe, backup_exe):
+    def _write_updater_script(self, target_exe, downloaded_exe, backup_exe, current_pid):
         try:
             fd, script_path = tempfile.mkstemp(prefix="anime_platformer_apply_", suffix=".bat")
             os.close(fd)
@@ -394,22 +394,36 @@ class Api:
                 f'set "TARGET={target_exe}"',
                 f'set "NEWEXE={downloaded_exe}"',
                 f'set "BACKUP={backup_exe}"',
+                f'set "OLDPID={int(current_pid)}"',
                 'for %%I in ("%TARGET%") do set "TARGET_DIR=%%~dpI"',
                 'set "LOG_DIR=%LOCALAPPDATA%\\AnimePlatformer"',
                 'if "%LOCALAPPDATA%"=="" set "LOG_DIR=%TEMP%\\AnimePlatformer"',
                 'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1',
                 'set "LOG=%LOG_DIR%\\updater.log"',
                 'echo ==== updater start %DATE% %TIME% ====>>"%LOG%"',
-                'echo target="%TARGET%" new="%NEWEXE%" backup="%BACKUP%">>"%LOG%"',
-                "echo [Updater] Waiting for game process to close...",
-                "timeout /t 3 /nobreak >nul",
+                'echo target="%TARGET%" new="%NEWEXE%" backup="%BACKUP%" oldpid="%OLDPID%">>"%LOG%"',
+                "echo [Updater] Waiting for old process to close...",
+                "set RETRIES=0",
+                ":wait_old_pid",
+                'tasklist /FI "PID eq %OLDPID%" | findstr /I "%OLDPID%" >nul',
+                "if errorlevel 1 goto old_pid_gone",
+                "set /a RETRIES+=1",
+                "if %RETRIES% GEQ 30 goto force_kill_old",
+                "timeout /t 1 /nobreak >nul",
+                "goto wait_old_pid",
+                ":force_kill_old",
+                'echo [Updater] old pid still alive; forcing kill >>"%LOG%"',
+                'taskkill /PID %OLDPID% /F >nul 2>&1',
+                "timeout /t 1 /nobreak >nul",
+                ":old_pid_gone",
                 "echo [Updater] Creating backup...",
                 "set RETRIES=0",
                 ":backup_retry",
                 'copy /Y "%TARGET%" "%BACKUP%" >nul 2>&1',
                 "if not errorlevel 1 goto backup_ok",
                 "set /a RETRIES+=1",
-                "if %RETRIES% GEQ 12 goto rollback",
+                'echo [Updater] backup retry %RETRIES% failed >>"%LOG%"',
+                "if %RETRIES% GEQ 20 goto rollback",
                 "timeout /t 1 /nobreak >nul",
                 "goto backup_retry",
                 ":backup_ok",
@@ -419,7 +433,8 @@ class Api:
                 'copy /Y "%NEWEXE%" "%TARGET%" >nul 2>&1',
                 "if not errorlevel 1 goto replace_ok",
                 "set /a RETRIES+=1",
-                "if %RETRIES% GEQ 12 goto rollback",
+                'echo [Updater] replace retry %RETRIES% failed >>"%LOG%"',
+                "if %RETRIES% GEQ 20 goto rollback",
                 "timeout /t 1 /nobreak >nul",
                 "goto replace_retry",
                 ":replace_ok",
