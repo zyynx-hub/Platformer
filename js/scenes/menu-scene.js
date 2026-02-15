@@ -31,10 +31,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.introParticles = null;
     this.introLines = [];
     this.introConfig = {
-      totalMs: 3600,
-      uiFadeMs: 420,
-      titleRevealDelayMs: 220,
-      titleRevealMs: 760,
+      totalMs: 1800,
+      uiFadeMs: 260,
+      titleRevealDelayMs: 80,
+      titleRevealMs: 420,
       skyColor: 0x67c8ff,
       midColor: 0x75e0bc,
       groundColor: 0x5ea800,
