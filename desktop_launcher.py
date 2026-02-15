@@ -15,6 +15,8 @@ import webview
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(ROOT_DIR, "runtime-debug.log")
+USER_LOG_DIR = os.path.join(os.environ.get("LOCALAPPDATA", tempfile.gettempdir()), "AnimePlatformer")
+USER_UPDATER_LOG_PATH = os.path.join(USER_LOG_DIR, "updater.log")
 
 
 def host_log(level, source, message):
@@ -24,6 +26,13 @@ def host_log(level, source, message):
     try:
         with open(LOG_PATH, "a", encoding="utf-8") as f:
             f.write(line + "\n")
+    except Exception:
+        pass
+
+
+def ensure_user_log_dir():
+    try:
+        os.makedirs(USER_LOG_DIR, exist_ok=True)
     except Exception:
         pass
 
@@ -243,6 +252,7 @@ class Api:
             return {"ok": False, "message": "Failed to create updater helper script."}
 
         try:
+            host_log("INFO", "Updater", f"Helper log expected at: {USER_UPDATER_LOG_PATH}")
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
             launched = False
             detached_flags = (
@@ -279,7 +289,7 @@ class Api:
                     host_log("WARN", "Updater", f"Shell launch failed: {e}")
 
             if not launched:
-                return {"ok": False, "message": "Failed to launch updater helper."}
+                return {"ok": False, "message": f"Failed to launch updater helper. Check {LOG_PATH}"}
             with self._update_lock:
                 self._update_state["stage"] = "applying"
                 self._update_state["progress"] = 100.0
@@ -378,7 +388,10 @@ class Api:
                 f'set "NEWEXE={downloaded_exe}"',
                 f'set "BACKUP={backup_exe}"',
                 'for %%I in ("%TARGET%") do set "TARGET_DIR=%%~dpI"',
-                'set "LOG=%TEMP%\\anime_platformer_updater.log"',
+                'set "LOG_DIR=%LOCALAPPDATA%\\AnimePlatformer"',
+                'if "%LOCALAPPDATA%"=="" set "LOG_DIR=%TEMP%\\AnimePlatformer"',
+                'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1',
+                'set "LOG=%LOG_DIR%\\updater.log"',
                 'echo ==== updater start %DATE% %TIME% ====>>"%LOG%"',
                 'echo target="%TARGET%" new="%NEWEXE%" backup="%BACKUP%">>"%LOG%"',
                 "echo [Updater] Waiting for game process to close...",
@@ -578,6 +591,7 @@ class Api:
 
 
 def main():
+    ensure_user_log_dir()
     set_dpi_awareness()
     host_log("INFO", "Launcher", "Starting Anime Platformer desktop runtime.")
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
