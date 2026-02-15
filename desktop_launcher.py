@@ -244,10 +244,23 @@ class Api:
 
         try:
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
-            subprocess.Popen(
-                ["cmd", "/c", updater_bat],
-                creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
-            )
+            launched = False
+            try:
+                subprocess.Popen(
+                    ["cmd", "/c", updater_bat],
+                    creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
+                )
+                launched = True
+            except OSError as e:
+                if getattr(e, "winerror", None) == 87:
+                    host_log("WARN", "Updater", "WinError 87 on detached launch; retrying with default flags.")
+                    subprocess.Popen(["cmd", "/c", updater_bat])
+                    launched = True
+                else:
+                    raise
+
+            if not launched:
+                return {"ok": False, "message": "Failed to launch updater helper."}
             with self._update_lock:
                 self._update_state["stage"] = "applying"
                 self._update_state["progress"] = 100.0
