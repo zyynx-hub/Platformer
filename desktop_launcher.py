@@ -248,6 +248,7 @@ class Api:
             detached_flags = (
                 getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
                 | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+                | getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
             )
             launch_attempts = [
                 ["cmd", "/c", "start", "", "/min", updater_bat],
@@ -255,7 +256,7 @@ class Api:
             ]
             for cmd in launch_attempts:
                 try:
-                    proc = subprocess.Popen(cmd, creationflags=detached_flags)
+                    proc = subprocess.Popen(cmd, creationflags=detached_flags, close_fds=True)
                     if getattr(proc, "pid", 0):
                         launched = True
                         host_log("INFO", "Updater", f"Helper launch ok: {' '.join(cmd)} pid={proc.pid}")
@@ -270,7 +271,7 @@ class Api:
 
             if not launched:
                 try:
-                    proc = subprocess.Popen(updater_bat, shell=True)
+                    proc = subprocess.Popen(updater_bat, shell=True, close_fds=True)
                     launched = bool(getattr(proc, "pid", 0))
                     if launched:
                         host_log("INFO", "Updater", f"Helper shell launch ok: pid={proc.pid}")
@@ -405,12 +406,29 @@ class Api:
                 'echo [Updater] replace ok >>"%LOG%"',
                 "echo [Updater] Update applied. Restarting game...",
                 'set "START_OK=0"',
-                'powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
+                "set START_RETRIES=0",
+                ":restart_retry",
+                'if not exist "%TARGET%" (',
+                "  set /a START_RETRIES+=1",
+                "  if %START_RETRIES% GEQ 8 goto restart_fallback",
+                "  timeout /t 1 /nobreak >nul",
+                "  goto restart_retry",
+                ")",
+                'start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
                 'if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
                 'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" (',
+                "  set /a START_RETRIES+=1",
+                "  if %START_RETRIES% GEQ 8 goto restart_fallback",
+                "  timeout /t 1 /nobreak >nul",
+                "  goto restart_retry",
+                ")",
+                "goto restart_done",
+                ":restart_fallback",
+                'explorer "%TARGET%" >nul 2>&1',
+                'if not errorlevel 1 set "START_OK=1"',
+                ":restart_done",
                 'if "%START_OK%"=="1" (echo [Updater] restart launch ok>>"%LOG%") else (echo [Updater] restart launch failed>>"%LOG%")',
                 'del /f /q "%NEWEXE%" >nul 2>&1',
                 "goto done",
@@ -419,12 +437,29 @@ class Api:
                 'echo [Updater] rollback >>"%LOG%"',
                 'copy /Y "%BACKUP%" "%TARGET%" >nul 2>&1',
                 'set "START_OK=0"',
-                'powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
+                "set START_RETRIES=0",
+                ":rollback_restart_retry",
+                'if not exist "%TARGET%" (',
+                "  set /a START_RETRIES+=1",
+                "  if %START_RETRIES% GEQ 8 goto rollback_restart_fallback",
+                "  timeout /t 1 /nobreak >nul",
+                "  goto rollback_restart_retry",
+                ")",
+                'start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
                 'if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
                 'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" (',
+                "  set /a START_RETRIES+=1",
+                "  if %START_RETRIES% GEQ 8 goto rollback_restart_fallback",
+                "  timeout /t 1 /nobreak >nul",
+                "  goto rollback_restart_retry",
+                ")",
+                "goto rollback_restart_done",
+                ":rollback_restart_fallback",
+                'explorer "%TARGET%" >nul 2>&1',
+                'if not errorlevel 1 set "START_OK=1"',
+                ":rollback_restart_done",
                 'if "%START_OK%"=="1" (echo [Updater] rollback relaunch ok>>"%LOG%") else (echo [Updater] rollback relaunch failed>>"%LOG%")',
                 ":done",
                 'echo ==== updater end %DATE% %TIME% ====>>"%LOG%"',
