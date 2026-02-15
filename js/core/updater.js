@@ -3,24 +3,16 @@ window.Platformer = window.Platformer || {};
 Platformer.Updater = {
   resolveSource() {
     const cfg = Platformer.Settings.current.updates || {};
+    const defaultRepo = "zyynx-hub/Platformer";
     const buildRepo = String(Platformer.BUILD_UPDATE_REPO || "").trim().replace(/^\/+|\/+$/g, "");
     const buildChannel = String(Platformer.BUILD_UPDATE_CHANNEL || "stable").trim() || "stable";
     const buildEnabled = Platformer.BUILD_UPDATE_ENABLED !== false;
-
-    if (buildRepo) {
-      return {
-        enabled: buildEnabled && cfg.enabled !== false,
-        kind: "github",
-        repo: buildRepo,
-        channel: buildChannel,
-        currentVersion: cfg.currentVersion || "0.0.0",
-        fallbackDownloadUrl: cfg.downloadUrl || "",
-      };
-    }
-
+    const repo = buildRepo || defaultRepo;
     return {
-      enabled: cfg.enabled !== false,
-      kind: "none",
+      enabled: buildEnabled && cfg.enabled !== false,
+      kind: "github",
+      repo,
+      channel: buildChannel,
       currentVersion: cfg.currentVersion || "0.0.0",
       fallbackDownloadUrl: cfg.downloadUrl || "",
     };
