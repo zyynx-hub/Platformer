@@ -7,7 +7,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.menuMusicHtml = null;
     this.updateButton = null;
     this.updateButtonText = null;
-    this.updateStatusText = null;
     this.versionInfoText = null;
     this.changeButton = null;
     this.changeButtonText = null;
@@ -19,7 +18,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.latestReleaseTag = "";
     this.pendingUpdateUrl = "";
     this.updateInProgress = false;
-    this.autoUpdateTriggered = false;
     this.bgSky = null;
     this.bgMid = null;
     this.bgGround = null;
@@ -162,12 +160,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
     place(e, y0 + spacing * 4);
     if (this.comingSoonText) this.comingSoonText.setPosition(cx + 210, y0 + spacing);
 
-    if (this.updateButton && this.updateButtonText && this.updateStatusText) {
+    if (this.updateButton && this.updateButtonText) {
       const ux = w - 96;
       const uy = 38;
       this.updateButton.setPosition(ux, uy);
       this.updateButtonText.setPosition(ux, uy);
-      this.updateStatusText.setVisible(false);
     }
     if (this.changeButton && this.changeButtonText) {
       const cxRight = w - 96;
@@ -176,10 +173,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.changeButtonText.setPosition(cxRight, cyTop);
     }
     if (this.changePanel && this.changePanelTitle && this.changePanelBody) {
-      const panelW = Math.min(560, Math.max(360, Math.round(w * 0.42)), w - 40);
-      const panelH = Math.min(420, Math.max(220, Math.round(h * 0.52)), h - 70);
+      const panelW = Math.min(560, Math.max(380, Math.round(w * 0.34)));
+      const panelH = Math.min(430, Math.max(240, Math.round(h * 0.5)));
       const px = w - panelW / 2 - 20;
-      const py = Math.min(120 + panelH / 2, h - panelH / 2 - 20);
+      const py = Math.min(116 + panelH / 2, h - panelH / 2 - 20);
       this.changePanel.setSize(panelW, panelH).setPosition(px, py);
       this.changePanelTitle.setPosition(px - panelW / 2 + 16, py - panelH / 2 + 12);
       this.changePanelBody
@@ -201,15 +198,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
       fontSize: "22px",
       color: "#f8fafc",
     }).setOrigin(0.5).setDepth(21);
-    this.updateStatusText = this.add.text(x, y + 28, "", {
-      fontFamily: "Consolas",
-      fontSize: "13px",
-      color: "#0f172a",
-      stroke: "#f8fafc",
-      strokeThickness: 2,
-      align: "right",
-    }).setOrigin(0.5, 0).setDepth(21).setVisible(false);
-
     this.updateButton.on("pointerover", () => this.updateButton.setFillStyle(0x475569, 0.98));
     this.updateButton.on("pointerout", () => this.updateButton.setFillStyle(0x334155, 0.95));
     this.updateButton.on("pointerdown", async () => {
@@ -338,21 +326,9 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
     if (result.hasUpdate) {
       const v = result.latestVersion ? `v${result.latestVersion}` : "new version";
-      this.setBottomLeftUpdateStatus(`Update found (${v}).`);
       this.pendingUpdateUrl = result.downloadUrl || "";
       this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
-
-      const autoUpdateEnabled = cfg.autoUpdate !== false;
-      if (autoUpdateEnabled && this.pendingUpdateUrl && Platformer.Updater.canInAppApply() && !this.autoUpdateTriggered) {
-        this.autoUpdateTriggered = true;
-        this.time.delayedCall(450, async () => {
-          const r = await this.startInAppUpdate(this.pendingUpdateUrl, `Downloading ${v}...`);
-          if (!r.ok) {
-            this.autoUpdateTriggered = false;
-            if (Platformer.Debug) Platformer.Debug.error("MenuScene.autoUpdate", r.message || "Auto update failed.");
-          }
-        });
-      }
+      this.setBottomLeftUpdateStatus(`Update found (${v}). Press Update.`);
     } else {
       this.setBottomLeftUpdateStatus("You're up to date.");
       this.updateButtonText.setText("Update");
@@ -383,7 +359,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(23).setVisible(false);
     this.changePanelBody = this.add.text(0, 0, this.latestReleaseNotes, {
       fontFamily: "Consolas",
-      fontSize: "16px",
+      fontSize: "15px",
       color: "#cbd5e1",
       align: "left",
       wordWrap: { width: 440, useAdvancedWrap: true },
@@ -411,15 +387,24 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (!text || isPlaceholder) {
       return "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
     }
-    // Hide noisy auto-generated compare links and keep the panel readable.
-    const lines = text
+
+    const withoutTail = text
+      .replace(/\*\*?\s*full\s*changelog\s*\*?\s*:?\s*[\s\S]*$/i, "")
+      .replace(/full\s*changelog\s*:?\s*[\s\S]*$/i, "")
+      .trim();
+
+    const lines = withoutTail
       .split("\n")
-      .filter((line) => !/^\*\*full changelog\*\*:/i.test(line.trim()))
-      .filter((line) => !/^https?:\/\/github\.com\/.+\/compare\//i.test(line.trim()))
-      .map((line) => line.length > 92 ? `${line.slice(0, 92)}...` : line);
+      .filter((line) => !/full\s*changelog/i.test(line))
+      .filter((line) => !/github\.com\/.+\/compare\//i.test(line))
+      .filter((line) => !/github\.com\/.+\/releases\/download\//i.test(line))
+      .filter((line) => !/^\s*https?:\/\/\S+\s*$/i.test(line))
+      .map((line) => line.replace(/https?:\/\/\S+/g, ""))
+      .map((line) => line.length > 68 ? `${line.slice(0, 68)}...` : line)
+      .filter((line) => line.trim().length > 0);
 
     const compact = lines.join("\n").trim();
-    const capped = compact.length > 900 ? `${compact.slice(0, 900)}\n...` : compact;
+    const capped = compact.length > 460 ? `${compact.slice(0, 460)}\n...` : compact;
     return capped || "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
   }
 
