@@ -411,7 +411,16 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (!text || isPlaceholder) {
       return "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
     }
-    return text.length > 1200 ? `${text.slice(0, 1200)}\n...` : text;
+    // Hide noisy auto-generated compare links and keep the panel readable.
+    const lines = text
+      .split("\n")
+      .filter((line) => !/^\*\*full changelog\*\*:/i.test(line.trim()))
+      .filter((line) => !/^https?:\/\/github\.com\/.+\/compare\//i.test(line.trim()))
+      .map((line) => line.length > 92 ? `${line.slice(0, 92)}...` : line);
+
+    const compact = lines.join("\n").trim();
+    const capped = compact.length > 900 ? `${compact.slice(0, 900)}\n...` : compact;
+    return capped || "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
   }
 
   setLatestChangesFromResult(result) {
