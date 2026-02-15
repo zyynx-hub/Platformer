@@ -245,23 +245,37 @@ class Api:
         try:
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
             launched = False
-            try:
-                subprocess.Popen(
-                    ["cmd", "/c", updater_bat],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
-                )
-                launched = True
-            except OSError as e:
-                if getattr(e, "winerror", None) == 87:
-                    host_log("WARN", "Updater", "WinError 87 on console launch; retrying plain cmd.")
-                    subprocess.Popen(["cmd", "/c", updater_bat])
-                    launched = True
-                else:
-                    raise
-            except Exception:
-                # Last fallback: invoke via shell.
-                subprocess.Popen(updater_bat, shell=True)
-                launched = True
+            detached_flags = (
+                getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+                | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+            )
+            launch_attempts = [
+                ["cmd", "/c", "start", "", "/min", updater_bat],
+                ["cmd", "/c", updater_bat],
+            ]
+            for cmd in launch_attempts:
+                try:
+                    proc = subprocess.Popen(cmd, creationflags=detached_flags)
+                    if getattr(proc, "pid", 0):
+                        launched = True
+                        host_log("INFO", "Updater", f"Helper launch ok: {' '.join(cmd)} pid={proc.pid}")
+                        break
+                except OSError as e:
+                    if getattr(e, "winerror", None) == 87:
+                        host_log("WARN", "Updater", f"WinError 87 launching helper: {' '.join(cmd)}")
+                        continue
+                    host_log("WARN", "Updater", f"OSError launching helper ({' '.join(cmd)}): {e}")
+                except Exception as e:
+                    host_log("WARN", "Updater", f"Exception launching helper ({' '.join(cmd)}): {e}")
+
+            if not launched:
+                try:
+                    proc = subprocess.Popen(updater_bat, shell=True)
+                    launched = bool(getattr(proc, "pid", 0))
+                    if launched:
+                        host_log("INFO", "Updater", f"Helper shell launch ok: pid={proc.pid}")
+                except Exception as e:
+                    host_log("WARN", "Updater", f"Shell launch failed: {e}")
 
             if not launched:
                 return {"ok": False, "message": "Failed to launch updater helper."}
@@ -269,7 +283,8 @@ class Api:
                 self._update_state["stage"] = "applying"
                 self._update_state["progress"] = 100.0
                 self._update_state["message"] = "Applying update and restarting..."
-            webview.windows[0].destroy()
+            # Small delay gives Windows time to schedule detached helper before UI teardown.
+            threading.Timer(0.3, lambda: webview.windows[0].destroy()).start()
             return {"ok": True, "message": "Applying update and restarting."}
         except Exception as e:
             host_log("ERROR", "Updater", f"Failed to launch updater helper: {e}")
@@ -361,10 +376,12 @@ class Api:
                 f'set "TARGET={target_exe}"',
                 f'set "NEWEXE={downloaded_exe}"',
                 f'set "BACKUP={backup_exe}"',
+                'for %%I in ("%TARGET%") do set "TARGET_DIR=%%~dpI"',
                 'set "LOG=%TEMP%\\anime_platformer_updater.log"',
                 'echo ==== updater start %DATE% %TIME% ====>>"%LOG%"',
+                'echo target="%TARGET%" new="%NEWEXE%" backup="%BACKUP%">>"%LOG%"',
                 "echo [Updater] Waiting for game process to close...",
-                "timeout /t 2 /nobreak >nul",
+                "timeout /t 3 /nobreak >nul",
                 "echo [Updater] Creating backup...",
                 "set RETRIES=0",
                 ":backup_retry",
@@ -387,18 +404,28 @@ class Api:
                 ":replace_ok",
                 'echo [Updater] replace ok >>"%LOG%"',
                 "echo [Updater] Update applied. Restarting game...",
-                'start "" "%TARGET%"',
-                "if errorlevel 1 powershell -NoProfile -Command \"Start-Process -FilePath $env:TARGET\"",
-                "if errorlevel 1 explorer \"%TARGET%\"",
+                'set "START_OK=0"',
+                'powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
+                'if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="1" (echo [Updater] restart launch ok>>"%LOG%") else (echo [Updater] restart launch failed>>"%LOG%")',
                 'del /f /q "%NEWEXE%" >nul 2>&1',
                 "goto done",
                 ":rollback",
                 "echo [Updater] Replacement failed. Restoring backup...",
                 'echo [Updater] rollback >>"%LOG%"',
                 'copy /Y "%BACKUP%" "%TARGET%" >nul 2>&1',
-                'start "" "%TARGET%"',
-                "if errorlevel 1 powershell -NoProfile -Command \"Start-Process -FilePath $env:TARGET\"",
-                "if errorlevel 1 explorer \"%TARGET%\"",
+                'set "START_OK=0"',
+                'powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR" >nul 2>&1',
+                'if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" start "" /D "%TARGET_DIR%" "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
+                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
+                'if "%START_OK%"=="1" (echo [Updater] rollback relaunch ok>>"%LOG%") else (echo [Updater] rollback relaunch failed>>"%LOG%")',
                 ":done",
                 'echo ==== updater end %DATE% %TIME% ====>>"%LOG%"',
                 'del /f /q "%~f0" >nul 2>&1',
