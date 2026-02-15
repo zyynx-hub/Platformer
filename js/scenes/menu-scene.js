@@ -167,11 +167,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
       const uy = 38;
       this.updateButton.setPosition(ux, uy);
       this.updateButtonText.setPosition(ux, uy);
-      this.updateStatusText.setPosition(ux, uy + 28);
+      this.updateStatusText.setPosition(ux, uy + 48);
     }
     if (this.changeButton && this.changeButtonText) {
       const cxRight = w - 96;
-      const cyTop = 118;
+      const cyTop = 142;
       this.changeButton.setPosition(cxRight, cyTop);
       this.changeButtonText.setPosition(cxRight, cyTop);
     }
@@ -203,10 +203,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(21);
     this.updateStatusText = this.add.text(x, y + 28, "", {
       fontFamily: "Consolas",
-      fontSize: "14px",
+      fontSize: "13px",
       color: "#0f172a",
       stroke: "#f8fafc",
-      strokeThickness: 3,
+      strokeThickness: 2,
       align: "right",
     }).setOrigin(0.5, 0).setDepth(21);
 
