@@ -14,7 +14,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.changePanelTitle = null;
     this.changePanelBody = null;
     this.changePanelOpen = false;
-    this.latestReleaseNotes = [
+    this.localBuildNotes = [
       "No update details yet.",
       "",
       "Recent changes:",
@@ -29,6 +29,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       "",
       "If online notes are available, this panel auto-refreshes from GitHub Releases.",
     ].join("\n");
+    this.latestReleaseNotes = this.localBuildNotes;
     this.latestReleaseTag = "";
     this.pendingUpdateUrl = "";
     this.updateInProgress = false;
@@ -894,9 +895,37 @@ Platformer.MenuScene = class extends Phaser.Scene {
     return capped || "Changelog unavailable for this check.\n\nOpen GitHub Releases for full patch notes.";
   }
 
+  parseVersionParts(versionText) {
+    return String(versionText || "")
+      .split(".")
+      .map((p) => Number(p))
+      .filter((n) => Number.isFinite(n));
+  }
+
+  compareVersions(aText, bText) {
+    const a = this.parseVersionParts(aText);
+    const b = this.parseVersionParts(bText);
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i += 1) {
+      const av = Number.isFinite(a[i]) ? a[i] : 0;
+      const bv = Number.isFinite(b[i]) ? b[i] : 0;
+      if (av > bv) return 1;
+      if (av < bv) return -1;
+    }
+    return 0;
+  }
+
   setLatestChangesFromResult(result) {
     if (!result) return;
+    const currentBuild = ((Platformer.BUILD_VERSION && String(Platformer.BUILD_VERSION).trim()) || "1.0.0");
     const v = result.latestVersion ? String(result.latestVersion) : "";
+    const staleRemote = !v || this.compareVersions(v, currentBuild) < 0;
+    if (staleRemote) {
+      this.latestReleaseTag = currentBuild;
+      this.latestReleaseNotes = `Release ${currentBuild}\n\n${this.localBuildNotes}`;
+      if (this.changePanelBody) this.changePanelBody.setText(this.latestReleaseNotes);
+      return;
+    }
     const notes = this.normalizeReleaseNotes(result.releaseNotes || "");
     this.latestReleaseTag = v;
     this.latestReleaseNotes = v ? `Release ${v}\n\n${notes}` : notes;
