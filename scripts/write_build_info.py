@@ -7,7 +7,8 @@ def main() -> int:
     root = Path(__file__).resolve().parent.parent
     out_path = root / "js" / "core" / "build-info.js"
     now = datetime.now(timezone.utc)
-    version = now.strftime("%Y.%m.%d.%H%M")
+    override_version = os.getenv("BUILD_VERSION_OVERRIDE", "").strip()
+    version = override_version or now.strftime("%Y.%m.%d.%H%M")
     ts = now.isoformat().replace("+00:00", "Z")
     update_repo = os.getenv("UPDATE_GH_REPO", "").strip().strip("/")
     update_channel = os.getenv("UPDATE_CHANNEL", "stable").strip() or "stable"

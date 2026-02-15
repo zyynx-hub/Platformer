@@ -1,0 +1,53 @@
+name: Build and Release EXE
+
+on:
+  push:
+    tags:
+      - "20*.*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install build deps
+        run: |
+          py -m pip install --upgrade pip
+          py -m pip install pyinstaller pywebview
+
+      - name: Generate build info
+        shell: powershell
+        run: |
+          $env:UPDATE_GH_REPO = "${{ github.repository }}"
+          $env:UPDATE_CHANNEL = "stable"
+          $env:UPDATE_ENABLED = "true"
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $env:BUILD_VERSION_OVERRIDE = "${{ github.ref_name }}"
+          }
+          py scripts\write_build_info.py
+
+      - name: Build EXE
+        run: |
+          py -m PyInstaller --noconfirm --clean --onefile --name "AnimePlatformer" --distpath "build/portable_out" --workpath "build" --specpath "." --add-data "assets;assets" --add-data "js;js" --add-data "index.html;." desktop_launcher.py
+
+      - name: Publish Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Anime Platformer ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            build/portable_out/AnimePlatformer.exe
