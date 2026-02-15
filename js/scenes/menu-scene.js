@@ -21,7 +21,12 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.bgSky = null;
     this.bgMid = null;
     this.bgGround = null;
+    this.bgAccentTop = null;
+    this.bgAccentBottom = null;
+    this.bgOrbs = [];
+    this.menuCard = null;
     this.titleText = null;
+    this.titleShadow = null;
     this.comingSoonText = null;
     this.menuButtons = {};
     this.onResize = null;
@@ -37,9 +42,9 @@ Platformer.MenuScene = class extends Phaser.Scene {
       titleRevealMs: 420,
       buttonStaggerMs: 90,
       buttonMovePx: 18,
-      skyColor: 0x67c8ff,
-      midColor: 0x75e0bc,
-      groundColor: 0x5ea800,
+      skyColor: 0x081336,
+      midColor: 0x132a56,
+      groundColor: 0x0b6f49,
       glowCyan: 0x53e0ff,
       glowPink: 0xff71c7,
     };
@@ -51,35 +56,59 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.bgSky = this.add.rectangle(0, 0, 10, 10, this.introConfig.skyColor, 1).setOrigin(0, 0);
     this.bgMid = this.add.rectangle(0, 0, 10, 10, this.introConfig.midColor, 1).setOrigin(0, 0);
     this.bgGround = this.add.rectangle(0, 0, 10, 10, this.introConfig.groundColor, 1).setOrigin(0, 0);
+    this.bgAccentTop = this.add.rectangle(0, 0, 10, 10, 0x1e3a8a, 0.24).setOrigin(0, 0);
+    this.bgAccentBottom = this.add.rectangle(0, 0, 10, 10, 0x34d399, 0.22).setOrigin(0, 0);
+    this.createPrettyBackdrop();
+
+    this.titleShadow = this.add.text(0, 74, "ANIME PLATFORMER", {
+      fontFamily: "Verdana",
+      fontSize: `${Math.round(46 * textScale)}px`,
+      color: "#67e8f9",
+      stroke: "#020617",
+      strokeThickness: 12,
+    }).setOrigin(0.5).setDepth(13).setAlpha(0.26);
 
     this.titleText = this.add.text(0, 72, "ANIME PLATFORMER", {
       fontFamily: "Verdana",
       fontSize: `${Math.round(46 * textScale)}px`,
-      color: "#0f172a",
-      stroke: "#f8fafc",
-      strokeThickness: 8,
+      color: "#f8fafc",
+      stroke: "#1e293b",
+      strokeThickness: 7,
     }).setOrigin(0.5).setDepth(14);
     this.setupMenuMusic();
 
     const makeButton = (id, y, label, onClick, opts = {}) => {
       const disabled = !!opts.disabled;
-      const box = this.add.rectangle(0, y, 280, 50, disabled ? 0x64748b : 0xd4a373, 1)
-        .setStrokeStyle(3, 0x3f2b1d, 1)
+      const glow = this.add.rectangle(0, y, 286, 56, 0x22d3ee, disabled ? 0.08 : 0.14)
+        .setDepth(9)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      const box = this.add.rectangle(0, y, 280, 50, disabled ? 0x475569 : 0x243b67, 0.96)
+        .setStrokeStyle(3, disabled ? 0x64748b : 0x7dd3fc, 0.95)
         .setDepth(10);
       const txt = this.add.text(0, y, label, {
         fontFamily: "Consolas",
         fontSize: `${Math.round(30 * textScale)}px`,
-        color: disabled ? "#cbd5e1" : "#0f172a",
+        color: disabled ? "#cbd5e1" : "#f8fafc",
+        stroke: disabled ? "#334155" : "#0f172a",
+        strokeThickness: 2,
       }).setOrigin(0.5).setDepth(11);
 
       if (!disabled) {
         box.setInteractive({ useHandCursor: true });
-        box.on("pointerover", () => box.setFillStyle(0xe8b47f));
-        box.on("pointerout", () => box.setFillStyle(0xd4a373));
+        box.on("pointerover", () => {
+          box.setFillStyle(0x2f4f86, 1);
+          glow.setAlpha(0.26);
+          this.tweens.add({ targets: [box, txt, glow], scaleX: 1.03, scaleY: 1.03, duration: 120, ease: "Sine.Out" });
+        });
+        box.on("pointerout", () => {
+          box.setFillStyle(0x243b67, 0.96);
+          glow.setAlpha(0.14);
+          this.tweens.add({ targets: [box, txt, glow], scaleX: 1, scaleY: 1, duration: 120, ease: "Sine.Out" });
+        });
         box.on("pointerdown", onClick);
       }
 
-      this.menuButtons[id] = { box, txt };
+      this.menuButtons[id] = { box, txt, glow };
       return this.menuButtons[id];
     };
 
@@ -142,6 +171,9 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
     this.createWhatsChangedWidget();
+    this.menuCard = this.add.rectangle(0, 0, 360, 390, 0x0b1731, 0.46)
+      .setStrokeStyle(2, 0x7dd3fc, 0.38)
+      .setDepth(8.5);
     this.collectMenuUiElements();
     const shouldPlayMenuIntro = !Platformer._menuBootIntroPlayed;
     if (shouldPlayMenuIntro) {
@@ -170,6 +202,9 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.bgSky.setSize(w, h).setPosition(0, 0);
     this.bgMid.setSize(w, 220).setPosition(0, cy + 160);
     this.bgGround.setSize(w, 120).setPosition(0, cy + 220);
+    this.bgAccentTop.setSize(w, Math.round(h * 0.42)).setPosition(0, 0);
+    this.bgAccentBottom.setSize(w, Math.round(h * 0.2)).setPosition(0, h - Math.round(h * 0.24));
+    this.titleShadow.setPosition(cx, 74);
     this.titleText.setPosition(cx, 72);
 
     const y0 = cy - 40;
@@ -181,6 +216,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     const e = this.menuButtons.exit;
     const place = (item, y) => {
       if (!item) return;
+      if (item.glow) item.glow.setPosition(cx, y);
       item.box.setPosition(cx, y);
       item.txt.setPosition(cx, y);
     };
@@ -189,6 +225,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     place(o, y0 + spacing * 2);
     place(cr, y0 + spacing * 3);
     place(e, y0 + spacing * 4);
+    if (this.menuCard) this.menuCard.setPosition(cx, y0 + spacing * 2).setSize(360, 356);
     if (this.comingSoonText) this.comingSoonText.setPosition(cx + 210, y0 + spacing);
 
     if (this.updateButton && this.updateButtonText) {
@@ -222,7 +259,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     const x = this.scale.width - 96;
     const y = 38;
     this.updateButton = this.add.rectangle(x, y, 160, 38, 0x334155, 0.95)
-      .setStrokeStyle(2, 0x94a3b8, 0.95)
+      .setStrokeStyle(2, 0x67e8f9, 0.95)
       .setDepth(20)
       .setInteractive({ useHandCursor: true });
     this.updateButtonText = this.add.text(x, y, "Update", {
@@ -230,7 +267,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       fontSize: "22px",
       color: "#f8fafc",
     }).setOrigin(0.5).setDepth(21);
-    this.updateButton.on("pointerover", () => this.updateButton.setFillStyle(0x475569, 0.98));
+    this.updateButton.on("pointerover", () => this.updateButton.setFillStyle(0x3b4f73, 0.98));
     this.updateButton.on("pointerout", () => this.updateButton.setFillStyle(0x334155, 0.95));
     this.updateButton.on("pointerdown", async () => {
       if (this.updateInProgress) {
@@ -371,7 +408,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     const x = this.scale.width - 96;
     const y = 84;
     this.changeButton = this.add.rectangle(x, y, 160, 34, 0x1e293b, 0.95)
-      .setStrokeStyle(2, 0x94a3b8, 0.95)
+      .setStrokeStyle(2, 0x67e8f9, 0.95)
       .setDepth(20)
       .setInteractive({ useHandCursor: true });
     this.changeButtonText = this.add.text(x, y, "What's Changed", {
@@ -381,7 +418,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(21);
 
     this.changePanel = this.add.rectangle(0, 0, 480, 290, 0x0f172a, 0.92)
-      .setStrokeStyle(2, 0x94a3b8)
+      .setStrokeStyle(2, 0x67e8f9)
       .setDepth(22)
       .setVisible(false);
     this.changePanelTitle = this.add.text(0, 0, "What's Changed", {
@@ -416,7 +453,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
   collectMenuUiElements() {
     this.menuUiElements = [];
     if (this.titleText) this.menuUiElements.push(this.titleText);
+    if (this.titleShadow) this.menuUiElements.push(this.titleShadow);
+    if (this.menuCard) this.menuUiElements.push(this.menuCard);
     Object.values(this.menuButtons).forEach((b) => {
+      if (b && b.glow) this.menuUiElements.push(b.glow);
       if (b && b.box) this.menuUiElements.push(b.box);
       if (b && b.txt) this.menuUiElements.push(b.txt);
     });
@@ -562,6 +602,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       .filter((b) => !!b);
     const buttonTargets = [];
     orderedButtons.forEach((b) => {
+      if (b.glow) buttonTargets.push(b.glow);
       if (b.box) buttonTargets.push(b.box);
       if (b.txt) buttonTargets.push(b.txt);
     });
@@ -601,6 +642,29 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.time.delayedCall(this.introConfig.totalMs, () => {
       this.setMenuInteractive(true);
       if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Menu intro complete. UI interactive.");
+    });
+  }
+
+  createPrettyBackdrop() {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const orbA = this.add.circle(w * 0.78, h * 0.22, 150, this.introConfig.glowCyan, 0.11)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(2);
+    const orbB = this.add.circle(w * 0.2, h * 0.3, 110, this.introConfig.glowPink, 0.1)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(2);
+    this.bgOrbs = [orbA, orbB];
+    this.bgOrbs.forEach((orb, idx) => {
+      this.tweens.add({
+        targets: orb,
+        alpha: { from: orb.alpha * 0.8, to: orb.alpha * 1.35 },
+        scale: { from: 0.88 + idx * 0.08, to: 1.12 + idx * 0.12 },
+        duration: 2800 + idx * 800,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.InOut",
+      });
     });
   }
 
@@ -808,6 +872,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
         line.x = w + Phaser.Math.Between(10, 80);
       }
     });
+    const t = _time * 0.001;
+    if (this.bgOrbs && this.bgOrbs.length === 2) {
+      this.bgOrbs[0].x = this.scale.width * 0.78 + Math.cos(t * 0.6) * 16;
+      this.bgOrbs[1].x = this.scale.width * 0.2 + Math.sin(t * 0.75) * 18;
+    }
   }
 
   shutdown() {
@@ -824,6 +893,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.introFx.destroy(true);
       this.introFx = null;
     }
+    this.bgOrbs = [];
     this.introLines = [];
   }
 };
