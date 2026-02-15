@@ -167,19 +167,19 @@ Platformer.MenuScene = class extends Phaser.Scene {
       const uy = 38;
       this.updateButton.setPosition(ux, uy);
       this.updateButtonText.setPosition(ux, uy);
-      this.updateStatusText.setPosition(ux, uy + 48);
+      this.updateStatusText.setVisible(false);
     }
     if (this.changeButton && this.changeButtonText) {
       const cxRight = w - 96;
-      const cyTop = 142;
+      const cyTop = 84;
       this.changeButton.setPosition(cxRight, cyTop);
       this.changeButtonText.setPosition(cxRight, cyTop);
     }
     if (this.changePanel && this.changePanelTitle && this.changePanelBody) {
-      const panelW = Math.min(520, Math.max(360, Math.round(w * 0.34)));
-      const panelH = Math.min(360, Math.max(220, Math.round(h * 0.42)));
+      const panelW = Math.min(560, Math.max(360, Math.round(w * 0.42)), w - 40);
+      const panelH = Math.min(420, Math.max(220, Math.round(h * 0.52)), h - 70);
       const px = w - panelW / 2 - 20;
-      const py = 120 + panelH / 2;
+      const py = Math.min(120 + panelH / 2, h - panelH / 2 - 20);
       this.changePanel.setSize(panelW, panelH).setPosition(px, py);
       this.changePanelTitle.setPosition(px - panelW / 2 + 16, py - panelH / 2 + 12);
       this.changePanelBody
@@ -208,13 +208,13 @@ Platformer.MenuScene = class extends Phaser.Scene {
       stroke: "#f8fafc",
       strokeThickness: 2,
       align: "right",
-    }).setOrigin(0.5, 0).setDepth(21);
+    }).setOrigin(0.5, 0).setDepth(21).setVisible(false);
 
     this.updateButton.on("pointerover", () => this.updateButton.setFillStyle(0x475569, 0.98));
     this.updateButton.on("pointerout", () => this.updateButton.setFillStyle(0x334155, 0.95));
     this.updateButton.on("pointerdown", async () => {
       if (this.updateInProgress) {
-        this.updateStatusText.setText("Update already running...");
+        // Top-right status text intentionally hidden; bottom-left remains source of truth.
         return;
       }
 
@@ -229,23 +229,19 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
         if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", `In-app updater unavailable; opening URL: ${this.pendingUpdateUrl}`);
         const opened = Platformer.Updater.openDownload(this.pendingUpdateUrl);
-        this.updateStatusText.setText(opened ? "Downloading update..." : "Update download failed.");
         this.setBottomLeftUpdateStatus(opened ? "Downloading update..." : "Update download failed");
         return;
       }
 
-      this.updateStatusText.setText("Checking for updates...");
       this.setBottomLeftUpdateStatus("Checking for updates...");
       if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "Manual update check requested.");
       const result = await Platformer.Updater.check();
       if (!result.ok) {
-        this.updateStatusText.setText(result.message || "Can't reach update server.");
         this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
         return;
       }
       this.setLatestChangesFromResult(result);
       if (!result.enabled) {
-        this.updateStatusText.setText("Auto updates are off.");
         this.setBottomLeftUpdateStatus("Auto updates are off.");
         return;
       }
@@ -253,13 +249,11 @@ Platformer.MenuScene = class extends Phaser.Scene {
         this.pendingUpdateUrl = result.downloadUrl || "";
         this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
         const v = result.latestVersion ? `v${result.latestVersion}` : "new";
-        this.updateStatusText.setText(`Update found (${v}).`);
         this.setBottomLeftUpdateStatus(`Update found (${v}).`);
         if (Platformer.Debug) Platformer.Debug.warn("MenuScene.update", `Update available: ${v}`);
       } else {
         this.pendingUpdateUrl = "";
         this.updateButtonText.setText("Update");
-        this.updateStatusText.setText("You're up to date.");
         this.setBottomLeftUpdateStatus("You're up to date.");
         if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "No update available.");
       }
@@ -272,7 +266,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.updateInProgress = true;
     this.updateButton.disableInteractive();
     this.updateButtonText.setText("Updating...");
-    this.updateStatusText.setText(startMessage);
     this.setBottomLeftUpdateStatus(startMessage);
     if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", startMessage);
 
@@ -282,7 +275,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
       const compact = status.stage === "downloading" && Number.isFinite(pct)
         ? `${msg} (${pct.toFixed(1)}%)`
         : msg;
-      this.updateStatusText.setText(compact);
       this.setBottomLeftUpdateStatus(compact);
     });
 
@@ -290,12 +282,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.updateInProgress = false;
       this.updateButton.setInteractive({ useHandCursor: true });
       this.updateButtonText.setText("Update + Restart");
-      this.updateStatusText.setText(result.message || "Update failed.");
       this.setBottomLeftUpdateStatus(result.message || "Update failed.");
       return { ok: false, message: result.message || "Update failed." };
     }
 
-    this.updateStatusText.setText(result.message || "Restarting to finish update...");
     this.setBottomLeftUpdateStatus(result.message || "Restarting to finish update...");
     return { ok: true, message: result.message || "Restarting to finish update..." };
   }
@@ -351,7 +341,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.setBottomLeftUpdateStatus(`Update found (${v}).`);
       this.pendingUpdateUrl = result.downloadUrl || "";
       this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
-      this.updateStatusText.setText(`Update found (${v}).`);
 
       const autoUpdateEnabled = cfg.autoUpdate !== false;
       if (autoUpdateEnabled && this.pendingUpdateUrl && Platformer.Updater.canInAppApply() && !this.autoUpdateTriggered) {
@@ -367,7 +356,6 @@ Platformer.MenuScene = class extends Phaser.Scene {
     } else {
       this.setBottomLeftUpdateStatus("You're up to date.");
       this.updateButtonText.setText("Update");
-      this.updateStatusText.setText("You're up to date.");
     }
   }
 
