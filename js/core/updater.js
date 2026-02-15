@@ -96,6 +96,8 @@ Platformer.Updater = {
             hasUpdate: !!res.hasUpdate,
             latestVersion: res.latestVersion || source.currentVersion,
             downloadUrl: res.downloadUrl || source.fallbackDownloadUrl || "",
+            releaseNotes: res.releaseNotes || "",
+            releasePublishedAt: res.releasePublishedAt || "",
             message: res.message || (res.hasUpdate ? "Update found." : "You're up to date."),
           };
         }
@@ -129,6 +131,8 @@ Platformer.Updater = {
         hasUpdate,
         latestVersion: latest,
         downloadUrl,
+        releaseNotes: payload.body || "",
+        releasePublishedAt: payload.published_at || "",
         message: hasUpdate ? "Update found." : "You're up to date.",
       };
     } catch (e) {

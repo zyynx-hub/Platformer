@@ -121,6 +121,8 @@ class Api:
                 "hasUpdate": has_update,
                 "latestVersion": latest,
                 "downloadUrl": download_url,
+                "releaseNotes": str(data.get("body", "")),
+                "releasePublishedAt": str(data.get("published_at", "")),
                 "message": f"Update found ({latest})." if has_update else "You're up to date.",
             }
         except urllib.error.HTTPError as e:
@@ -147,17 +149,47 @@ class Api:
                 "hasUpdate": has_update,
                 "latestVersion": latest,
                 "downloadUrl": download_url,
+                "releaseNotes": str(payload.get("body", "")),
+                "releasePublishedAt": str(payload.get("published_at", "")),
                 "message": f"Update found ({latest})." if has_update else "You're up to date.",
             }
         except urllib.error.HTTPError as e:
             if e.code == 403:
-                return {"ok": False, "message": "Update server busy, try later."}
+                # API rate-limit/proxy issues: fall back to GitHub HTML latest redirect.
+                try:
+                    latest, download_url = self._fetch_github_latest_tag_fallback(repo)
+                    has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
+                    return {
+                        "ok": True,
+                        "hasUpdate": has_update,
+                        "latestVersion": latest,
+                        "downloadUrl": download_url,
+                        "releaseNotes": "",
+                        "releasePublishedAt": "",
+                        "message": f"Update found ({latest})." if has_update else "You're up to date.",
+                    }
+                except Exception:
+                    return {"ok": False, "message": "Update server busy, try later."}
             if e.code == 404:
                 return {"ok": False, "message": "No public release found yet."}
             return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
         except Exception as e:
-            host_log("ERROR", "Updater.check_update_github", f"{type(e).__name__}: {e}")
-            return {"ok": False, "message": f"Can't reach update server: {e}"}
+            # Last-chance fallback: parse latest tag from github.com redirect.
+            try:
+                latest, download_url = self._fetch_github_latest_tag_fallback(repo)
+                has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
+                return {
+                    "ok": True,
+                    "hasUpdate": has_update,
+                    "latestVersion": latest,
+                    "downloadUrl": download_url,
+                    "releaseNotes": "",
+                    "releasePublishedAt": "",
+                    "message": f"Update found ({latest})." if has_update else "You're up to date.",
+                }
+            except Exception:
+                host_log("ERROR", "Updater.check_update_github", f"{type(e).__name__}: {e}")
+                return {"ok": False, "message": f"Can't reach update server: {e}"}
 
     def start_update_download(self, download_url):
         with self._update_lock:
@@ -397,6 +429,28 @@ class Api:
         if assets:
             return str((assets[0] or {}).get("browser_download_url", ""))
         return ""
+
+    def _fetch_github_latest_tag_fallback(self, repo):
+        # Fallback path that does not use GitHub API rate-limited endpoint.
+        req = urllib.request.Request(
+            f"https://github.com/{repo}/releases/latest",
+            headers={"User-Agent": "AnimePlatformerUpdater/1.0"},
+            method="GET",
+        )
+        with self._urlopen(req, timeout=10) as resp:
+            final_url = str(resp.geturl() or "")
+
+        marker = "/releases/tag/"
+        idx = final_url.find(marker)
+        if idx < 0:
+            raise RuntimeError("Could not resolve latest release tag.")
+        tag = final_url[idx + len(marker):].strip("/")
+        if not tag:
+            raise RuntimeError("Latest release tag is empty.")
+
+        # Default asset naming for this project.
+        download_url = f"https://github.com/{repo}/releases/download/{tag}/AnimePlatformer.exe"
+        return tag, download_url
 
     def _compare_versions(self, a, b):
         def parse(v):

@@ -9,6 +9,14 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.updateButtonText = null;
     this.updateStatusText = null;
     this.versionInfoText = null;
+    this.changeButton = null;
+    this.changeButtonText = null;
+    this.changePanel = null;
+    this.changePanelTitle = null;
+    this.changePanelBody = null;
+    this.changePanelOpen = false;
+    this.latestReleaseNotes = "No update details yet.\n\nWorking on gameplay pressure, enemy behavior, and update reliability.";
+    this.latestReleaseTag = "";
     this.pendingUpdateUrl = "";
     this.updateInProgress = false;
     this.autoUpdateTriggered = false;
@@ -116,6 +124,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     makeButton("exit", 0, "EXIT", () => this.handleExit());
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
+    this.createWhatsChangedWidget();
     this.layoutMenu();
     this.onResize = () => this.layoutMenu();
     this.scale.on("resize", this.onResize);
@@ -159,6 +168,23 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.updateButton.setPosition(ux, uy);
       this.updateButtonText.setPosition(ux, uy);
       this.updateStatusText.setPosition(ux, uy + 28);
+    }
+    if (this.changeButton && this.changeButtonText) {
+      const cxRight = w - 96;
+      const cyTop = 84;
+      this.changeButton.setPosition(cxRight, cyTop);
+      this.changeButtonText.setPosition(cxRight, cyTop);
+    }
+    if (this.changePanel && this.changePanelTitle && this.changePanelBody) {
+      const panelW = Math.min(520, Math.max(360, Math.round(w * 0.34)));
+      const panelH = Math.min(360, Math.max(220, Math.round(h * 0.42)));
+      const px = w - panelW / 2 - 20;
+      const py = 120 + panelH / 2;
+      this.changePanel.setSize(panelW, panelH).setPosition(px, py);
+      this.changePanelTitle.setPosition(px - panelW / 2 + 16, py - panelH / 2 + 12);
+      this.changePanelBody
+        .setPosition(px - panelW / 2 + 16, py - panelH / 2 + 44)
+        .setWordWrapWidth(panelW - 32);
     }
     if (this.versionInfoText) this.versionInfoText.setPosition(14, h - 12);
   }
@@ -217,6 +243,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
         this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
         return;
       }
+      this.setLatestChangesFromResult(result);
       if (!result.enabled) {
         this.updateStatusText.setText("Auto updates are off.");
         this.setBottomLeftUpdateStatus("Auto updates are off.");
@@ -302,7 +329,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       return;
     }
 
-    this.setBottomLeftUpdateStatus("Checking for updates...");
+      this.setBottomLeftUpdateStatus("Checking for updates...");
     const result = await Platformer.Updater.check();
     if (!result.ok) {
       if (result.transient) {
@@ -317,6 +344,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.setBottomLeftUpdateStatus("Auto updates are off.");
       return;
     }
+    this.setLatestChangesFromResult(result);
 
     if (result.hasUpdate) {
       const v = result.latestVersion ? `v${result.latestVersion}` : "new version";
@@ -341,6 +369,69 @@ Platformer.MenuScene = class extends Phaser.Scene {
       this.updateButtonText.setText("Update");
       this.updateStatusText.setText("You're up to date.");
     }
+  }
+
+  createWhatsChangedWidget() {
+    const x = this.scale.width - 96;
+    const y = 84;
+    this.changeButton = this.add.rectangle(x, y, 160, 34, 0x1e293b, 0.95)
+      .setStrokeStyle(2, 0x94a3b8, 0.95)
+      .setDepth(20)
+      .setInteractive({ useHandCursor: true });
+    this.changeButtonText = this.add.text(x, y, "What's Changed", {
+      fontFamily: "Consolas",
+      fontSize: "18px",
+      color: "#e2e8f0",
+    }).setOrigin(0.5).setDepth(21);
+
+    this.changePanel = this.add.rectangle(0, 0, 480, 290, 0x0f172a, 0.92)
+      .setStrokeStyle(2, 0x94a3b8)
+      .setDepth(22)
+      .setVisible(false);
+    this.changePanelTitle = this.add.text(0, 0, "What's Changed", {
+      fontFamily: "Consolas",
+      fontSize: "20px",
+      color: "#f8fafc",
+    }).setOrigin(0, 0).setDepth(23).setVisible(false);
+    this.changePanelBody = this.add.text(0, 0, this.latestReleaseNotes, {
+      fontFamily: "Consolas",
+      fontSize: "16px",
+      color: "#cbd5e1",
+      align: "left",
+      wordWrap: { width: 440, useAdvancedWrap: true },
+    }).setOrigin(0, 0).setDepth(23).setVisible(false);
+
+    this.changeButton.on("pointerover", () => this.changeButton.setFillStyle(0x334155, 0.98));
+    this.changeButton.on("pointerout", () => this.changeButton.setFillStyle(0x1e293b, 0.95));
+    this.changeButton.on("pointerdown", () => {
+      this.changePanelOpen = !this.changePanelOpen;
+      const on = this.changePanelOpen;
+      this.changePanel.setVisible(on);
+      this.changePanelTitle.setVisible(on);
+      this.changePanelBody.setVisible(on);
+      if (on) {
+        this.changeButtonText.setText("Hide Changes");
+      } else {
+        this.changeButtonText.setText("What's Changed");
+      }
+    });
+  }
+
+  normalizeReleaseNotes(rawText) {
+    const text = String(rawText || "").replace(/\r/g, "").trim();
+    if (!text) {
+      return "No detailed notes in this release.\n\nWorking on gameplay pressure, enemy behavior, and update reliability.";
+    }
+    return text.length > 1200 ? `${text.slice(0, 1200)}\n...` : text;
+  }
+
+  setLatestChangesFromResult(result) {
+    if (!result) return;
+    const v = result.latestVersion ? String(result.latestVersion) : "";
+    const notes = this.normalizeReleaseNotes(result.releaseNotes || "");
+    this.latestReleaseTag = v;
+    this.latestReleaseNotes = v ? `Release ${v}\n\n${notes}` : notes;
+    if (this.changePanelBody) this.changePanelBody.setText(this.latestReleaseNotes);
   }
 
   showCredits() {
