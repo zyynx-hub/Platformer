@@ -32,6 +32,9 @@ Platformer.Updater = {
     if (raw.includes("no public release")) {
       return "No public release found yet.";
     }
+    if (raw.includes("winerror 87") || raw.includes("parameter is incorrect")) {
+      return "Network/proxy config issue. Retry or disable proxy/VPN.";
+    }
     if (raw.includes("timed out") || raw.includes("network") || raw.includes("offline") || raw.includes("failed to fetch")) {
       return "Offline, retrying later.";
     }
@@ -99,7 +102,7 @@ Platformer.Updater = {
         return {
           ok: false,
           enabled: true,
-          message: (res && res.message) || "Can't reach update server.",
+          message: this.friendlyError((res && res.message) || "Can't reach update server."),
         };
       } catch (e) {
         return { ok: false, enabled: true, message: this.friendlyError(e && e.message ? e.message : e) };

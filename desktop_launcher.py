@@ -9,6 +9,7 @@ import threading
 import subprocess
 import urllib.request
 import urllib.error
+import ssl
 import webbrowser
 import webview
 
@@ -59,6 +60,7 @@ class Api:
             "url": "",
         }
         self._download_thread = None
+        self._direct_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     def exit_app(self):
         webview.windows[0].destroy()
@@ -108,7 +110,7 @@ class Api:
                 manifest_url,
                 headers={"User-Agent": "AnimePlatformerUpdater/1.0"}
             )
-            with urllib.request.urlopen(req, timeout=6) as resp:
+            with self._urlopen(req, timeout=6) as resp:
                 raw = resp.read().decode("utf-8")
             data = json.loads(raw)
             latest = str(data.get("version", current_version or "0.0.0"))
@@ -128,6 +130,7 @@ class Api:
                 return {"ok": False, "message": "No public release found yet."}
             return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
         except Exception as e:
+            host_log("ERROR", "Updater.check_update", f"{type(e).__name__}: {e}")
             return {"ok": False, "message": f"Can't reach update server: {e}"}
 
     def check_update_github(self, repo, current_version, channel="stable"):
@@ -153,6 +156,7 @@ class Api:
                 return {"ok": False, "message": "No public release found yet."}
             return {"ok": False, "message": f"Can't reach update server (HTTP {e.code})."}
         except Exception as e:
+            host_log("ERROR", "Updater.check_update_github", f"{type(e).__name__}: {e}")
             return {"ok": False, "message": f"Can't reach update server: {e}"}
 
     def start_update_download(self, download_url):
@@ -233,7 +237,7 @@ class Api:
                 download_url,
                 headers={"User-Agent": "AnimePlatformerUpdater/1.0"}
             )
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with self._urlopen(req, timeout=30) as resp:
                 total = int(resp.headers.get("Content-Length") or 0)
                 fd, tmp_path = tempfile.mkstemp(prefix="anime_platformer_update_", suffix=".exe")
                 os.close(fd)
@@ -343,9 +347,23 @@ class Api:
                 "Accept": "application/vnd.github+json",
             },
         )
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with self._urlopen(req, timeout=8) as resp:
             raw = resp.read().decode("utf-8")
         return json.loads(raw)
+
+    def _urlopen(self, request, timeout=8):
+        # Some Windows setups throw WinError 87 due to broken proxy configuration.
+        # Try direct (no proxy) first, then fall back to default opener.
+        ctx = ssl.create_default_context()
+        try:
+            return self._direct_opener.open(request, timeout=timeout, context=ctx)
+        except TypeError:
+            # Older Python/openers may not accept context on opener.open.
+            return self._direct_opener.open(request, timeout=timeout)
+        except OSError as e:
+            if getattr(e, "winerror", None) == 87:
+                host_log("WARN", "Updater.network", "WinError 87 on direct opener; retrying with default opener.")
+            return urllib.request.urlopen(request, timeout=timeout, context=ctx)
 
     def _fetch_github_release(self, repo, channel):
         ch = str(channel or "stable").strip().lower()
