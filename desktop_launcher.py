@@ -14,8 +14,8 @@ import webbrowser
 import webview
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_PATH = os.path.join(ROOT_DIR, "runtime-debug.log")
 USER_LOG_DIR = os.path.join(os.environ.get("LOCALAPPDATA", tempfile.gettempdir()), "AnimePlatformer")
+LOG_PATH = os.path.join(USER_LOG_DIR, "runtime-debug.log")
 USER_UPDATER_LOG_PATH = os.path.join(USER_LOG_DIR, "updater.log")
 
 
@@ -25,6 +25,13 @@ def host_log(level, source, message):
     print(line, flush=True)
     try:
         with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+    # Best-effort mirror beside launcher script for local dev visibility.
+    try:
+        side_log = os.path.join(ROOT_DIR, "runtime-debug.log")
+        with open(side_log, "a", encoding="utf-8") as f:
             f.write(line + "\n")
     except Exception:
         pass
