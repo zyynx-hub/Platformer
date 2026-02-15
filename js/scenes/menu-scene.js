@@ -35,6 +35,8 @@ Platformer.MenuScene = class extends Phaser.Scene {
       uiFadeMs: 260,
       titleRevealDelayMs: 80,
       titleRevealMs: 420,
+      buttonStaggerMs: 90,
+      buttonMovePx: 18,
       skyColor: 0x67c8ff,
       midColor: 0x75e0bc,
       groundColor: 0x5ea800,
@@ -555,9 +557,41 @@ Platformer.MenuScene = class extends Phaser.Scene {
       duration: 2200,
     });
 
-    this.time.delayedCall(this.introConfig.totalMs - this.introConfig.uiFadeMs, () => {
+    const orderedButtons = ["play", "continue", "options", "credits", "exit"]
+      .map((id) => this.menuButtons[id])
+      .filter((b) => !!b);
+    const buttonTargets = [];
+    orderedButtons.forEach((b) => {
+      if (b.box) buttonTargets.push(b.box);
+      if (b.txt) buttonTargets.push(b.txt);
+    });
+
+    buttonTargets.forEach((obj) => {
+      obj.y += this.introConfig.buttonMovePx;
+      obj.setAlpha(0);
+    });
+
+    const titleEndAt = this.introConfig.titleRevealDelayMs + this.introConfig.titleRevealMs;
+    orderedButtons.forEach((b, idx) => {
+      const delay = titleEndAt + idx * this.introConfig.buttonStaggerMs;
       this.tweens.add({
-        targets: this.menuUiElements.filter((el) => el !== this.titleText),
+        targets: [b.box, b.txt].filter(Boolean),
+        y: `-=${this.introConfig.buttonMovePx}`,
+        alpha: 1,
+        duration: this.introConfig.uiFadeMs,
+        ease: "Cubic.Out",
+        delay,
+      });
+    });
+
+    const remainingUi = this.menuUiElements.filter((el) => {
+      if (el === this.titleText) return false;
+      if (buttonTargets.includes(el)) return false;
+      return true;
+    });
+    this.time.delayedCall(titleEndAt + orderedButtons.length * this.introConfig.buttonStaggerMs - 40, () => {
+      this.tweens.add({
+        targets: remainingUi,
         alpha: 1,
         duration: this.introConfig.uiFadeMs,
         ease: "Sine.Out",
