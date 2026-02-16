@@ -1,11 +1,13 @@
 window.Platformer = window.Platformer || {};
 Platformer.LevelBuilders = Platformer.LevelBuilders || {};
 Platformer.LevelJsonCache = Platformer.LevelJsonCache || {};
+Platformer.LevelFallbackSize = Platformer.LevelFallbackSize || {};
 
 Platformer.createLevelData = function createLevelData(level = 1) {
   const jsonLevel = Platformer.LevelJsonCache[level] || null;
-  const width = Number((jsonLevel && jsonLevel.width) || 90);
-  const height = Number((jsonLevel && jsonLevel.height) || 18);
+  const fallback = Platformer.LevelFallbackSize[level] || null;
+  const width = Number((jsonLevel && jsonLevel.width) || (fallback && fallback.width) || 90);
+  const height = Number((jsonLevel && jsonLevel.height) || (fallback && fallback.height) || 18);
   const rows = Array.from({ length: height }, () => Array.from({ length: width }, () => "."));
 
   const inBounds = (x, y) => x >= 0 && x < width && y >= 0 && y < height;

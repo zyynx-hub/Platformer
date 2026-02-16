@@ -8,6 +8,7 @@ Platformer.BootScene = class extends Phaser.Scene {
   }
 
   preload() {
+    this.load.audio("menu-bgm", "assets/nickpanek-energetic-chiptune-video-game-music-platformer-8-bit-318348.mp3");
     this.load.audio("game-bgm", "assets/Slaughter to Prevail - K (mp3cut.net).mp3");
     this.load.audio("pause-bgm", "assets/Elevator Music - So Chill (mp3cut.net).mp3");
     this.load.image("player-idle-raw", "assets/IFFY_IDLE.png");

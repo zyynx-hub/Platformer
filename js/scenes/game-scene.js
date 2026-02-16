@@ -74,6 +74,7 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.lastHitboxDrawAt = 0;
     this.ldtkVisualTiles = [];
     this.usesLdtkLevel = false;
+    this.playerIdleFallbackLogged = false;
   }
 
   init(data) {
@@ -283,8 +284,9 @@ Platformer.GameScene = class extends Phaser.Scene {
       this.player.setTexture("player-idle-sheet", 0);
       this.useImportedCharacter = true;
       if (Platformer.Debug) Platformer.Debug.log("GameScene.playerIdle", "Using imported player-idle-sheet.");
-    } else if (Platformer.Debug) {
-      Platformer.Debug.warn("GameScene.playerIdle", "player-idle-sheet missing, using fallback idle textures.");
+    } else if (Platformer.Debug && !this.playerIdleFallbackLogged) {
+      this.playerIdleFallbackLogged = true;
+      Platformer.Debug.log("GameScene.playerIdle", "player-idle-sheet missing, using fallback idle textures.");
     }
     const tinyGrid = TILE <= 8;
     if (this.useImportedCharacter) {
@@ -735,7 +737,9 @@ Platformer.GameScene = class extends Phaser.Scene {
           `vx=${body.velocity.x.toFixed(1)} vy=${body.velocity.y.toFixed(1)}`
         );
       } else {
-        Platformer.Debug.warn("GameScene.collision", `Resolved embedded player (${context}).`);
+        const msg = `Resolved embedded player (${context}).`;
+        if (context === "spawn") Platformer.Debug.log("GameScene.collision", msg);
+        else Platformer.Debug.warn("GameScene.collision", msg);
       }
     }
   }

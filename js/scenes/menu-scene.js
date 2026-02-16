@@ -1037,18 +1037,12 @@ Platformer.MenuScene = class extends Phaser.Scene {
       return;
     }
 
-    if (this.cache.audio.exists("menu-bgm")) {
+    if (this.cache && this.cache.audio && this.cache.audio.exists("menu-bgm")) {
       wirePlayback();
       return;
     }
-
-    this.load.audio("menu-bgm", "assets/nickpanek-energetic-chiptune-video-game-music-platformer-8-bit-318348.mp3");
-    this.load.once("complete", wirePlayback);
-    this.load.once("loaderror", () => {
-      if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "menu-bgm loaderror; switching to HTML fallback.");
-      this.setupHtmlAudioFallback(volume, settings);
-    });
-    this.load.start();
+    if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "menu-bgm not found in cache; switching to HTML fallback.");
+    this.setupHtmlAudioFallback(volume, settings);
     this.time.delayedCall(1300, () => {
       if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
       const phaserPlaying = !!(this.menuMusic && this.menuMusic.isPlaying);

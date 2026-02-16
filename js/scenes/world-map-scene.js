@@ -663,23 +663,10 @@ Platformer.WorldMapScene = class extends Phaser.Scene {
         return true;
       };
 
-      if (this.cache.audio.exists("menu-bgm")) {
+      if (this.cache && this.cache.audio && this.cache.audio.exists("menu-bgm")) {
         if (tryPlayMenuBgm()) return;
-      } else {
-        this.load.audio("menu-bgm", "assets/nickpanek-energetic-chiptune-video-game-music-platformer-8-bit-318348.mp3");
-        this.load.once("complete", () => {
-          if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
-          if (!tryPlayMenuBgm()) {
-            this.playWorldMapHtmlMusic(volume, audioSettings);
-          }
-        });
-        this.load.once("loaderror", () => {
-          if (Platformer.Debug) Platformer.Debug.warn("WorldMap.audio", "menu-bgm loaderror; using HTML fallback.");
-          this.playWorldMapHtmlMusic(volume, audioSettings);
-        });
-        this.load.start();
-        return;
       }
+      if (Platformer.Debug) Platformer.Debug.warn("WorldMap.audio", "menu-bgm not found in cache; using HTML fallback.");
       this.playWorldMapHtmlMusic(volume, audioSettings);
     } catch (err) {
       if (Platformer.Debug) Platformer.Debug.error("WorldMap.audio", err && err.stack ? err.stack : String(err));

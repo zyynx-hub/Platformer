@@ -1,5 +1,7 @@
 window.Platformer = window.Platformer || {};
 Platformer.LevelBuilders = Platformer.LevelBuilders || {};
+Platformer.LevelFallbackSize = Platformer.LevelFallbackSize || {};
+Platformer.LevelFallbackSize[5] = { width: 15, height: 12 };
 
 // Built-in fallback for Level 5 (LDtk test map) when cached JSON files are unavailable.
 Platformer.LevelBuilders[5] = ({ line, many }) => {

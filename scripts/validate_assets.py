@@ -11,6 +11,7 @@ REQUIRED = [
     Path('js/app.bundle.js.map'),
     Path('assets/Slaughter to Prevail - K (mp3cut.net).mp3'),
     Path('assets/Elevator Music - So Chill (mp3cut.net).mp3'),
+    Path('assets/nickpanek-energetic-chiptune-video-game-music-platformer-8-bit-318348.mp3'),
     Path('assets/levels/level-1.json'),
     Path('assets/levels/level-2.json'),
     Path('assets/levels/level-3.json'),
