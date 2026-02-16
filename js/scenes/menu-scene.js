@@ -67,6 +67,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.menuRunnerDamageCooldown = 0;
     this.menuRunnerDamageFlashUntil = 0;
     this.menuEnemies = [];
+    this.onSettingsChanged = null;
     this.introConfig = {
       totalMs: 1800,
       uiFadeMs: 260,
@@ -107,6 +108,8 @@ Platformer.MenuScene = class extends Phaser.Scene {
       stroke: "#1e293b",
       strokeThickness: 7,
     }).setOrigin(0.5).setDepth(14);
+    this.onSettingsChanged = (nextSettings) => this.applyRuntimeSettings(nextSettings);
+    this.game.events.on("settings-changed", this.onSettingsChanged);
     this.setupMenuMusic();
 
     const makeButton = (id, y, label, onClick, opts = {}) => {
@@ -144,25 +147,15 @@ Platformer.MenuScene = class extends Phaser.Scene {
       return this.menuButtons[id];
     };
 
-    const launchGameplay = () => {
-      this.stopMenuMusic();
-      const difficulty = Platformer.Settings.current.gameplay.difficulty;
-      const baseLives = difficulty === "easy" ? 3 : (difficulty === "hard" ? 1 : 2);
-
-      if (this.scene.isActive("UIScene") || this.scene.isPaused("UIScene")) {
-        this.scene.stop("UIScene");
+    const launchWorldMap = () => {
+      // Keep menu BGM flowing into world map; gameplay scene will take over music.
+      if (this.scene.isActive("UIScene") || this.scene.isPaused("UIScene")) this.scene.stop("UIScene");
+      if (this.scene.isActive("GameScene") || this.scene.isPaused("GameScene")) this.scene.stop("GameScene");
+      if (Platformer.Progress && typeof Platformer.Progress.ensureLoaded === "function") {
+        Platformer.Progress.ensureLoaded();
       }
-      if (this.scene.isActive("GameScene") || this.scene.isPaused("GameScene")) {
-        this.scene.stop("GameScene");
-      }
-
-      this.registry.set("coins", 0);
-      this.registry.set("health", 3);
-      this.registry.set("lives", baseLives);
-      this.registry.set("level", 1);
-          this.scene.start("GameScene", { level: 1 });
-      this.scene.launch("UIScene");
-      if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Play -> GameScene launched.");
+      this.scene.start("WorldMapScene");
+      if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Play -> WorldMapScene launched.");
     };
 
     const startGame = () => {
@@ -172,16 +165,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       if (this.sound && this.sound.context && this.sound.context.state === "suspended") {
         this.sound.context.resume().catch(() => {});
       }
-
-      const seen = !!Platformer.Settings.current.convenience.introSeen;
-      if (seen) {
-        if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Intro already seen; starting gameplay directly.");
-        launchGameplay();
-      } else {
-        this.stopMenuMusic();
-        if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Starting IntroScene before gameplay.");
-        this.scene.start("IntroScene");
-      }
+      launchWorldMap();
     };
 
     makeButton("play", 0, "PLAY", startGame);
@@ -196,11 +180,16 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
     makeButton("options", 0, "OPTIONS", () => {
       if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Opening OptionsScene from menu.");
-      this.setMenuUiVisible(false);
-      this.setMenuInteractive(false);
-      this.scene.launch("OptionsScene", { returnTo: "menuOverlay" });
+      try {
+        this.scene.start("OptionsScene", { returnTo: "menu" });
+        if (Platformer.Debug) Platformer.Debug.log("MenuScene.options", "OptionsScene started in dedicated mode.");
+      } catch (err) {
+        if (Platformer.Debug) {
+          Platformer.Debug.error("MenuScene.options", err && err.stack ? err.stack : String(err));
+        }
+      }
     });
-    makeButton("credits", 0, "CREDITS", () => this.showCredits());
+    makeButton("extras", 0, "EXTRA'S", () => this.showExtras());
     makeButton("exit", 0, "EXIT", () => this.handleExit());
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
@@ -221,7 +210,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }
     this.createMenuIntroFx();
     this.layoutMenu();
-    this.onResize = () => this.handleResize();
+    this.onResize = () => {
+      if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+      this.handleResize();
+    };
     this.scale.on("resize", this.onResize);
     if (shouldPlayMenuIntro) this.playMenuIntro();
 
@@ -229,25 +221,44 @@ Platformer.MenuScene = class extends Phaser.Scene {
   }
 
   layoutMenu() {
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+    if (!this.bgSky || !this.bgMid || !this.bgGround) return;
+    if (!this.titleText || !this.titleShadow) return;
     const w = this.scale.width;
     const h = this.scale.height;
     const cx = w / 2;
     const cy = h / 2;
 
-    this.bgSky.setSize(w, h).setPosition(0, 0);
-    this.bgMid.setSize(w, 220).setPosition(0, cy + 160);
-    this.bgGround.setSize(w, 120).setPosition(0, cy + 220);
-    this.bgAccentTop.setSize(w, Math.round(h * 0.42)).setPosition(0, 0);
-    this.bgAccentBottom.setSize(w, Math.round(h * 0.2)).setPosition(0, h - Math.round(h * 0.24));
-    this.titleShadow.setPosition(cx, 74);
-    this.titleText.setPosition(cx, 72);
+    const safeRectSizePos = (obj, width, height, x, y) => {
+      if (!obj || !obj.active || !obj.scene) return;
+      obj.setSize(width, height).setPosition(x, y);
+    };
+    const safePos = (obj, x, y) => {
+      if (!obj || !obj.active || !obj.scene) return;
+      obj.setPosition(x, y);
+    };
+
+    try {
+      safeRectSizePos(this.bgSky, w, h, 0, 0);
+      safeRectSizePos(this.bgMid, w, 220, 0, cy + 160);
+      safeRectSizePos(this.bgGround, w, 120, 0, cy + 220);
+      safeRectSizePos(this.bgAccentTop, w, Math.round(h * 0.42), 0, 0);
+      safeRectSizePos(this.bgAccentBottom, w, Math.round(h * 0.2), 0, h - Math.round(h * 0.24));
+      safePos(this.titleShadow, cx, 74);
+      safePos(this.titleText, cx, 72);
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.warn("MenuScene.layout", `Skipping stale resize pass: ${err && err.message ? err.message : err}`);
+      }
+      return;
+    }
 
     const y0 = cy - 40;
     const spacing = 60;
     const p = this.menuButtons.play;
     const c = this.menuButtons.continue;
     const o = this.menuButtons.options;
-    const cr = this.menuButtons.credits;
+    const cr = this.menuButtons.extras;
     const e = this.menuButtons.exit;
     const place = (item, y) => {
       if (!item) return;
@@ -286,7 +297,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
         .setPosition(px - panelW / 2 + 16, py - panelH / 2 + 44)
         .setWordWrapWidth(panelW - 32);
     }
-    if (this.versionInfoText) this.versionInfoText.setPosition(14, h - 12);
+    if (this.versionInfoText && this.versionInfoText.active && this.versionInfoText.scene) this.versionInfoText.setPosition(14, h - 12);
     this.layoutMenuMiniStage();
     this.layoutMenuIntroFx();
   }
@@ -407,6 +418,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
   }
 
   handleResize() {
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
     this.layoutMenu();
     if (this.menuIntroInProgress) {
       this.forceCompleteMenuIntro();
@@ -509,39 +521,97 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
   createBottomLeftVersionInfo() {
     const currentVersion = ((Platformer.Settings.current.updates || {}).currentVersion || "1.0.0").trim();
-    this.versionInfoText = this.add.text(14, this.scale.height - 12, "", {
+    this.versionInfoStyle = {
       fontFamily: "Consolas",
       fontSize: "18px",
       color: "#e2e8f0",
       stroke: "#0f172a",
       strokeThickness: 4,
       align: "left",
-    }).setOrigin(0, 1).setDepth(25);
+    };
+    this.ensureVersionInfoText();
 
     this.setBottomLeftUpdateStatus("Checking for updates...");
-    this.versionInfoText.setText(`Version: ${currentVersion}\nUpdate: Checking for updates...`);
+    this.safeSetText(this.versionInfoText, `Version: ${currentVersion}\nUpdate: Checking for updates...`, "versionInfoText");
+  }
+
+  ensureVersionInfoText() {
+    if (this.versionInfoText && this.versionInfoText.active && this.versionInfoText.scene === this) {
+      this.versionInfoText.setPosition(14, this.scale.height - 12);
+      return this.versionInfoText;
+    }
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return null;
+    try {
+      this.versionInfoText = this.add.text(14, this.scale.height - 12, "", this.versionInfoStyle || {
+        fontFamily: "Consolas",
+        fontSize: "18px",
+        color: "#e2e8f0",
+        stroke: "#0f172a",
+        strokeThickness: 4,
+        align: "left",
+      }).setOrigin(0, 1).setDepth(25);
+      return this.versionInfoText;
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.warn("MenuScene.text", `ensureVersionInfoText failed: ${err && err.message ? err.message : err}`);
+      }
+      return null;
+    }
+  }
+
+  safeSetText(target, text, label = "text") {
+    if (!target || !target.active || !target.scene) return false;
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return false;
+    try {
+      target.setText(String(text));
+      return true;
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.warn("MenuScene.text", `setText failed (${label}): ${err && err.message ? err.message : err}`);
+      }
+      if (target === this.versionInfoText) {
+        const rebuilt = this.ensureVersionInfoText();
+        if (rebuilt && rebuilt !== target) {
+          try {
+            rebuilt.setText(String(text));
+            return true;
+          } catch (err2) {
+            if (Platformer.Debug) {
+              Platformer.Debug.warn("MenuScene.text", `setText retry failed (${label}): ${err2 && err2.message ? err2.message : err2}`);
+            }
+          }
+        }
+      }
+      return false;
+    }
   }
 
   setBottomLeftUpdateStatus(statusText) {
-    if (!this.versionInfoText) return;
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+    if (!this.ensureVersionInfoText()) return;
     const currentVersion = ((Platformer.Settings.current.updates || {}).currentVersion || "1.0.0").trim();
     const safeStatus = statusText || "Unknown";
-    this.versionInfoText.setText(`Version: ${currentVersion}\nUpdate: ${safeStatus}`);
+    this.safeSetText(this.versionInfoText, `Version: ${currentVersion}\nUpdate: ${safeStatus}`, "bottomLeftStatus");
   }
 
   async autoCheckUpdatesForBottomLeft() {
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
     const cfg = Platformer.Settings.current.updates || {};
     if (!cfg.enabled) {
       this.setBottomLeftUpdateStatus("Auto updates are off.");
       return;
     }
 
-      this.setBottomLeftUpdateStatus("Checking for updates...");
+    this.setBottomLeftUpdateStatus("Checking for updates...");
     const result = await Platformer.Updater.check();
+    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+    if (!this.scene || !this.scene.isActive || !this.scene.isActive("MenuScene")) return;
     if (!result.ok) {
       if (result.transient) {
         this.setBottomLeftUpdateStatus("Checking for updates...");
-        this.time.delayedCall(1200, () => this.autoCheckUpdatesForBottomLeft());
+        if (this.time && this.sys && this.sys.settings && this.sys.settings.active) {
+          this.time.delayedCall(1200, () => this.autoCheckUpdatesForBottomLeft());
+        }
         return;
       }
       this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
@@ -557,12 +627,12 @@ Platformer.MenuScene = class extends Phaser.Scene {
       const v = result.latestVersion ? `v${result.latestVersion}` : "new version";
       this.pendingUpdateUrl = result.downloadUrl || "";
       Platformer.Updater.latestChecksumSha256 = result.checksumSha256 || "";
-      this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
+      this.safeSetText(this.updateButtonText, this.pendingUpdateUrl ? "Update + Restart" : "Update", "updateButtonText");
       this.setBottomLeftUpdateStatus(`Update found (${v}). Press Update.`);
     } else {
       this.setBottomLeftUpdateStatus("You're up to date.");
       Platformer.Updater.latestChecksumSha256 = "";
-      this.updateButtonText.setText("Update");
+      this.safeSetText(this.updateButtonText, "Update", "updateButtonText");
     }
   }
 
@@ -646,7 +716,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
   setMenuInteractive(enabled) {
     this.menuInteractive = !!enabled;
-    const interactiveIds = ["play", "options", "credits", "exit"];
+    const interactiveIds = ["play", "options", "extras", "exit"];
     interactiveIds.forEach((id) => {
       const b = this.menuButtons[id];
       if (!b || !b.box) return;
@@ -760,7 +830,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       duration: 2200,
     });
 
-    const orderedButtons = ["play", "continue", "options", "credits", "exit"]
+    const orderedButtons = ["play", "continue", "options", "extras", "exit"]
       .map((id) => this.menuButtons[id])
       .filter((b) => !!b);
     const buttonTargets = [];
@@ -932,28 +1002,15 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (this.changePanelBody) this.changePanelBody.setText(this.latestReleaseNotes);
   }
 
-  showCredits() {
-    if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Credits opened.");
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
-    const back = this.add.rectangle(cx, cy, 640, 250, 0x0f172a, 0.88)
-      .setStrokeStyle(2, 0x94a3b8)
-      .setDepth(30)
-      .setInteractive();
-    const txt = this.add.text(cx, cy - 10,
-      "Credits\nCode + Design: Robin + Codex\nFramework: Phaser 3\n\nClick panel to close", {
-        fontFamily: "Consolas",
-        fontSize: "28px",
-        color: "#e2e8f0",
-        align: "center",
+  showExtras() {
+    if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Extras opened.");
+    try {
+      this.scene.start("ExtrasScene");
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("MenuScene.extras", err && err.stack ? err.stack : String(err));
       }
-    ).setOrigin(0.5).setDepth(31);
-
-    back.on("pointerdown", () => {
-      back.destroy();
-      txt.destroy();
-      if (Platformer.Debug) Platformer.Debug.log("MenuScene", "Credits closed.");
-    });
+    }
   }
 
   handleExit() {
@@ -979,6 +1036,15 @@ Platformer.MenuScene = class extends Phaser.Scene {
   setupMenuMusic() {
     const settings = Platformer.Settings.current.audio;
     const volume = (settings.master / 100) * (settings.music / 100);
+    if (Platformer.Debug) {
+      Platformer.Debug.log(
+        "MenuScene.audio",
+        `setupMenuMusic master=${settings.master} music=${settings.music} volume=${volume.toFixed(2)} muted=${this.sound && this.sound.mute ? "yes" : "no"} hidden=${document.hidden ? "yes" : "no"}`
+      );
+      if (volume <= 0.001) {
+        Platformer.Debug.warn("MenuScene.audio", "Effective music volume is 0. Increase Master/Music volume in Options.");
+      }
+    }
 
     this.sound.stopByKey("pause-bgm");
     if (Platformer.pauseMusicHtml) {
@@ -1002,12 +1068,15 @@ Platformer.MenuScene = class extends Phaser.Scene {
       if (!this.menuMusic) {
         try {
           this.menuMusic = this.sound.add("menu-bgm", { loop: true, volume });
+          if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Created menu-bgm sound instance.");
         } catch (_e) {
+          if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "Failed to create menu-bgm sound instance.");
           return;
         }
       } else {
         this.menuMusic.setVolume(volume);
         this.menuMusic.setLoop(true);
+        if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Reusing existing menu-bgm instance.");
       }
 
       const tryPlay = () => {
@@ -1015,9 +1084,15 @@ Platformer.MenuScene = class extends Phaser.Scene {
         if (settings.muteWhenUnfocused && document.hidden) return;
         if (this.menuMusic.isPlaying) return;
         try {
+          if (this.sound && this.sound.context && this.sound.context.state === "suspended") {
+            this.sound.context.resume().catch(() => {});
+            if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "WebAudio context suspended; resume requested.");
+          }
           this.menuMusic.play();
+          if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Playing menu-bgm (Phaser).");
         } catch (_e) {
           // Autoplay restrictions are expected; user input handler below retries.
+          if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "menu-bgm play blocked; waiting for next input.");
         }
       };
 
@@ -1030,6 +1105,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (Platformer.menuMusicHtml) {
       this.menuMusicHtml = Platformer.menuMusicHtml;
       this.menuMusicHtml.volume = Phaser.Math.Clamp(volume, 0, 1);
+      if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Using existing HTML menu music instance.");
       return;
     }
 
@@ -1041,9 +1117,47 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.load.audio("menu-bgm", "assets/nickpanek-energetic-chiptune-video-game-music-platformer-8-bit-318348.mp3");
     this.load.once("complete", wirePlayback);
     this.load.once("loaderror", () => {
+      if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", "menu-bgm loaderror; switching to HTML fallback.");
       this.setupHtmlAudioFallback(volume, settings);
     });
     this.load.start();
+    this.time.delayedCall(1300, () => {
+      if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+      const phaserPlaying = !!(this.menuMusic && this.menuMusic.isPlaying);
+      const htmlPlaying = !!(Platformer.menuMusicHtml && !Platformer.menuMusicHtml.paused);
+      if (!phaserPlaying && !htmlPlaying && Platformer.Debug) {
+        Platformer.Debug.warn("MenuScene.audio", "No menu music is currently playing after startup.");
+      }
+    });
+  }
+
+  applyRuntimeSettings(nextSettings) {
+    try {
+      const settings = nextSettings || Platformer.Settings.current || {};
+      const audio = settings.audio || { master: 80, music: 60, muteWhenUnfocused: false };
+      const volume = Phaser.Math.Clamp((Number(audio.master) / 100) * (Number(audio.music) / 100), 0, 1);
+      if (this.menuMusic) {
+        this.menuMusic.setVolume(volume);
+      }
+      if (this.menuMusicHtml) {
+        this.menuMusicHtml.volume = volume;
+      }
+      if (Platformer.menuMusicHtml) {
+        Platformer.menuMusicHtml.volume = volume;
+      }
+      if (audio.muteWhenUnfocused && document.hidden) {
+        if (Platformer.menuMusicHtml && !Platformer.menuMusicHtml.paused) {
+          Platformer.menuMusicHtml.pause();
+        }
+      }
+      if (Platformer.Debug) {
+        Platformer.Debug.log("MenuScene.settings", `Applied runtime settings: menuVolume=${volume.toFixed(2)}`);
+      }
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("MenuScene.settings", err && err.stack ? err.stack : String(err));
+      }
+    }
   }
 
   setupHtmlAudioFallback(volume, settings) {
@@ -1051,6 +1165,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       if (Platformer.menuMusicHtml) {
         this.menuMusicHtml = Platformer.menuMusicHtml;
         this.menuMusicHtml.volume = Phaser.Math.Clamp(volume, 0, 1);
+        if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Reusing HTML fallback music instance.");
         return;
       }
 
@@ -1062,7 +1177,13 @@ Platformer.MenuScene = class extends Phaser.Scene {
       const tryPlay = () => {
         if (!this.menuMusicHtml) return;
         if (settings.muteWhenUnfocused && document.hidden) return;
-        this.menuMusicHtml.play().catch(() => {});
+        this.menuMusicHtml.play()
+          .then(() => {
+            if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Playing menu-bgm (HTML fallback).");
+          })
+          .catch((err) => {
+            if (Platformer.Debug) Platformer.Debug.warn("MenuScene.audio", `HTML fallback play blocked: ${err && err.message ? err.message : err}`);
+          });
       };
 
       this.input.once("pointerdown", tryPlay);
@@ -1070,10 +1191,12 @@ Platformer.MenuScene = class extends Phaser.Scene {
       tryPlay();
     } catch (_e) {
       // Keep menu functional with no music.
+      if (Platformer.Debug) Platformer.Debug.error("MenuScene.audio", "HTML fallback setup failed.");
     }
   }
 
   stopMenuMusic() {
+    if (Platformer.Debug) Platformer.Debug.log("MenuScene.audio", "Stopping menu music.");
     if (this.menuMusic && this.menuMusic.isPlaying) {
       this.menuMusic.stop();
     }
@@ -1239,6 +1362,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
   }
 
   shutdown() {
+    if (this.onSettingsChanged) {
+      this.game.events.off("settings-changed", this.onSettingsChanged);
+      this.onSettingsChanged = null;
+    }
     // Keep menu music alive across Menu <-> Options transitions.
     this.saveMenuMiniStageState();
     if (this.onResize) {

@@ -52,6 +52,28 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.coinRewardState = {};
     this.shieldCharges = 0;
     this.lastAuxHudAt = 0;
+    this.onSettingsChanged = null;
+    this.jetpack = null;
+    this.jetpackFuelPercent = 100;
+    this.jetpackActive = false;
+    this.jetpackFlame = null;
+    this.jetpackFlameOffsetY = 22;
+    this.tinyGridMode = false;
+    this.playerTuning = null;
+    this.jetpackTuning = null;
+    this.hpBarCfg = null;
+    this.lastTileEmbedLogAt = 0;
+    this.tileEmbedFrames = 0;
+    this.playerBodyWorldW = 0;
+    this.playerBodyWorldH = 0;
+    this.playerHitboxProfile = { w: 9, h: 24, ox: 0, oy: -3 };
+    this.hitboxOverlay = null;
+    this.hitboxOverlayEnabled = false;
+    this.onHitboxesToggle = null;
+    this.onPlayerHitboxChanged = null;
+    this.lastHitboxDrawAt = 0;
+    this.ldtkVisualTiles = [];
+    this.usesLdtkLevel = false;
   }
 
   init(data) {
@@ -62,6 +84,8 @@ Platformer.GameScene = class extends Phaser.Scene {
     const carryState = !!(data && data.carryState);
 
     this.currentLevel = data.level || 1;
+    this.currentNodeId = data && data.nodeId ? String(data.nodeId) : null;
+    this.currentWorldId = data && data.worldId ? String(data.worldId) : null;
     this.registry.set("level", this.currentLevel);
     if (!carryState) {
       this.registry.set("health", 3);
@@ -75,6 +99,7 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.registry.set("threat", "CALM");
     this.registry.set("dashCd", 0);
     this.registry.set("shield", 0);
+    this.registry.set("jetpackFuel", 100);
     this.isDead = false;
     this.levelComplete = false;
     this.levelTimeRemainingMs = timerSeconds * 1000;
@@ -93,6 +118,8 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.coinRewardState = {};
     this.shieldCharges = 0;
     this.lastAuxHudAt = 0;
+    this.jetpackFuelPercent = 100;
+    this.jetpackActive = false;
   }
 
   create() {
@@ -100,17 +127,40 @@ Platformer.GameScene = class extends Phaser.Scene {
     const settings = Platformer.Settings.current;
     const difficulty = settings.gameplay.difficulty;
     const checkpointMode = settings.convenience.checkpointFrequency;
+    this.tinyGridMode = TILE <= 8;
+    this.playerTuning = this.buildPlayerTuning(PLAYER);
+    this.jetpackTuning = this.buildJetpackTuning(Platformer.Config.JETPACK);
+    const P = this.playerTuning;
+    const enemySpeedScale = this.tinyGridMode ? 0.34 : 1;
 
-    this.mapRows = Platformer.createLevelData(this.currentLevel || 1);
+    const ldtkLevelData = this.tryBuildLevelFromLdtk(this.currentLevel || 1);
+    if (ldtkLevelData && Array.isArray(ldtkLevelData.rows) && ldtkLevelData.rows.length) {
+      this.mapRows = ldtkLevelData.rows;
+      this.usesLdtkLevel = true;
+      if (Platformer.Debug) {
+        Platformer.Debug.log("GameScene.ldtk", `Using native LDtk map for level=${this.currentLevel} size=${ldtkLevelData.width}x${ldtkLevelData.height}`);
+      }
+    } else {
+      this.mapRows = Platformer.createLevelData(this.currentLevel || 1);
+      this.usesLdtkLevel = false;
+    }
     this.mapHeight = this.mapRows.length;
     this.mapWidth = this.mapRows[0].length;
     this.normalizeTurretTiles();
     this.normalizeEnemyTiles();
 
-    this.physics.world.gravity.y = PLAYER.gravity;
+    this.physics.world.gravity.y = P.gravity;
     this.physics.world.setBounds(0, 0, this.mapWidth * TILE, this.mapHeight * TILE + 180);
 
-    this.createTokyoBackdrop();
+    if (this.usesLdtkLevel) {
+      this.cameras.main.setBackgroundColor("#0f132a");
+      this.renderLdtkVisualTiles();
+      if (Platformer.Debug) {
+        Platformer.Debug.log("GameScene.ldtk", "LDtk level active: placeholder ground rendering disabled (collision-only solids).");
+      }
+    } else {
+      this.createTokyoBackdrop();
+    }
 
     this.solids = this.physics.add.staticGroup();
     this.oneWays = this.physics.add.staticGroup();
@@ -118,11 +168,11 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.coins = this.physics.add.staticGroup();
     this.checkpoints = this.physics.add.staticGroup();
     this.enemies = this.physics.add.group({ allowGravity: true, immovable: false });
-    this.enemyPatrolSpeed = difficulty === "hard" ? 95 : (difficulty === "easy" ? 48 : 60);
+    this.enemyPatrolSpeed = (difficulty === "hard" ? 95 : (difficulty === "easy" ? 48 : 60)) * enemySpeedScale;
     this.hazardDamage = difficulty === "hard" ? 2 : 1;
     this.hazardCooldownScale = difficulty === "easy" ? 1.35 : (difficulty === "hard" ? 0.8 : 1);
     this.projectileIntervalMs = difficulty === "hard" ? 850 : (difficulty === "easy" ? 1500 : 1100);
-    this.projectileSpeed = difficulty === "hard" ? 270 : (difficulty === "easy" ? 180 : 230);
+    this.projectileSpeed = (difficulty === "hard" ? 270 : (difficulty === "easy" ? 180 : 230)) * enemySpeedScale;
     this.maxCheckpointCount = checkpointMode === "sparse" ? 1 : (checkpointMode === "frequent" ? 999 : (difficulty === "hard" ? 1 : 2));
     this.spawnCheckpointOnStart = checkpointMode === "frequent" || difficulty === "easy";
     this.hazardProjectiles = this.physics.add.group({ allowGravity: false, immovable: true });
@@ -136,11 +186,16 @@ Platformer.GameScene = class extends Phaser.Scene {
 
         if (tile === "#") {
           const block = this.solids.create(px + TILE / 2, py + TILE / 2, "ground");
+          if (this.usesLdtkLevel) {
+            // Keep collider body but don't draw placeholder tile over LDtk visuals.
+            block.setVisible(false);
+            block.setAlpha(0);
+          }
           block.refreshBody();
         }
 
         if (tile === "=") {
-          const platform = this.oneWays.create(px + TILE / 2, py + 10, "oneway");
+          const platform = this.oneWays.create(px + TILE / 2, py + Math.max(2, Math.round(TILE * 0.38)), "oneway");
           platform.refreshBody();
         }
 
@@ -152,6 +207,7 @@ Platformer.GameScene = class extends Phaser.Scene {
 
         if (tile === "C") {
           const coin = this.coins.create(px + TILE / 2, py + TILE / 2, "coin");
+          if (this.tinyGridMode) coin.setDisplaySize(Math.max(5, TILE * 0.85), Math.max(5, TILE * 0.85));
           coin.refreshBody();
         }
 
@@ -161,7 +217,12 @@ Platformer.GameScene = class extends Phaser.Scene {
           const speedByType = { E: this.enemyPatrolSpeed, F: this.enemyPatrolSpeed * 0.9, G: this.enemyPatrolSpeed * 1.2, H: this.enemyPatrolSpeed * 0.75 };
           const enemy = this.enemies.create(px + TILE / 2, py + TILE / 2, textureByType[enemyType] || "enemy");
           const patrol = this.computeEnemyPatrolBounds(x, y);
-          enemy.body.setSize(24, 24);
+          if (this.tinyGridMode) {
+            enemy.setDisplaySize(10, 10);
+            enemy.body.setSize(8, 8);
+          } else {
+            enemy.body.setSize(24, 24);
+          }
           enemy.setBounce(0, 0);
           enemy.setCollideWorldBounds(true);
           enemy.setVelocityX(-speedByType[enemyType]);
@@ -186,6 +247,7 @@ Platformer.GameScene = class extends Phaser.Scene {
             continue;
           }
           const checkpoint = this.checkpoints.create(px + TILE / 2, py + TILE / 2, "checkpoint");
+          if (this.tinyGridMode) checkpoint.setDisplaySize(Math.max(4, TILE * 0.75), Math.max(12, TILE * 2));
           checkpoint.setData("activeCheckpoint", false);
           checkpoint.refreshBody();
           checkpointCount += 1;
@@ -205,21 +267,45 @@ Platformer.GameScene = class extends Phaser.Scene {
     } else if (Platformer.Debug) {
       Platformer.Debug.warn("GameScene.playerIdle", "player-idle-sheet missing, using fallback idle textures.");
     }
+    const tinyGrid = TILE <= 8;
     if (this.useImportedCharacter) {
-      this.player.setDisplaySize(56, 56);
-      this.player.body.setSize(22, 44, true);
+      if (tinyGrid) {
+        this.player.setDisplaySize(32, 32);
+        this.applyTinyPlayerHitboxProfile();
+      } else {
+        this.player.setDisplaySize(56, 56);
+        this.player.body.setSize(22, 44, true);
+      }
+    } else if (tinyGrid) {
+      this.player.setDisplaySize(32, 32);
+      this.applyTinyPlayerHitboxProfile();
     } else {
       this.player.setDisplaySize(28, 38);
       this.player.body.setSize(20, 34);
     }
+    this.alignPlayerBodyToFeet();
+    if (this.tinyGridMode && Platformer.Debug && this.player && this.player.body) {
+      Platformer.Debug.log(
+        "GameScene.collision",
+        `Tiny body initialized world=${this.player.body.width.toFixed(1)}x${this.player.body.height.toFixed(1)} scale=${this.player.scaleX.toFixed(3)},${this.player.scaleY.toFixed(3)}`
+      );
+    }
     this.player.setCollideWorldBounds(true);
     // Allow dash velocity to exceed normal run cap.
-    this.player.setMaxVelocity(Math.max(PLAYER.maxSpeed, PLAYER.dashSpeed + 60), 700);
-    this.player.setDragX(PLAYER.drag);
+    this.player.setMaxVelocity(Math.max(P.maxSpeed, P.dashSpeed + 60), P.maxFallSpeed || 760);
+    this.player.setDragX(P.drag);
+    this.player.setAccelerationY(0);
+    this.player.body.setGravityY(0);
+    this.resolvePlayerEmbedding("spawn");
 
     this.respawnPoint.copy(this.spawnPoint);
     if (this.spawnCheckpointOnStart) {
-      const extraStartCheckpoint = this.checkpoints.create(this.spawnPoint.x + 24, this.spawnPoint.y - 20, "checkpoint");
+      const extraStartCheckpoint = this.checkpoints.create(
+        this.spawnPoint.x + (this.tinyGridMode ? TILE * 3 : 24),
+        this.spawnPoint.y - (this.tinyGridMode ? TILE * 2 : 20),
+        "checkpoint"
+      );
+      if (this.tinyGridMode) extraStartCheckpoint.setDisplaySize(Math.max(4, TILE * 0.75), Math.max(12, TILE * 2));
       extraStartCheckpoint.setData("activeCheckpoint", true);
       extraStartCheckpoint.setTint(0x22c55e);
       extraStartCheckpoint.refreshBody();
@@ -243,17 +329,49 @@ Platformer.GameScene = class extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, this.mapWidth * TILE, this.mapHeight * TILE);
     const smooth = Phaser.Math.Clamp(settings.video.cameraSmoothing / 100, 0, 1);
-    this.cameras.main.startFollow(this.player, true, smooth, smooth);
-    this.cameras.main.setDeadzone(180, 120);
+    const followLerp = this.tinyGridMode ? 1 : smooth;
+    this.cameras.main.startFollow(this.player, true, followLerp, followLerp);
+    this.cameras.main.roundPixels = !this.tinyGridMode;
+    this.cameras.main.setDeadzone(this.tinyGridMode ? 56 : 180, this.tinyGridMode ? 40 : 120);
     this.cameras.main.setBackgroundColor("#0b1026");
     this.updateCameraFraming();
     this.scale.on("resize", this.updateCameraFraming, this);
     this.applyVideoSettings();
     this.createPlayerHealthBar();
+    this.createJetpackFx();
+    this.jetpack = new Platformer.JetpackController(this.jetpackTuning, {
+      onJetpackStart: () => {
+        if (Platformer.Debug) Platformer.Debug.log("GameScene.jetpack", "Jetpack thrust started.");
+      },
+      onJetpackStop: (_scene, ctrl, reason) => {
+        if (Platformer.Debug) {
+          Platformer.Debug.log("GameScene.jetpack", `Jetpack thrust stopped. reason=${reason} fuel=${Math.round(ctrl.fuelPercent)}%`);
+        }
+      },
+    });
+    this.jetpack.reset(true);
+    this.jetpackFuelPercent = this.jetpack.fuelPercent;
+    if (Platformer.Debug) {
+      const j = Platformer.Config.JETPACK || {};
+      Platformer.Debug.log(
+        "GameScene.jetpack",
+        `Init cap=${j.fuelCapacity}s drain=${j.drainRate}/s regen=${j.regenRate}/s tinyGrid=${this.tinyGridMode ? "yes" : "no"}`
+      );
+    }
+    if (Platformer.Debug) {
+      Platformer.Debug.log(
+        "GameScene.tuning",
+        `tinyGrid=${this.tinyGridMode ? "yes" : "no"} speed=${P.maxSpeed.toFixed(1)} jump=${P.jumpVelocity.toFixed(1)} gravity=${P.gravity.toFixed(1)}`
+      );
+    }
     this.registry.set("shield", this.shieldCharges);
+    this.registry.set("jetpackFuel", this.jetpackFuelPercent);
+    this.setupHitboxOverlay();
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys(this.buildControlKeyMap());
+    this.onSettingsChanged = (nextSettings) => this.applyRuntimeSettings(nextSettings);
+    this.game.events.on("settings-changed", this.onSettingsChanged);
     this.setupGameMusic();
     this.setupHazardShooters();
     this.initRuntimeDiagnostics();
@@ -420,13 +538,294 @@ Platformer.GameScene = class extends Phaser.Scene {
   }
 
   createPlayerHealthBar() {
-    this.playerHealthBarBg = this.add.rectangle(this.player.x, this.player.y - 34, 38, 7, 0x111827, 0.92)
+    this.hpBarCfg = this.tinyGridMode
+      ? { yOff: 20, w: 16, h: 4, fillW: 14, fillH: 2 }
+      : { yOff: 34, w: 38, h: 7, fillW: 34, fillH: 5 };
+    this.playerHealthBarBg = this.add.rectangle(
+      this.player.x,
+      this.player.y - this.hpBarCfg.yOff,
+      this.hpBarCfg.w,
+      this.hpBarCfg.h,
+      0x111827,
+      0.92
+    )
       .setStrokeStyle(1, 0xe2e8f0, 0.85)
       .setDepth(55);
-    this.playerHealthBarFill = this.add.rectangle(this.player.x - 18, this.player.y - 34, 34, 5, 0x22c55e, 1)
+    this.playerHealthBarFill = this.add.rectangle(
+      this.player.x - this.hpBarCfg.fillW / 2,
+      this.player.y - this.hpBarCfg.yOff,
+      this.hpBarCfg.fillW,
+      this.hpBarCfg.fillH,
+      0x22c55e,
+      1
+    )
       .setOrigin(0, 0.5)
       .setDepth(56);
     this.updatePlayerHealthBar();
+  }
+
+  createJetpackFx() {
+    let key = this.textures.exists("jetpack-flame-1") ? "jetpack-flame-1" : "coin";
+    if (this.tinyGridMode) {
+      if (!this.textures.exists("jetpack-flame-tiny")) {
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+        g.fillStyle(0xfbbf24, 1);
+        g.fillTriangle(4, 0, 0, 7, 8, 7);
+        g.generateTexture("jetpack-flame-tiny", 8, 8);
+        g.destroy();
+      }
+      key = "jetpack-flame-tiny";
+    }
+    this.jetpackFlameOffsetY = this.tinyGridMode ? 7 : 22;
+    this.jetpackFlame = this.add.sprite(this.player.x, this.player.y + 18, key)
+      .setDepth(54)
+      .setVisible(false);
+    this.jetpackFlame.setBlendMode(this.tinyGridMode ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD);
+    if (this.tinyGridMode) {
+      this.jetpackFlame.setDisplaySize(6, 6);
+    } else if (key === "coin") {
+      this.jetpackFlame.setDisplaySize(12, 12);
+    }
+  }
+
+  updateJetpackFx(now, active) {
+    if (!this.jetpackFlame || !this.player) return;
+    this.jetpackFlame.setPosition(this.player.x, this.player.y + this.jetpackFlameOffsetY);
+    if (!active) {
+      this.jetpackFlame.setVisible(false);
+      return;
+    }
+    this.jetpackFlame.setVisible(true);
+    if (!this.tinyGridMode && this.textures.exists("jetpack-flame-1") && this.textures.exists("jetpack-flame-2")) {
+      const frameKey = Math.floor(now / 75) % 2 === 0 ? "jetpack-flame-1" : "jetpack-flame-2";
+      this.jetpackFlame.setTexture(frameKey);
+    }
+    if (this.tinyGridMode) {
+      const pulse = 0.85 + Math.sin(now * 0.03) * 0.15;
+      this.jetpackFlame.setScale(this.facingDir < 0 ? -pulse : pulse, pulse);
+      this.jetpackFlame.setAlpha(0.9);
+      return;
+    }
+    this.jetpackFlame.setScale(this.facingDir < 0 ? -1 : 1, 1);
+  }
+
+  alignPlayerBodyToFeet() {
+    if (!this.player || !this.player.body || !this.tinyGridMode) return;
+    const sx = Math.max(0.0001, Math.abs(this.player.scaleX || 1));
+    const sy = Math.max(0.0001, Math.abs(this.player.scaleY || 1));
+    const bodyWorldW = this.playerBodyWorldW || this.player.body.width;
+    const bodyWorldH = this.playerBodyWorldH || this.player.body.height;
+    const p = this.playerHitboxProfile || { ox: 0, oy: 10 };
+    const oxWorld = Math.max(0, (this.player.displayWidth - bodyWorldW) * 0.5 + (p.ox || 0));
+    const oyWorld = Math.max(0, this.player.displayHeight - bodyWorldH + (p.oy || 0));
+    this.player.body.setOffset(oxWorld / sx, oyWorld / sy);
+  }
+
+  applyTinyPlayerHitboxProfile() {
+    if (!this.tinyGridMode || !this.player) return;
+    const fallback = { w: 9, h: 24, ox: 0, oy: -3 };
+    let source = "fallback";
+    let p = null;
+
+    // First source: host-backed settings (persistent across EXE restarts).
+    const settingsDebug = Platformer.Settings && Platformer.Settings.current
+      ? Platformer.Settings.current.debug
+      : null;
+    if (settingsDebug && settingsDebug.playerHitbox) {
+      p = {
+        w: Phaser.Math.Clamp(Number(settingsDebug.playerHitbox.w) || fallback.w, 4, 64),
+        h: Phaser.Math.Clamp(Number(settingsDebug.playerHitbox.h) || fallback.h, 4, 64),
+        ox: Phaser.Math.Clamp(Number(settingsDebug.playerHitbox.ox) || fallback.ox, -24, 24),
+        oy: Phaser.Math.Clamp(Number(settingsDebug.playerHitbox.oy) || fallback.oy, -24, 24),
+      };
+      source = "settings";
+    }
+
+    // Prefer the debug module profile when available.
+    if (!p && Platformer.Debug && typeof Platformer.Debug.getPlayerHitboxProfile === "function") {
+      p = Platformer.Debug.getPlayerHitboxProfile();
+      source = "debug";
+    }
+
+    // Robust fallback: load persisted profile directly even if Debug init order changes.
+    if (!p) {
+      try {
+        const raw = localStorage.getItem("platformer_player_hitbox");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          p = {
+            w: Phaser.Math.Clamp(Number(parsed.w) || fallback.w, 4, 64),
+            h: Phaser.Math.Clamp(Number(parsed.h) || fallback.h, 4, 64),
+            ox: Phaser.Math.Clamp(Number(parsed.ox) || fallback.ox, -24, 24),
+            oy: Phaser.Math.Clamp(Number(parsed.oy) || fallback.oy, -24, 24),
+          };
+          source = "localStorage";
+        }
+      } catch (_e) {
+        // Ignore parse/storage errors and keep fallback.
+      }
+    }
+
+    this.playerHitboxProfile = { ...fallback, ...(p || {}) };
+    this.setPlayerBodyWorldSize(this.playerHitboxProfile.w, this.playerHitboxProfile.h, false);
+    this.alignPlayerBodyToFeet();
+    if (Platformer.Debug) {
+      Platformer.Debug.log(
+        "GameScene.collision",
+        `Hitbox profile loaded (${source}) w=${this.playerHitboxProfile.w} h=${this.playerHitboxProfile.h} ox=${this.playerHitboxProfile.ox} oy=${this.playerHitboxProfile.oy}`
+      );
+    }
+  }
+
+  setPlayerBodyWorldSize(worldW, worldH, center) {
+    if (!this.player || !this.player.body) return;
+    this.playerBodyWorldW = worldW;
+    this.playerBodyWorldH = worldH;
+    const sx = Math.max(0.0001, Math.abs(this.player.scaleX || 1));
+    const sy = Math.max(0.0001, Math.abs(this.player.scaleY || 1));
+    const rawW = Math.max(1, worldW / sx);
+    const rawH = Math.max(1, worldH / sy);
+    this.player.body.setSize(rawW, rawH, center);
+  }
+
+  resolvePlayerEmbedding(context) {
+    if (!this.tinyGridMode || !this.player || !this.player.body) return;
+    const body = this.player.body;
+    let overlapped = !!body.embedded;
+    if (!overlapped && this.physics && this.solids) {
+      overlapped = this.physics.overlap(this.player, this.solids);
+    }
+    if (!overlapped) return;
+
+    for (let i = 0; i < 64; i += 1) {
+      this.player.y -= 1;
+      if (typeof body.updateFromGameObject === "function") body.updateFromGameObject();
+      if (!this.physics.overlap(this.player, this.solids)) {
+        body.embedded = false;
+        break;
+      }
+    }
+    const stillOverlapped = this.physics && this.solids ? this.physics.overlap(this.player, this.solids) : false;
+    if (body.velocity.y > 0) body.velocity.y = 0;
+    if (Platformer.Debug) {
+      if (stillOverlapped) {
+        Platformer.Debug.error(
+          "GameScene.collision",
+          `Player still embedded after resolve (${context}) x=${this.player.x.toFixed(1)} y=${this.player.y.toFixed(1)} ` +
+          `bx=${body.x.toFixed(1)} by=${body.y.toFixed(1)} bw=${body.width} bh=${body.height} ` +
+          `vx=${body.velocity.x.toFixed(1)} vy=${body.velocity.y.toFixed(1)}`
+        );
+      } else {
+        Platformer.Debug.warn("GameScene.collision", `Resolved embedded player (${context}).`);
+      }
+    }
+  }
+
+  logIfPlayerInsideTile(now) {
+    if (!this.player || !this.player.body || !this.solids || !this.physics) return;
+    const body = this.player.body;
+    const overlapped = !!body.embedded || this.physics.overlap(this.player, this.solids);
+    if (!overlapped) {
+      this.tileEmbedFrames = 0;
+      return;
+    }
+
+    this.tileEmbedFrames += 1;
+    if (this.tileEmbedFrames < 2) return;
+    if (now - this.lastTileEmbedLogAt < 500) return;
+    this.lastTileEmbedLogAt = now;
+
+    if (Platformer.Debug) {
+      Platformer.Debug.error(
+        "GameScene.collision",
+        `INSIDE_TILE detected x=${this.player.x.toFixed(1)} y=${this.player.y.toFixed(1)} ` +
+        `bx=${body.x.toFixed(1)} by=${body.y.toFixed(1)} bw=${body.width} bh=${body.height} ` +
+        `vx=${body.velocity.x.toFixed(1)} vy=${body.velocity.y.toFixed(1)} ` +
+        `blocked(d,l,r,u)=${body.blocked.down ? 1 : 0},${body.blocked.left ? 1 : 0},${body.blocked.right ? 1 : 0},${body.blocked.up ? 1 : 0}`
+      );
+    }
+  }
+
+  resolveGroundPenetration(now) {
+    if (!this.tinyGridMode || !this.player || !this.player.body || !this.solids || !this.physics) return;
+    const body = this.player.body;
+    if (!body.blocked.down || body.velocity.y < 0) return;
+    let top = Number.POSITIVE_INFINITY;
+    const hasOverlap = this.physics.overlap(this.player, this.solids, (_p, solid) => {
+      if (solid && solid.body) top = Math.min(top, solid.body.top);
+    });
+    if (!hasOverlap || !Number.isFinite(top)) return;
+
+    const penetration = body.bottom - top;
+    if (penetration <= 1.25) return;
+    const moved = Math.min(4, Math.ceil(penetration - 1));
+    this.player.y -= moved;
+    if (typeof body.updateFromGameObject === "function") body.updateFromGameObject();
+    if (moved > 0 && Platformer.Debug && now - this.lastTileEmbedLogAt > 250) {
+      this.lastTileEmbedLogAt = now;
+      Platformer.Debug.warn("GameScene.collision", `Ground penetration corrected by ${moved}px`);
+    }
+  }
+
+  setupHitboxOverlay() {
+    this.hitboxOverlayEnabled = !!(Platformer.Debug && Platformer.Debug.hitboxesEnabled);
+    this.hitboxOverlay = this.add.graphics();
+    this.hitboxOverlay.setDepth(5000);
+    this.hitboxOverlay.setScrollFactor(1);
+    this.onHitboxesToggle = (ev) => {
+      this.hitboxOverlayEnabled = !!(ev && ev.detail && ev.detail.enabled);
+      if (Platformer.Debug) Platformer.Debug.log("GameScene.hitboxes", `Overlay ${this.hitboxOverlayEnabled ? "ON" : "OFF"}`);
+      if (!this.hitboxOverlayEnabled && this.hitboxOverlay) this.hitboxOverlay.clear();
+    };
+    window.addEventListener("platformer:hitboxes-toggle", this.onHitboxesToggle);
+    this.onPlayerHitboxChanged = (ev) => {
+      const p = ev && ev.detail ? ev.detail : null;
+      if (!p || !this.tinyGridMode || !this.player) return;
+      this.playerHitboxProfile = { ...this.playerHitboxProfile, ...p };
+      this.setPlayerBodyWorldSize(this.playerHitboxProfile.w, this.playerHitboxProfile.h, false);
+      this.alignPlayerBodyToFeet();
+      if (typeof this.player.body.updateFromGameObject === "function") this.player.body.updateFromGameObject();
+      if (Platformer.Debug) {
+        Platformer.Debug.log(
+          "GameScene.collision",
+          `Player HB applied w=${this.playerHitboxProfile.w} h=${this.playerHitboxProfile.h} ox=${this.playerHitboxProfile.ox} oy=${this.playerHitboxProfile.oy}`
+        );
+      }
+    };
+    window.addEventListener("platformer:player-hitbox-changed", this.onPlayerHitboxChanged);
+  }
+
+  drawHitboxOverlay(now) {
+    if (!this.hitboxOverlay) return;
+    if (!this.hitboxOverlayEnabled) {
+      this.hitboxOverlay.clear();
+      return;
+    }
+    if (now - this.lastHitboxDrawAt < 16) return;
+    this.lastHitboxDrawAt = now;
+
+    const g = this.hitboxOverlay;
+    g.clear();
+    const cam = this.cameras && this.cameras.main ? this.cameras.main : null;
+    const view = cam ? cam.worldView : null;
+    const inView = (b) => {
+      if (!view) return true;
+      return !(b.right < view.x - 24 || b.x > view.right + 24 || b.bottom < view.y - 24 || b.y > view.bottom + 24);
+    };
+
+    const drawBody = (body, color, width = 1) => {
+      if (!body) return;
+      if (!inView(body)) return;
+      g.lineStyle(width, color, 1);
+      g.strokeRect(body.x, body.y, body.width, body.height);
+    };
+
+    drawBody(this.player && this.player.body, 0x22c55e, 2);
+    this.solids && this.solids.children.each((o) => drawBody(o && o.body, 0x38bdf8, 1));
+    this.oneWays && this.oneWays.children.each((o) => drawBody(o && o.body, 0x06b6d4, 1));
+    this.hazards && this.hazards.children.each((o) => drawBody(o && o.body, 0xf97316, 1));
+    this.enemies && this.enemies.children.each((o) => drawBody(o && o.body, 0xef4444, 1));
+    this.hazardProjectiles && this.hazardProjectiles.children.each((o) => drawBody(o && o.body, 0xeab308, 1));
   }
 
   updatePlayerHealthBar() {
@@ -436,11 +835,12 @@ Platformer.GameScene = class extends Phaser.Scene {
 
     const health = Phaser.Math.Clamp(this.registry.get("health"), 0, 3);
     const ratio = health / 3;
-    const fillWidth = Math.max(0, 34 * ratio);
+    const fillWidth = Math.max(0, (this.hpBarCfg ? this.hpBarCfg.fillW : 34) * ratio);
     const color = ratio > 0.66 ? 0x22c55e : (ratio > 0.33 ? 0xf59e0b : 0xef4444);
-
-    this.playerHealthBarBg.setPosition(this.player.x, this.player.y - 34);
-    this.playerHealthBarFill.setPosition(this.player.x - 18, this.player.y - 34);
+    const yOff = this.hpBarCfg ? this.hpBarCfg.yOff : 34;
+    const xOff = this.hpBarCfg ? this.hpBarCfg.fillW / 2 : 18;
+    this.playerHealthBarBg.setPosition(this.player.x, this.player.y - yOff);
+    this.playerHealthBarFill.setPosition(this.player.x - xOff, this.player.y - yOff);
     this.playerHealthBarFill.width = fillWidth;
     this.playerHealthBarFill.setFillStyle(color, 1);
     this.playerHealthBarFill.setVisible(fillWidth > 0);
@@ -479,15 +879,16 @@ Platformer.GameScene = class extends Phaser.Scene {
         continue;
       }
 
-      const inRangeX = Math.abs(shooter.x - this.player.x) < 540;
-      const inRangeY = Math.abs(shooter.y - this.player.y) < 260;
+      const inRangeX = Math.abs(shooter.x - this.player.x) < (this.tinyGridMode ? 220 : 540);
+      const inRangeY = Math.abs(shooter.y - this.player.y) < (this.tinyGridMode ? 120 : 260);
       if (!inRangeX || !inRangeY) {
         continue;
       }
 
       const projectile = this.hazardProjectiles.create(shooter.x, shooter.y - 8, "hazard-projectile");
       projectile.setDepth(70);
-      projectile.body.setSize(10, 10);
+      projectile.body.setSize(this.tinyGridMode ? 4 : 10, this.tinyGridMode ? 4 : 10);
+      if (this.tinyGridMode) projectile.setDisplaySize(5, 5);
       projectile.body.setAllowGravity(false);
       projectile.setCollideWorldBounds(false);
 
@@ -594,6 +995,123 @@ Platformer.GameScene = class extends Phaser.Scene {
     }
   }
 
+  tryBuildLevelFromLdtk(levelNumber) {
+    if (Number(levelNumber) !== 5) return null;
+    try {
+      const ldtk = this.cache && this.cache.json ? this.cache.json.get("ldtk-test") : null;
+      if (!ldtk || typeof ldtk !== "object") {
+        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "Missing cached ldtk-test JSON; falling back to classic level data.");
+        return null;
+      }
+      const levels = Array.isArray(ldtk.levels) ? ldtk.levels : [];
+      const level = levels[0] || null;
+      if (!level) {
+        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "No levels in test.ldtk; falling back.");
+        return null;
+      }
+      const layers = Array.isArray(level.layerInstances) ? level.layerInstances : [];
+      const intLayer = layers.find((li) => li && li.__type === "IntGrid") || null;
+      if (!intLayer) {
+        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "No IntGrid layer found in test.ldtk; falling back.");
+        return null;
+      }
+      const width = Number(intLayer.__cWid || 0);
+      const height = Number(intLayer.__cHei || 0);
+      const csv = Array.isArray(intLayer.intGridCsv) ? intLayer.intGridCsv : [];
+      if (!width || !height || csv.length !== width * height) {
+        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", `Invalid IntGrid dimensions w=${width} h=${height} csv=${csv.length}; falling back.`);
+        return null;
+      }
+
+      const rowsChars = Array.from({ length: height }, () => Array.from({ length: width }, () => "."));
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const v = Number(csv[y * width + x] || 0);
+          if (v !== 0) rowsChars[y][x] = "#";
+        }
+      }
+
+      // Find a sensible spawn above a solid tile.
+      let sx = 1;
+      let sy = 1;
+      for (let y = 1; y < height; y += 1) {
+        let found = false;
+        for (let x = 0; x < width; x += 1) {
+          if (rowsChars[y][x] === "." && rowsChars[y - 1][x] === "#") {
+            sx = x;
+            sy = y;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      rowsChars[sy][sx] = "S";
+
+      return {
+        width,
+        height,
+        rows: rowsChars.map((r) => r.join("")),
+      };
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("GameScene.ldtk", err && err.stack ? err.stack : String(err));
+      }
+      return null;
+    }
+  }
+
+  renderLdtkVisualTiles() {
+    try {
+      if (!this.textures.exists("ldtk-cavernas")) {
+        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "ldtk-cavernas texture missing; visual tile render skipped.");
+        return;
+      }
+      const ldtk = this.cache && this.cache.json ? this.cache.json.get("ldtk-test") : null;
+      const level = ldtk && Array.isArray(ldtk.levels) ? ldtk.levels[0] : null;
+      const layers = level && Array.isArray(level.layerInstances) ? level.layerInstances : [];
+      const intLayer = layers.find((li) => li && li.__type === "IntGrid") || null;
+      if (!intLayer) return;
+      const autoTiles = Array.isArray(intLayer.autoLayerTiles) ? intLayer.autoLayerTiles : [];
+
+      const tex = this.textures.get("ldtk-cavernas");
+      const src = tex && tex.getSourceImage ? tex.getSourceImage() : null;
+      const tileSize = Number(intLayer.__gridSize || Platformer.Config.TILE || 8);
+      const cols = src && src.width ? Math.max(1, Math.floor(src.width / tileSize)) : 1;
+
+      // Clear previous visuals if scene restarts.
+      if (Array.isArray(this.ldtkVisualTiles) && this.ldtkVisualTiles.length) {
+        this.ldtkVisualTiles.forEach((o) => { if (o && o.destroy) o.destroy(); });
+      }
+      this.ldtkVisualTiles = [];
+
+      for (let i = 0; i < autoTiles.length; i += 1) {
+        const t = autoTiles[i];
+        if (!t || !Array.isArray(t.px) || !Array.isArray(t.src)) continue;
+        const px = Number(t.px[0] || 0);
+        const py = Number(t.px[1] || 0);
+        const sx = Number(t.src[0] || 0);
+        const sy = Number(t.src[1] || 0);
+        const f = Number(t.f || 0);
+        const frame = Math.floor(sy / tileSize) * cols + Math.floor(sx / tileSize);
+        const img = this.add.image(px + tileSize / 2, py + tileSize / 2, "ldtk-cavernas", frame)
+          .setDepth(-40)
+          .setOrigin(0.5);
+        if ((f & 1) !== 0) img.setFlipX(true);
+        if ((f & 2) !== 0) img.setFlipY(true);
+        this.ldtkVisualTiles.push(img);
+      }
+
+      if (Platformer.Debug) {
+        Platformer.Debug.log("GameScene.ldtk", `Rendered LDtk auto tiles: ${this.ldtkVisualTiles.length}`);
+      }
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("GameScene.ldtk", err && err.stack ? err.stack : String(err));
+      }
+    }
+  }
+
   oneWayProcess(player, platform) {
     const pBody = player.body;
     const platBody = platform.body;
@@ -614,6 +1132,38 @@ Platformer.GameScene = class extends Phaser.Scene {
     return fallback;
   }
 
+  buildPlayerTuning(base) {
+    const b = base || {};
+    if (!this.tinyGridMode) return { ...b };
+    const s = 0.5;
+    return {
+      ...b,
+      maxSpeed: (b.maxSpeed || 164) * s,
+      acceleration: (b.acceleration || 1080) * (s * 1.35),
+      drag: (b.drag || 3200) * (s * 1.25),
+      jumpVelocity: (b.jumpVelocity || 420) * s,
+      gravity: (b.gravity || 1100) * s,
+      dashSpeed: (b.dashSpeed || 460) * s,
+      maxRiseSpeed: (b.maxRiseSpeed || 520) * s,
+      maxFallSpeed: (b.maxFallSpeed || 760) * s,
+      attackRange: Math.max(12, (b.attackRange || 44) * 0.45),
+    };
+  }
+
+  buildJetpackTuning(base) {
+    const b = { ...(base || {}) };
+    if (!this.tinyGridMode) return b;
+    const s = 0.5;
+    b.maxUpSpeed = Math.max(28, Number(b.maxUpSpeed || 220) * s);
+    b.momentumBoostSpeed = Math.max(12, Number(b.momentumBoostSpeed || 72) * s);
+    b.activationKickSpeed = Math.max(8, Number(b.activationKickSpeed || 34) * s);
+    b.maxAccel = Math.max(180, Number(b.maxAccel || 1320) * s);
+    b.maxThrustAccel = Math.max(180, Number(b.maxThrustAccel || 1300) * s);
+    b.brakeDecelMax = Math.max(120, Number(b.brakeDecelMax || 760) * s);
+    b.liftThresholdSpeed = Math.max(10, Number(b.liftThresholdSpeed || 56) * s);
+    return b;
+  }
+
   buildControlKeyMap() {
     const c = Platformer.Settings.current.controls;
     return {
@@ -624,6 +1174,7 @@ Platformer.GameScene = class extends Phaser.Scene {
       attack: this.keyCodeFromName(c.attack, Phaser.Input.Keyboard.KeyCodes.J),
       interact: this.keyCodeFromName(c.interact, Phaser.Input.Keyboard.KeyCodes.E),
       pause: this.keyCodeFromName(c.pause, Phaser.Input.Keyboard.KeyCodes.ESC),
+      jetpack: Phaser.Input.Keyboard.KeyCodes.SPACE,
       demoWin: Phaser.Input.Keyboard.KeyCodes.F2,
     };
   }
@@ -633,14 +1184,52 @@ Platformer.GameScene = class extends Phaser.Scene {
     const brightness = Phaser.Math.Clamp(s.video.brightness, 0.8, 1.2);
     const shade = brightness >= 1 ? 0xffffff : 0x000000;
     const alpha = Math.abs(1 - brightness) * 0.45;
-    this.brightnessOverlay = this.add.rectangle(
-      this.mapWidth * Platformer.Config.TILE / 2,
-      this.mapHeight * Platformer.Config.TILE / 2,
-      this.mapWidth * Platformer.Config.TILE + 800,
-      this.mapHeight * Platformer.Config.TILE + 800,
-      shade,
-      alpha
-    ).setScrollFactor(0).setDepth(200);
+    const centerX = this.mapWidth * Platformer.Config.TILE / 2;
+    const centerY = this.mapHeight * Platformer.Config.TILE / 2;
+    const width = this.mapWidth * Platformer.Config.TILE + 800;
+    const height = this.mapHeight * Platformer.Config.TILE + 800;
+    if (this.brightnessOverlay && this.brightnessOverlay.active) {
+      this.brightnessOverlay.setPosition(centerX, centerY);
+      this.brightnessOverlay.setSize(width, height);
+      this.brightnessOverlay.setFillStyle(shade, alpha);
+    } else {
+      this.brightnessOverlay = this.add.rectangle(centerX, centerY, width, height, shade, alpha)
+        .setScrollFactor(0)
+        .setDepth(200);
+    }
+  }
+
+  applyRuntimeSettings(nextSettings) {
+    try {
+      const settings = nextSettings || Platformer.Settings.current || {};
+      const audio = settings.audio || { master: 80, music: 60 };
+      const volume = Phaser.Math.Clamp((Number(audio.master) / 100) * (Number(audio.music) / 100), 0, 1);
+
+      if (Platformer.gameMusic && typeof Platformer.gameMusic.setVolume === "function") {
+        Platformer.gameMusic.setVolume(volume);
+      }
+      if (Platformer.gameMusicHtml) {
+        Platformer.gameMusicHtml.volume = volume;
+      }
+      if (this.keys && this.input && this.input.keyboard) {
+        this.keys = this.input.keyboard.addKeys(this.buildControlKeyMap());
+      }
+      this.applyVideoSettings();
+      this.updateCameraFraming();
+      if (this.cameras && this.cameras.main && this.player) {
+        const smooth = Phaser.Math.Clamp((settings.video.cameraSmoothing || 0) / 100, 0, 1);
+        const followLerp = this.tinyGridMode ? 1 : smooth;
+        this.cameras.main.startFollow(this.player, true, followLerp, followLerp);
+        this.cameras.main.roundPixels = !this.tinyGridMode;
+      }
+      if (Platformer.Debug) {
+        Platformer.Debug.log("GameScene.settings", `Applied runtime settings: gameVolume=${volume.toFixed(2)}`);
+      }
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("GameScene.settings", err && err.stack ? err.stack : String(err));
+      }
+    }
   }
 
   updateCameraFraming() {
@@ -650,7 +1239,10 @@ Platformer.GameScene = class extends Phaser.Scene {
     const s = Platformer.Settings.current;
     const baseZoom = this.scale.height / Platformer.Config.GAME_HEIGHT;
     const resScale = Phaser.Math.Clamp(s.video.resolutionScale / 100, 0.5, 1);
-    const zoom = Phaser.Math.Clamp(baseZoom * resScale, 0.75, 3);
+    const modeZoom = this.tinyGridMode ? 3.5 : 1;
+    const zoom = this.tinyGridMode
+      ? Phaser.Math.Clamp(baseZoom * resScale * modeZoom, 2.5, 7)
+      : Phaser.Math.Clamp(baseZoom * resScale * modeZoom, 0.75, 3);
     this.cameras.main.setZoom(zoom);
   }
 
@@ -1064,7 +1656,7 @@ Platformer.GameScene = class extends Phaser.Scene {
   }
 
   tryStartDash(now, moveLeft, moveRight) {
-    const { PLAYER } = Platformer.Config;
+    const PLAYER = this.playerTuning || Platformer.Config.PLAYER;
     const grounded = this.player.body.blocked.down || this.player.body.touching.down;
     const canDash = now - this.lastDashAt >= PLAYER.dashCooldownMs;
     if (!canDash || this.isDashing) return false;
@@ -1091,12 +1683,12 @@ Platformer.GameScene = class extends Phaser.Scene {
   stopDash() {
     if (!this.isDashing) return;
     this.isDashing = false;
-    this.player.setDragX(Platformer.Config.PLAYER.drag);
+    this.player.setDragX((this.playerTuning || Platformer.Config.PLAYER).drag);
     this.player.clearTint();
   }
 
   tryAttack(now) {
-    const { PLAYER } = Platformer.Config;
+    const PLAYER = this.playerTuning || Platformer.Config.PLAYER;
     if (now - this.lastAttackAt < PLAYER.attackCooldownMs) return;
 
     this.lastAttackAt = now;
@@ -1136,9 +1728,7 @@ Platformer.GameScene = class extends Phaser.Scene {
     } else if (!this.wasGroundedLastFrame) {
       const impact = this.airbornePeakSpeedY;
       if (impact > 200) {
-        const power = Phaser.Math.Clamp(impact / 700, 0.08, 0.24);
-        const reduce = Platformer.Settings.current.accessibility.reduceScreenShake / 100;
-        this.cameras.main.shake(80, power * 0.015 * reduce, true);
+        // Screen shake removed: keep landing audio feedback only.
         Platformer.beeper.land();
       }
       this.airbornePeakSpeedY = 0;
@@ -1153,6 +1743,7 @@ Platformer.GameScene = class extends Phaser.Scene {
     const dashLeft = Math.max(0, (Platformer.Config.PLAYER.dashCooldownMs - (now - this.lastDashAt)) / 1000);
     this.registry.set("dashCd", dashLeft);
     this.registry.set("shield", this.shieldCharges);
+    this.registry.set("jetpackFuel", this.jetpackFuelPercent);
   }
 
   collectCoin(coin) {
@@ -1180,7 +1771,7 @@ Platformer.GameScene = class extends Phaser.Scene {
 
     checkpoint.setTint(0x22c55e);
     checkpoint.setData("activeCheckpoint", true);
-    this.respawnPoint.set(checkpoint.x, checkpoint.y - 20);
+    this.respawnPoint.set(checkpoint.x, checkpoint.y - (this.tinyGridMode ? 10 : 20));
   }
 
   onHazardHit() {
@@ -1188,7 +1779,7 @@ Platformer.GameScene = class extends Phaser.Scene {
   }
 
   handleEnemyContact(enemy) {
-    const { PLAYER } = Platformer.Config;
+    const PLAYER = this.playerTuning || Platformer.Config.PLAYER;
 
     if (!enemy.active || this.isDead) {
       return;
@@ -1230,7 +1821,7 @@ Platformer.GameScene = class extends Phaser.Scene {
   }
 
   applyDamage(amount = 1) {
-    const { PLAYER } = Platformer.Config;
+    const PLAYER = this.playerTuning || Platformer.Config.PLAYER;
     const settings = Platformer.Settings.current;
 
     const now = this.time.now;
@@ -1272,20 +1863,16 @@ Platformer.GameScene = class extends Phaser.Scene {
       this.registry.set("health", 3);
       this.respawn();
     } else {
-      this.player.setVelocity(-this.player.body.velocity.x * 0.35, -220);
-      if (settings.accessibility.reduceScreenShake > 0) {
-        this.cameras.main.shake(
-          90,
-          0.0018 * (settings.accessibility.reduceScreenShake / 100),
-          true
-        );
-      }
+      this.player.setVelocity(-this.player.body.velocity.x * 0.35, this.tinyGridMode ? -75 : -220);
+      // Screen shake removed entirely.
     }
   }
 
   respawn() {
     const a11y = Platformer.Settings.current.accessibility;
     this.player.setPosition(this.respawnPoint.x, this.respawnPoint.y);
+    this.alignPlayerBodyToFeet();
+    this.resolvePlayerEmbedding("respawn");
     this.player.setVelocity(0, 0);
     this.player.setAccelerationX(0);
     this.player.clearTint();
@@ -1293,6 +1880,13 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.isJumpHeld = false;
     this.isDashing = false;
     this.attackActiveUntil = 0;
+    this.jetpackActive = false;
+    if (this.jetpack) this.jetpack.reset(true);
+    this.jetpackFuelPercent = this.jetpack ? this.jetpack.fuelPercent : 100;
+    this.registry.set("jetpackFuel", this.jetpackFuelPercent);
+    this.player.setAccelerationY(0);
+    this.player.body.setGravityY(0);
+    if (this.jetpackFlame) this.jetpackFlame.setVisible(false);
     if (!a11y.flashReduction) {
       this.cameras.main.flash(120, 255, 255, 255);
     }
@@ -1302,34 +1896,54 @@ Platformer.GameScene = class extends Phaser.Scene {
 
   completeLevel() {
     const a11y = Platformer.Settings.current.accessibility;
-    const maxLevels = 4;
+    const timeLeft = Number(this.registry.get("timeLeft") || 0);
+    const coins = Number(this.registry.get("coins") || 0);
+    const payload = {
+      nodeId: this.currentNodeId,
+      worldId: this.currentWorldId,
+      level: this.registry.get("level"),
+      coins,
+      timeLeft,
+      targetCoins: Platformer.Config.WIN_COIN_TARGET,
+    };
+
     this.levelComplete = true;
     this.player.setAccelerationX(0);
-    this.player.setVelocity(0, -140);
+    this.player.setVelocity(0, this.tinyGridMode ? -52 : -140);
+    this.jetpackActive = false;
+    if (this.jetpack) this.jetpack.reset(false);
+    this.jetpackFuelPercent = this.jetpack ? this.jetpack.fuelPercent : this.jetpackFuelPercent;
+    this.player.setAccelerationY(0);
+    this.player.body.setGravityY(0);
+    if (this.jetpackFlame) this.jetpackFlame.setVisible(false);
     this.player.setTexture("player-run-1");
     this.player.setTint(0xfef08a);
     this.physics.world.pause();
-    this.cameras.main.zoomTo(a11y.reducedMotion ? 1.02 : 1.15, a11y.reducedMotion ? 220 : 550, "Quad.easeOut", true);
+    const baseZoom = this.cameras.main ? this.cameras.main.zoom : 1;
+    const targetZoom = this.tinyGridMode
+      ? baseZoom * (a11y.reducedMotion ? 1.01 : 1.05)
+      : (a11y.reducedMotion ? 1.02 : 1.15);
+    this.cameras.main.zoomTo(targetZoom, a11y.reducedMotion ? 220 : 550, "Quad.easeOut", true);
     if (!a11y.flashReduction) {
       this.cameras.main.flash(200, 255, 255, 255);
     }
-    if (this.currentLevel < maxLevels) {
-      const nextLevel = this.currentLevel + 1;
-      this.game.events.emit("level-transition", { from: this.currentLevel, to: nextLevel });
-      this.time.delayedCall(a11y.reducedMotion ? 450 : 900, () => {
-        this.scene.restart({ level: nextLevel, carryState: true });
-      });
-    } else {
-      this.game.events.emit("level-complete", {
-        level: this.registry.get("level"),
-        coins: this.registry.get("coins"),
-        targetCoins: Platformer.Config.WIN_COIN_TARGET,
-      });
+    if (Platformer.Progress && typeof Platformer.Progress.markLevelCompleted === "function") {
+      try {
+        const resolvedNodeId = Platformer.Progress.markLevelCompleted(payload);
+        payload.resolvedNodeId = resolvedNodeId;
+      } catch (err) {
+        if (Platformer.Debug) {
+          Platformer.Debug.error("GameScene.completeLevel", err && err.stack ? err.stack : String(err));
+        }
+      }
     }
+
+    this.game.events.emit("level-complete", payload);
   }
 
   update() {
-    const { PLAYER, WIN_COIN_TARGET } = Platformer.Config;
+    const PLAYER = this.playerTuning || Platformer.Config.PLAYER;
+    const { WIN_COIN_TARGET } = Platformer.Config;
 
     if (!this.player || this.isDead || this.levelComplete) {
       return;
@@ -1352,8 +1966,14 @@ Platformer.GameScene = class extends Phaser.Scene {
     const dashPressed = Phaser.Input.Keyboard.JustDown(this.keys.dash);
     const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.attack);
     const demoWinPressed = Phaser.Input.Keyboard.JustDown(this.keys.demoWin);
-    const jumpHeld = this.cursors.up.isDown || this.cursors.space.isDown || this.keys.jump.isDown;
     const grounded = this.player.body.blocked.down || this.player.body.touching.down;
+    const jumpHeld = this.cursors.up.isDown || this.cursors.space.isDown || this.keys.jump.isDown;
+    // Jetpack thrust is explicit: hold SPACE only.
+    const jetpackInputHeld = !grounded && (
+      this.cursors.space.isDown
+      || (this.keys.jetpack && this.keys.jetpack.isDown)
+    );
+    const dt = Math.max(0.001, this.game.loop.delta / 1000);
 
     if (demoWinPressed && !this.levelComplete) {
       this.registry.set("coins", WIN_COIN_TARGET);
@@ -1374,19 +1994,41 @@ Platformer.GameScene = class extends Phaser.Scene {
     const canUseCoyote = now - this.lastOnGroundTime <= PLAYER.coyoteTimeMs;
     const hasBufferedJump = now - this.lastJumpPressedTime <= PLAYER.jumpBufferMs;
 
-    if (!this.isDashing && canUseCoyote && hasBufferedJump) {
+    // Prevent mid-air jump velocity resets: coyote jump is only valid before first jump is consumed.
+    if (!this.isDashing && this.jumpsUsed === 0 && canUseCoyote && hasBufferedJump) {
       this.player.setVelocityY(-PLAYER.jumpVelocity);
       this.jumpsUsed = 1;
       this.lastOnGroundTime = -9999;
       this.lastJumpPressedTime = -9999;
       this.isJumpHeld = true;
       Platformer.beeper.jump();
-    } else if (!this.isDashing && jumpPressed && this.jumpsUsed < PLAYER.maxJumps) {
-      this.player.setVelocityY(-PLAYER.jumpVelocity);
-      this.jumpsUsed += 1;
-      this.lastJumpPressedTime = -9999;
-      this.isJumpHeld = true;
-      Platformer.beeper.jump();
+    }
+    const jetpackStatus = this.jetpack
+      ? this.jetpack.update({
+        scene: this,
+        player: this.player,
+        now,
+        dt,
+        grounded,
+        jumpHeld,
+        thrustHeld: jetpackInputHeld,
+        worldGravity: PLAYER.gravity,
+        jumpVelocity: PLAYER.jumpVelocity,
+      })
+      : { isThrusting: false, fuelPercent: 0 };
+    this.jetpackActive = !!jetpackStatus.isThrusting;
+    this.jetpackFuelPercent = Phaser.Math.Clamp(Number(jetpackStatus.fuelPercent || 0), 0, 100);
+    if (this.jetpackActive) {
+      this.isJumpHeld = false;
+    }
+
+    // Safety clamp: prevent rare vertical-speed spikes from interactions/stacked forces.
+    const maxRiseSpeed = Math.max(120, Number(PLAYER.maxRiseSpeed || 520));
+    const maxFallSpeed = Math.max(200, Number(PLAYER.maxFallSpeed || 760));
+    if (this.player.body.velocity.y < -maxRiseSpeed) {
+      this.player.setVelocityY(-maxRiseSpeed);
+    } else if (this.player.body.velocity.y > maxFallSpeed) {
+      this.player.setVelocityY(maxFallSpeed);
     }
 
     if (!this.isDashing && !jumpHeld && this.isJumpHeld && this.player.body.velocity.y < -120) {
@@ -1401,27 +2043,52 @@ Platformer.GameScene = class extends Phaser.Scene {
       this.tryAttack(now);
     }
 
+    const opposingInput = moveLeft && moveRight;
+
     if (this.isDashing) {
       const dashDir = this.player.body.velocity.x >= 0 ? 1 : -1;
       this.player.setVelocityX(dashDir * PLAYER.dashSpeed);
       this.player.setAccelerationX(0);
+      this.player.setDragX(0);
       if (now >= this.dashEndsAt) {
         this.stopDash();
       }
-    } else if (moveLeft && !moveRight) {
-      this.player.setAccelerationX(-PLAYER.acceleration);
-      this.player.setFlipX(false);
-      this.facingDir = -1;
-    } else if (moveRight && !moveLeft) {
-      this.player.setAccelerationX(PLAYER.acceleration);
-      this.player.setFlipX(true);
-      this.facingDir = 1;
     } else {
+      const moveSpeed = grounded ? PLAYER.maxSpeed : Math.floor(PLAYER.maxSpeed * 0.9);
       this.player.setAccelerationX(0);
+      this.player.setDragX(0);
+
+      if (opposingInput || (!moveLeft && !moveRight)) {
+        // Digital stop: no inertia, no glide, no opposite-key slide.
+        this.player.setVelocityX(0);
+        if (this.player.body) this.player.body.velocity.x = 0;
+      } else if (moveLeft) {
+        this.player.setVelocityX(-moveSpeed);
+        this.player.setFlipX(false);
+        this.facingDir = -1;
+      } else if (moveRight) {
+        this.player.setVelocityX(moveSpeed);
+        this.player.setFlipX(true);
+        this.facingDir = 1;
+      }
     }
+    if (this.tinyGridMode && this.player && this.player.body) {
+      const body = this.player.body;
+      if ((body.blocked.left && moveLeft && !moveRight) || (body.blocked.right && moveRight && !moveLeft)) {
+        this.player.setVelocityX(0);
+      }
+      if (body.embedded) {
+        this.resolvePlayerEmbedding("runtime");
+      }
+    }
+    this.resolveGroundPenetration(now);
+    this.logIfPlayerInsideTile(now);
+    this.drawHitboxOverlay(now);
     if (!this.isDashing && now > this.attackActiveUntil) {
       this.player.clearTint();
     }
+
+    this.updateJetpackFx(now, this.jetpackActive);
 
     if (this.useImportedCharacter) {
       if (!grounded) {
@@ -1429,7 +2096,8 @@ Platformer.GameScene = class extends Phaser.Scene {
           this.player.anims.stop();
         }
         if (this.player.texture && this.player.texture.key === "player-idle-sheet") {
-          this.player.setFrame(2);
+          const airborneFrame = this.jetpackActive ? ((Math.floor(now / 90) % 2 === 0) ? 1 : 2) : 2;
+          this.player.setFrame(airborneFrame);
         }
       } else if (this.anims.exists("playerIdleAnim")) {
         if (!this.player.anims.isPlaying || this.player.anims.getName() !== "playerIdleAnim") {
@@ -1443,12 +2111,12 @@ Platformer.GameScene = class extends Phaser.Scene {
         }
         this.player.setTexture((Math.floor(now / 360) % 2 === 0) ? "player-idle-1" : "player-idle-2");
       }
-    } else if (this.player.body.velocity.y < -25 || !this.player.body.blocked.down) {
+    } else if (this.jetpackActive || this.player.body.velocity.y < (this.tinyGridMode ? -8 : -25) || !this.player.body.blocked.down) {
       if (this.player.anims && this.player.anims.isPlaying) {
         this.player.anims.stop();
       }
       this.player.setTexture("player-jump");
-    } else if (Math.abs(this.player.body.velocity.x) > 35) {
+    } else if (Math.abs(this.player.body.velocity.x) > (this.tinyGridMode ? 10 : 35)) {
       if (this.player.anims && this.player.anims.isPlaying) {
         this.player.anims.stop();
       }
@@ -1486,6 +2154,30 @@ Platformer.GameScene = class extends Phaser.Scene {
       this.game.events.off("restart-level", this.onRestartLevel);
       this.onRestartLevel = null;
     }
+    if (this.onSettingsChanged) {
+      this.game.events.off("settings-changed", this.onSettingsChanged);
+      this.onSettingsChanged = null;
+    }
     this.scale.off("resize", this.updateCameraFraming, this);
+    if (this.jetpackFlame && this.jetpackFlame.destroy) {
+      this.jetpackFlame.destroy();
+      this.jetpackFlame = null;
+    }
+    if (this.onHitboxesToggle) {
+      window.removeEventListener("platformer:hitboxes-toggle", this.onHitboxesToggle);
+      this.onHitboxesToggle = null;
+    }
+    if (this.onPlayerHitboxChanged) {
+      window.removeEventListener("platformer:player-hitbox-changed", this.onPlayerHitboxChanged);
+      this.onPlayerHitboxChanged = null;
+    }
+    if (this.hitboxOverlay && this.hitboxOverlay.destroy) {
+      this.hitboxOverlay.destroy();
+      this.hitboxOverlay = null;
+    }
+    if (Array.isArray(this.ldtkVisualTiles) && this.ldtkVisualTiles.length) {
+      this.ldtkVisualTiles.forEach((o) => { if (o && o.destroy) o.destroy(); });
+      this.ldtkVisualTiles = [];
+    }
   }
 };

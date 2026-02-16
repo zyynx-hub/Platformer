@@ -11,10 +11,16 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.load.audio("game-bgm", "assets/Slaughter to Prevail - K (mp3cut.net).mp3");
     this.load.audio("pause-bgm", "assets/Elevator Music - So Chill (mp3cut.net).mp3");
     this.load.image("player-idle-raw", "assets/IFFY_IDLE.png");
+    this.load.json("ldtk-test", "assets/test.ldtk");
+    this.load.spritesheet("ldtk-cavernas", "assets/Cavernas_by_Adam_Saltsman.png", {
+      frameWidth: 8,
+      frameHeight: 8,
+    });
     this.load.json("level-1", "assets/levels/level-1.json");
     this.load.json("level-2", "assets/levels/level-2.json");
     this.load.json("level-3", "assets/levels/level-3.json");
     this.load.json("level-4", "assets/levels/level-4.json");
+    this.load.json("level-5", "assets/levels/level-ldtk-test.json");
     this.load.on("loaderror", (fileObj) => {
       if (fileObj && fileObj.key === "player-idle-raw") {
         this.playerIdleLoadFailed = true;
@@ -55,32 +61,45 @@ Platformer.BootScene = class extends Phaser.Scene {
 
   createHazardTexture(key, size, baseColor, accentColor) {
     const g = this.add.graphics();
+    const s = Math.max(12, size);
+    const pad = Math.max(1, Math.round(s * 0.12));
+    const bodyTop = Math.max(1, Math.round(s * 0.25));
+    const bodyH = Math.max(4, s - bodyTop - pad);
+    const bodyW = Math.max(4, s - pad * 2);
+    const mountH = Math.max(2, Math.round(s * 0.25));
+    const mountY = s - mountH - 1;
+    const centerX = s / 2;
+    const muzzleY = Math.max(2, Math.round(s * 0.2));
+    const corner = Math.max(1, Math.round(s * 0.12));
+
     // Base mount
     g.fillStyle(0x111827, 1);
-    g.fillRoundedRect(2, size - 12, size - 4, 10, 3);
+    g.fillRoundedRect(pad, mountY, s - pad * 2, mountH, corner);
 
     // Turret body
     g.fillStyle(baseColor, 1);
-    g.fillRoundedRect(5, 8, size - 10, size - 10, 4);
+    g.fillRoundedRect(pad + 1, bodyTop, bodyW - 2, bodyH, corner);
 
     // Barrel and muzzle glow
     g.fillStyle(0x1f2937, 1);
-    g.fillRect(size / 2 - 2, 2, 4, 8);
+    g.fillRect(centerX - Math.max(1, s * 0.08), 1, Math.max(2, s * 0.16), Math.max(2, s * 0.24));
     g.fillStyle(accentColor, 1);
-    g.fillCircle(size / 2, 4, 3);
+    g.fillCircle(centerX, muzzleY, Math.max(1, s * 0.12));
     g.fillStyle(0xfef08a, 0.85);
-    g.fillCircle(size / 2, 4, 1.3);
+    g.fillCircle(centerX, muzzleY, Math.max(1, s * 0.06));
 
     // Warning chevrons
     g.fillStyle(0x450a0a, 1);
-    g.fillTriangle(8, size - 6, 12, size - 10, 16, size - 6);
-    g.fillTriangle(size - 16, size - 6, size - 12, size - 10, size - 8, size - 6);
+    const triY = s - Math.max(2, s * 0.12);
+    const triH = Math.max(2, s * 0.15);
+    g.fillTriangle(pad + 1, triY, pad + 1 + s * 0.12, triY - triH, pad + 1 + s * 0.24, triY);
+    g.fillTriangle(s - pad - 1 - s * 0.24, triY, s - pad - 1 - s * 0.12, triY - triH, s - pad - 1, triY);
 
-    g.lineStyle(2, 0x0b1220, 1);
-    g.strokeRoundedRect(5, 8, size - 10, size - 10, 4);
+    g.lineStyle(Math.max(1, Math.round(s * 0.08)), 0x0b1220, 1);
+    g.strokeRoundedRect(pad + 1, bodyTop, bodyW - 2, bodyH, corner);
     g.lineStyle(1, 0xe2e8f0, 0.6);
-    g.strokeCircle(size / 2, 4, 3);
-    g.generateTexture(key, size, size);
+    g.strokeCircle(centerX, muzzleY, Math.max(1, s * 0.12));
+    g.generateTexture(key, s, s);
     g.destroy();
   }
 
@@ -170,6 +189,18 @@ Platformer.BootScene = class extends Phaser.Scene {
     g.destroy();
   }
 
+  createJetpackFlameTexture(key, width, height, coreColor, glowColor) {
+    const g = this.add.graphics();
+    g.fillStyle(glowColor, 0.5);
+    g.fillEllipse(width / 2, height * 0.46, width * 0.92, height * 0.9);
+    g.fillStyle(coreColor, 0.95);
+    g.fillTriangle(width * 0.5, height, width * 0.2, height * 0.36, width * 0.8, height * 0.36);
+    g.fillStyle(0xfef08a, 0.9);
+    g.fillTriangle(width * 0.5, height * 0.8, width * 0.36, height * 0.4, width * 0.64, height * 0.4);
+    g.generateTexture(key, width, height);
+    g.destroy();
+  }
+
   createAnimeGirlTexture(key, pose) {
     const g = this.add.graphics();
     const hairColor = pose.jump ? 0xf59e0b : 0xfbbf24;
@@ -253,7 +284,7 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.createPlayerTextures();
     this.createRectTexture("ground", TILE, TILE, 0x8b5a2b, 0x5a3a1d);
     this.createRectTexture("platform", TILE, TILE, 0x6b7280, 0x374151);
-    this.createRectTexture("oneway", TILE, 12, 0x38bdf8, 0x0369a1);
+    this.createRectTexture("oneway", TILE, Math.max(3, Math.round(TILE * 0.38)), 0x38bdf8, 0x0369a1);
     this.createHazardTexture("hazard", TILE, hazardColor, laserAccent);
     this.setupPlayerIdleAnimation();
     this.createCircleTexture("coin", 16, coinColor, 0xa16207);
@@ -263,6 +294,8 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.createEnemyTextureVariant("enemy-g", 24, { body: 0xf43f5e, inner: 0x4c0519, accent: 0xfef2f2, horns: 0xfda4af });
     this.createEnemyTextureVariant("enemy-h", 24, { body: 0xa855f7, inner: 0x3b0764, accent: 0xfef08a, horns: 0xd8b4fe });
     this.createProjectileTexture("hazard-projectile", 14);
+    this.createJetpackFlameTexture("jetpack-flame-1", 18, 26, 0xf97316, 0xfb7185);
+    this.createJetpackFlameTexture("jetpack-flame-2", 18, 24, 0xf59e0b, 0xfacc15);
     this.createRectTexture("checkpoint", 16, 40, 0xa855f7, 0x581c87);
 
     this.registry.set("coins", 0);
@@ -270,13 +303,16 @@ Platformer.BootScene = class extends Phaser.Scene {
     this.registry.set("lives", 2);
     this.registry.set("level", 1);
     Platformer.LevelJsonCache = {};
-    [1, 2, 3, 4].forEach((n) => {
+    [1, 2, 3, 4, 5].forEach((n) => {
       const key = `level-${n}`;
       const json = this.cache.json.get(key);
       if (json && typeof json === "object") {
         Platformer.LevelJsonCache[n] = json;
       }
     });
+    if (Platformer.WorldMapManager && typeof Platformer.WorldMapManager.warmupDefault === "function") {
+      Platformer.WorldMapManager.warmupDefault();
+    }
 
     this.scene.start("MenuScene");
   }

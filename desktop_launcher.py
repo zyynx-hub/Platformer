@@ -7,6 +7,7 @@ import ctypes
 import tempfile
 import threading
 import subprocess
+import time
 import hashlib
 import urllib.request
 import urllib.error
@@ -21,6 +22,39 @@ LOG_PATH = os.path.join(USER_LOG_DIR, "runtime-debug.log")
 USER_UPDATER_LOG_PATH = os.path.join(USER_LOG_DIR, "updater.log")
 UPDATE_STATE_PATH = os.path.join(USER_LOG_DIR, "update_state.json")
 SETTINGS_PATH = os.path.join(USER_LOG_DIR, "settings.json")
+_WINDOW_STYLE_STATE = {"saved": False, "style": 0, "exstyle": 0, "rect": None}
+
+# Win32 constants
+GWL_STYLE = -16
+GWL_EXSTYLE = -20
+WS_OVERLAPPEDWINDOW = 0x00CF0000
+WS_POPUP = 0x80000000
+SWP_NOZORDER = 0x0004
+SWP_NOACTIVATE = 0x0010
+SWP_FRAMECHANGED = 0x0020
+SW_RESTORE = 9
+FIXED_FULLSCREEN_W = 1960
+FIXED_FULLSCREEN_H = 1080
+FIXED_WINDOWED_W = 1377
+FIXED_WINDOWED_H = 727
+
+
+class RECT(ctypes.Structure):
+    _fields_ = [
+        ("left", ctypes.c_long),
+        ("top", ctypes.c_long),
+        ("right", ctypes.c_long),
+        ("bottom", ctypes.c_long),
+    ]
+
+
+class MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", ctypes.c_ulong),
+        ("rcMonitor", RECT),
+        ("rcWork", RECT),
+        ("dwFlags", ctypes.c_ulong),
+    ]
 
 
 def host_log(level, source, message):
@@ -96,6 +130,117 @@ def set_dpi_awareness():
         host_log("WARN", "Launcher", f"Failed to set DPI awareness: {e}")
 
 
+def get_primary_monitor_resolution():
+    try:
+        user32 = ctypes.windll.user32
+        width = int(user32.GetSystemMetrics(0))
+        height = int(user32.GetSystemMetrics(1))
+        if width >= 800 and height >= 600:
+            return width, height
+    except Exception as e:
+        host_log("WARN", "Launcher", f"Resolution probe failed: {e}")
+    return 1920, 1080
+
+
+def _find_main_window_handle():
+    try:
+        hwnd = ctypes.windll.user32.FindWindowW(None, "Anime Platformer")
+        if hwnd:
+            return hwnd
+    except Exception:
+        pass
+    return 0
+
+
+def _save_window_style_state(hwnd):
+    global _WINDOW_STYLE_STATE
+    if not hwnd or _WINDOW_STYLE_STATE["saved"]:
+        return
+    rect = RECT()
+    ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    _WINDOW_STYLE_STATE = {
+        "saved": True,
+        "style": int(ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)),
+        "exstyle": int(ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)),
+        "rect": (int(rect.left), int(rect.top), int(rect.right), int(rect.bottom)),
+    }
+
+
+def _get_monitor_rect(hwnd, use_work_area=False):
+    monitor = ctypes.windll.user32.MonitorFromWindow(hwnd, 2)  # MONITOR_DEFAULTTONEAREST
+    mi = MONITORINFO()
+    mi.cbSize = ctypes.sizeof(MONITORINFO)
+    ctypes.windll.user32.GetMonitorInfoW(monitor, ctypes.byref(mi))
+    r = mi.rcWork if use_work_area else mi.rcMonitor
+    return int(r.left), int(r.top), int(r.right), int(r.bottom)
+
+
+def _center_rect_in_monitor(hwnd, width, height):
+    left, top, right, bottom = _get_monitor_rect(hwnd, use_work_area=True)
+    mon_w = max(800, right - left)
+    mon_h = max(600, bottom - top)
+    w = min(max(800, int(width)), mon_w)
+    h = min(max(600, int(height)), mon_h)
+    x = left + max(0, (mon_w - w) // 2)
+    y = top + max(0, (mon_h - h) // 2)
+    return x, y, w, h
+
+
+def _sanitize_resolution(width, height, fallback_w, fallback_h):
+    try:
+        w = int(width)
+        h = int(height)
+    except Exception:
+        return int(fallback_w), int(fallback_h)
+    if w < 800 or h < 600:
+        return int(fallback_w), int(fallback_h)
+    # Clamp max to 4K target for selectable presets.
+    return min(w, 3840), min(h, 2160)
+
+
+def _apply_window_mode_native(mode, target_width=None, target_height=None):
+    hwnd = _find_main_window_handle()
+    if not hwnd:
+        return {"ok": False, "message": "Game window handle not found."}
+    _save_window_style_state(hwnd)
+
+    user32 = ctypes.windll.user32
+    mode = str(mode or "fullscreen").strip().lower()
+    if mode not in ("windowed", "borderless", "fullscreen"):
+        mode = "fullscreen"
+    target_w, target_h = _sanitize_resolution(
+        target_width, target_height, FIXED_FULLSCREEN_W, FIXED_FULLSCREEN_H
+    )
+
+    if mode == "windowed":
+        user32.SetWindowLongW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, 0)
+        fallback_w, fallback_h = FIXED_WINDOWED_W, FIXED_WINDOWED_H
+        req_w, req_h = _sanitize_resolution(target_w, target_h, fallback_w, fallback_h)
+        x, y, width, height = _center_rect_in_monitor(hwnd, req_w, req_h)
+        user32.SetWindowPos(hwnd, 0, x, y, width, height, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        return {"ok": True, "mode": "windowed", "fullscreen": False, "width": width, "height": height}
+
+    if mode == "fullscreen":
+        style = int(user32.GetWindowLongW(hwnd, GWL_STYLE))
+        style = (style & ~WS_OVERLAPPEDWINDOW) | WS_POPUP
+        user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, 0)
+        x, y, width, height = _center_rect_in_monitor(hwnd, target_w, target_h)
+        user32.SetWindowPos(hwnd, 0, x, y, width, height, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        return {"ok": True, "mode": "fullscreen", "fullscreen": True, "width": width, "height": height}
+
+    # "borderless" per user preference: keep borders while applying chosen resolution.
+    user32.SetWindowLongW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)
+    user32.SetWindowLongW(hwnd, GWL_EXSTYLE, 0)
+    x, y, width, height = _center_rect_in_monitor(hwnd, target_w, target_h)
+    user32.SetWindowPos(hwnd, 0, x, y, width, height, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)
+    user32.ShowWindow(hwnd, SW_RESTORE)
+    return {"ok": True, "mode": "borderless", "fullscreen": False, "width": width, "height": height}
+
+
 def maybe_restore_failed_update():
     state = read_update_state()
     if not state or not state.get("pending"):
@@ -149,15 +294,72 @@ class Api:
 
     def set_fullscreen(self, enabled):
         try:
+            target = "fullscreen" if bool(enabled) else "windowed"
+            native = _apply_window_mode_native(target)
+            if native.get("ok"):
+                win = webview.windows[0]
+                try:
+                    if target == "windowed" and bool(win.fullscreen):
+                        win.toggle_fullscreen()
+                    if target != "windowed" and not bool(win.fullscreen):
+                        win.toggle_fullscreen()
+                except Exception:
+                    pass
+                try:
+                    win.evaluate_js(
+                        "(function(){"
+                        "const fire=()=>window.dispatchEvent(new Event('resize'));"
+                        "fire();"
+                        "setTimeout(fire,80);"
+                        "setTimeout(fire,220);"
+                        "setTimeout(fire,420);"
+                        "})();"
+                    )
+                except Exception:
+                    pass
+                return native
+            # fallback
             win = webview.windows[0]
-            target = bool(enabled)
-            if bool(win.fullscreen) != target:
+            if bool(win.fullscreen) != bool(enabled):
                 win.toggle_fullscreen()
             try:
-                win.evaluate_js("window.dispatchEvent(new Event('resize'));")
+                win.evaluate_js(
+                    "(function(){"
+                    "const fire=()=>window.dispatchEvent(new Event('resize'));"
+                    "fire();"
+                    "setTimeout(fire,80);"
+                    "setTimeout(fire,220);"
+                    "setTimeout(fire,420);"
+                    "})();"
+                )
             except Exception:
                 pass
             return {"ok": True, "fullscreen": bool(win.fullscreen)}
+        except Exception as e:
+            return {"ok": False, "message": str(e)}
+
+    def set_window_mode(self, mode, width=None, height=None):
+        try:
+            result = _apply_window_mode_native(mode, width, height)
+            if result.get("ok"):
+                try:
+                    win = webview.windows[0]
+                    want_full = str(mode).lower() == "fullscreen"
+                    if bool(win.fullscreen) != want_full:
+                        win.toggle_fullscreen()
+                except Exception:
+                    pass
+                try:
+                    webview.windows[0].evaluate_js(
+                        "(function(){"
+                        "const fire=()=>window.dispatchEvent(new Event('resize'));"
+                        "fire(); setTimeout(fire,80); setTimeout(fire,220); setTimeout(fire,420);"
+                        "})();"
+                    )
+                except Exception:
+                    pass
+                host_log("INFO", "WindowMode", f"Applied mode={result.get('mode')}")
+            return result
         except Exception as e:
             return {"ok": False, "message": str(e)}
 
@@ -630,16 +832,40 @@ def main():
             raise FileNotFoundError(f"index.html not found in '{root}' or launcher directory.")
     url = f"file:///{index_path.replace(os.sep, '/')}"
 
+    native_w, native_h = FIXED_FULLSCREEN_W, FIXED_FULLSCREEN_H
+    host_log("INFO", "Launcher", f"Startup display target: {native_w}x{native_h} fullscreen=true (fixed)")
+
     window = webview.create_window(
         "Anime Platformer",
         url=url,
-        width=1366,
-        height=768,
+        width=native_w,
+        height=native_h,
+        fullscreen=False,
         min_size=(1024, 576),
         background_color="#0f172a",
         js_api=Api(),
     )
-    webview.start(debug=False)
+
+    def _after_start():
+      try:
+          # Delay a little so webview surface is ready before fullscreen switch.
+          time.sleep(0.12)
+          res = _apply_window_mode_native("fullscreen")
+          host_log("INFO", "Launcher", f"Post-start fullscreen apply: ok={res.get('ok')} mode={res.get('mode')}")
+      except Exception as e:
+          host_log("WARN", "Launcher", f"Post-start fullscreen apply failed: {e}")
+      try:
+          win = webview.windows[0]
+          win.evaluate_js(
+              "(function(){"
+              "const fire=()=>window.dispatchEvent(new Event('resize'));"
+              "fire(); setTimeout(fire,80); setTimeout(fire,220); setTimeout(fire,420); setTimeout(fire,800);"
+              "})();"
+          )
+      except Exception as e:
+          host_log("WARN", "Launcher", f"Post-start resize pulse failed: {e}")
+
+    webview.start(_after_start, window, debug=False)
 
 
 if __name__ == "__main__":

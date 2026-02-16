@@ -1,0 +1,8 @@
+{
+  "id": "shop_01",
+  "name": "Supply Kiosk",
+  "items": [
+    { "id": "hp_up_1", "label": "Health Up", "cost": 10, "stat": "health", "delta": 1 },
+    { "id": "speed_up_1", "label": "Speed Up", "cost": 8, "stat": "speed", "delta": 0.1 }
+  ]
+}

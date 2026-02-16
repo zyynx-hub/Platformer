@@ -1,0 +1,9 @@
+{
+  "enemySets": [
+    {
+      "id": "tutorial_basic",
+      "types": ["enemy", "enemy-e"],
+      "notes": "Low aggression for onboarding"
+    }
+  ]
+}

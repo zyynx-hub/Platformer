@@ -24,6 +24,32 @@ Platformer.OptionsScene = class extends Phaser.Scene {
     this.domWrap = null;
     this.optScrollEl = null;
     this.boundDomWheel = null;
+    this.domRecoveryUntil = 0;
+    this.domRecoveredOnce = false;
+    this.nativeViewport = null;
+    this.viewportPollEvent = null;
+  }
+
+  getResolutionPresets() {
+    return [
+      "854x480",
+      "1024x576",
+      "1280x720",
+      "1366x768",
+      "1600x900",
+      "1920x1080",
+      "2560x1440",
+      "3840x2160",
+    ];
+  }
+
+  parseResolutionPreset(text) {
+    const m = String(text || "").trim().match(/^(\d{3,5})x(\d{3,5})$/i);
+    if (!m) return null;
+    const w = Number(m[1]);
+    const h = Number(m[2]);
+    if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
+    return { width: w, height: h };
   }
 
   init(data) {
@@ -32,32 +58,27 @@ Platformer.OptionsScene = class extends Phaser.Scene {
   }
 
   create() {
-    const s = Platformer.Settings.current;
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
+    try {
+      if (Platformer.Debug) Platformer.Debug.log("OptionsScene.create", "Begin create.");
+      const s = Platformer.Settings.current;
+      const cx = this.scale.width / 2;
+      const cy = this.scale.height / 2;
 
-    if (this.returnTo === "menuOverlay") {
-      // Menu scene stays running underneath for a live transparent backdrop.
-      this.overlayShade = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x020617, 0.42)
-        .setDepth(0)
-        .setInteractive();
-    } else {
-      this.createMenuLikeBackdrop();
-      this.layoutBackdrop();
-    }
+    this.createMenuLikeBackdrop();
+    this.layoutBackdrop();
     this.titleText = this.add.text(cx, 48, "OPTIONS", {
       fontFamily: "Verdana",
       fontSize: "42px",
       color: "#f8fafc",
       stroke: "#0f172a",
       strokeThickness: 6,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(95);
 
     this.rebindHint = this.add.text(cx, 92, "Click a key button to rebind. Press ESC to return.", {
       fontFamily: "Consolas",
       fontSize: "18px",
       color: "#cbd5e1",
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(95);
 
     const wrap = document.createElement("div");
     wrap.style.width = "min(1180px, 94vw)";
@@ -132,7 +153,8 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       cardEnd(),
 
       cardStart("Video"),
-      row("Fullscreen", `<select id="fullscreen"><option value="off">Off</option><option value="on">On</option></select>`),
+      row("Display mode", `<select id="fullscreen"><option value="off">Windowed</option><option value="borderless">Borderless</option><option value="on">Fullscreen</option></select>`),
+      row("Resolution", `<select id="resolutionPreset">${this.getResolutionPresets().map((p) => `<option value="${p}">${p}</option>`).join("")}</select>`),
       row("Resolution scale", `<input id="resolutionScale" type="range" min="50" max="100" step="1" /><span id="resolutionScaleVal"></span>`),
       row("Pixel-perfect", `<select id="pixelPerfect"><option value="off">Off</option><option value="on">On</option></select>`),
       row("VSync", `<select id="vsync"><option value="off">Off</option><option value="on">On</option></select>`),
@@ -171,12 +193,25 @@ Platformer.OptionsScene = class extends Phaser.Scene {
     ].join("");
 
     this.domWrap = wrap;
-    this.dom = this.add.dom(cx, cy + 28, wrap);
+    this.dom = null;
+    wrap.style.position = "fixed";
+    wrap.style.left = "50%";
+    wrap.style.top = "50%";
+    wrap.style.transform = "translate(-50%, -50%)";
+    wrap.style.zIndex = "1000000";
+    wrap.style.display = "block";
+    wrap.style.opacity = "1";
+    wrap.style.visibility = "visible";
+    wrap.style.pointerEvents = "auto";
+    document.body.appendChild(wrap);
+    this.domRecoveryUntil = this.time.now + 1200;
+    this.domRecoveredOnce = false;
+    this.startNativeViewportPolling();
     this.backBtn = this.add.rectangle(96, 44, 156, 46, 0xdc2626, 0.98)
       .setStrokeStyle(3, 0xfee2e2)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
-      .setDepth(40)
+      .setDepth(97)
       .setInteractive({ useHandCursor: true });
     this.backBtnText = this.add.text(96, 44, "< BACK", {
       fontFamily: "Consolas",
@@ -184,7 +219,7 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       color: "#ffffff",
       stroke: "#450a0a",
       strokeThickness: 5,
-    }).setOrigin(0, 0.5).setDepth(41);
+    }).setOrigin(0, 0.5).setDepth(98);
     this.backBtn.on("pointerdown", async () => {
       await applyAndSave();
       if (Platformer.Debug) Platformer.Debug.log("OptionsScene", "Back button pressed.");
@@ -217,7 +252,9 @@ Platformer.OptionsScene = class extends Phaser.Scene {
     setSelect("subtitles", s.accessibility.subtitles ? "on" : "off");
     setSelect("audioCues", s.accessibility.audioCues ? "on" : "off");
 
-    setSelect("fullscreen", s.video.fullscreen ? "on" : "off");
+    const displayMode = s.video.displayMode || (s.video.fullscreen ? "fullscreen" : "windowed");
+    setSelect("fullscreen", displayMode === "fullscreen" ? "on" : (displayMode === "borderless" ? "borderless" : "off"));
+    setSelect("resolutionPreset", s.video.resolutionPreset || "1920x1080");
     setRange("resolutionScale", s.video.resolutionScale);
     setSelect("pixelPerfect", s.video.pixelPerfect ? "on" : "off");
     setSelect("vsync", s.video.vsync ? "on" : "off");
@@ -267,7 +304,12 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       c.accessibility.subtitles = val("subtitles").value === "on";
       c.accessibility.audioCues = val("audioCues").value === "on";
 
-      c.video.fullscreen = val("fullscreen").value === "on";
+      const fullscreenSel = val("fullscreen").value;
+      c.video.displayMode = fullscreenSel === "on"
+        ? "fullscreen"
+        : (fullscreenSel === "borderless" ? "borderless" : "windowed");
+      c.video.fullscreen = c.video.displayMode === "fullscreen";
+      c.video.resolutionPreset = val("resolutionPreset").value || "1920x1080";
       c.video.resolutionScale = Number(val("resolutionScale").value);
       c.video.pixelPerfect = val("pixelPerfect").value === "on";
       c.video.vsync = val("vsync").value === "on";
@@ -294,7 +336,17 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       c.updates.downloadUrl = "";
 
       await Platformer.Settings.save();
-      if (Platformer.Debug) Platformer.Debug.log("OptionsScene", "Settings saved.");
+      try {
+        this.game.events.emit("settings-changed", Platformer.deepClone(c));
+      } catch (err) {
+        if (Platformer.Debug) Platformer.Debug.error("OptionsScene.settings", `Emit failed: ${err && err.message ? err.message : err}`);
+      }
+      if (Platformer.Debug) {
+        Platformer.Debug.log(
+          "OptionsScene.settings",
+          `Saved audio(m=${c.audio.master},mu=${c.audio.music},sfx=${c.audio.sfx}) video(mode=${c.video.displayMode},preset=${c.video.resolutionPreset},resScale=${c.video.resolutionScale},bright=${c.video.brightness})`
+        );
+      }
       this.applyRuntimeVideoSettings();
     };
 
@@ -325,16 +377,11 @@ Platformer.OptionsScene = class extends Phaser.Scene {
 
     window.addEventListener("keydown", this.boundKeydown, true);
     this.events.once("shutdown", () => this.cleanup());
-    if (this.returnTo !== "menuOverlay") {
       this.onResize = () => this.layoutOptions();
       this.scale.on("resize", this.onResize);
-    } else {
-      this.onResize = () => this.layoutOptions();
-      this.scale.on("resize", this.onResize);
-    }
     this.layoutOptions();
 
-    this.input.keyboard.on("keydown-ESC", async () => {
+      this.input.keyboard.on("keydown-ESC", async () => {
       if (this.awaitingControl) {
         this.awaitingControl = null;
         if (Platformer.Debug) Platformer.Debug.log("OptionsScene.rebind", "Rebind cancelled with ESC.");
@@ -345,6 +392,32 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       if (Platformer.Debug) Platformer.Debug.log("OptionsScene", "ESC save + back.");
       this.goBack();
     });
+      this.game.events.emit("options-ready");
+      if (Platformer.Debug) Platformer.Debug.log("OptionsScene.create", "Ready.");
+      this.time.delayedCall(16, () => {
+        try {
+          this.scene.bringToTop("OptionsScene");
+          this.forceDomVisible("post-ready");
+          if (Platformer.Debug) {
+            Platformer.Debug.log("OptionsScene.create", `Post-ready visibility check dom=${!!this.domWrap} size=${this.scale.width}x${this.scale.height}`);
+          }
+        } catch (err2) {
+          if (Platformer.Debug) Platformer.Debug.error("OptionsScene.create", `Post-ready check failed: ${err2 && err2.message ? err2.message : err2}`);
+        }
+      });
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.error("OptionsScene.create", err && err.stack ? err.stack : String(err));
+      }
+      try {
+        this.game.events.emit("options-failed", { message: err && err.message ? err.message : String(err) });
+      } catch (_e) {}
+      try {
+        this.cleanup();
+      } catch (_e) {}
+      // Ensure user is never stuck on a blank overlay if options init fails.
+      this.goBack();
+    }
   }
 
   createMenuLikeBackdrop() {
@@ -390,18 +463,17 @@ Platformer.OptionsScene = class extends Phaser.Scene {
   layoutOptions() {
     const w = this.scale.width;
     const h = this.scale.height;
+    const vw = Math.max(640, (this.nativeViewport && this.nativeViewport.w) || window.innerWidth || w || 640);
+    const vh = Math.max(360, (this.nativeViewport && this.nativeViewport.h) || window.innerHeight || h || 360);
     const cx = w / 2;
     const cy = h / 2;
     this.layoutBackdrop();
-    if (this.overlayShade) {
-      this.overlayShade.setPosition(cx, cy).setSize(w, h);
-    }
     if (this.titleText) this.titleText.setPosition(cx, 48);
     if (this.rebindHint) this.rebindHint.setPosition(cx, 92);
 
     if (this.domWrap) {
-      const panelH = Math.floor(Math.max(320, h * 0.74));
-      this.domWrap.style.width = `${Math.floor(Math.min(1180, w * 0.94))}px`;
+      const panelH = Math.floor(Math.max(320, vh * 0.74));
+      this.domWrap.style.width = `${Math.floor(Math.min(1180, vw * 0.94))}px`;
       this.domWrap.style.maxHeight = `${panelH}px`;
       this.domWrap.style.height = `${panelH}px`;
     }
@@ -411,11 +483,13 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       this.optScrollEl.style.overflowY = "auto";
     }
     const topY = 130;
-    const panelH = Math.floor(Math.max(320, h * 0.74));
-    const domY = Math.min(cy + 28, topY + (panelH / 2));
-    if (this.dom) {
-      this.dom.setPosition(cx, domY);
-      if (typeof this.dom.updateSize === "function") this.dom.updateSize();
+    const panelH = Math.floor(Math.max(320, vh * 0.74));
+    const domY = Math.min((vh / 2) + 28, topY + (panelH / 2));
+    if (this.domWrap) {
+      this.domWrap.style.left = `${Math.round(vw / 2)}px`;
+      this.domWrap.style.top = `${Math.round(domY)}px`;
+      this.domWrap.style.transform = "translate(-50%, -50%)";
+      this.forceDomVisible("layout");
     }
 
     if (this.backBtn) this.backBtn.setPosition(14, 44);
@@ -423,16 +497,6 @@ Platformer.OptionsScene = class extends Phaser.Scene {
   }
 
   goBack() {
-    if (this.returnTo === "menuOverlay") {
-      const menuScene = this.scene.get("MenuScene");
-      if (menuScene && typeof menuScene.setMenuInteractive === "function") {
-        if (typeof menuScene.setMenuUiVisible === "function") menuScene.setMenuUiVisible(true);
-        menuScene.setMenuInteractive(true);
-      }
-      if (Platformer.Debug) Platformer.Debug.log("OptionsScene", "Returning to live main menu overlay.");
-      this.scene.stop();
-      return;
-    }
     if (this.returnTo === "pause") {
       if (Platformer.Debug) Platformer.Debug.log("OptionsScene", "Returning to pause menu.");
       this.scene.stop();
@@ -457,8 +521,26 @@ Platformer.OptionsScene = class extends Phaser.Scene {
 
   applyRuntimeVideoSettings() {
     const s = Platformer.Settings.current.video;
+    const mode = s.displayMode || (s.fullscreen ? "fullscreen" : "windowed");
+    const parsed = this.parseResolutionPreset(s.resolutionPreset || "1920x1080");
+    const targetW = parsed ? parsed.width : 1920;
+    const targetH = parsed ? parsed.height : 1080;
+    if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_mode === "function") {
+      window.pywebview.api.set_window_mode(mode, targetW, targetH)
+        .then((res) => {
+          if (res && res.ok) {
+            if (Platformer.Debug) Platformer.Debug.log("Options.fullscreen", `native mode=${res.mode || mode} size=${res.width || targetW}x${res.height || targetH}`);
+          } else if (Platformer.Debug) {
+            Platformer.Debug.warn("Options.fullscreen", (res && res.message) || "native window mode call failed");
+          }
+        })
+        .catch((err) => {
+          if (Platformer.Debug) Platformer.Debug.warn("Options.fullscreen", `native window mode error: ${err && err.message ? err.message : err}`);
+        });
+      return;
+    }
     if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_fullscreen === "function") {
-      window.pywebview.api.set_fullscreen(!!s.fullscreen)
+      window.pywebview.api.set_fullscreen(mode === "fullscreen")
         .then((res) => {
           if (res && res.ok) {
             if (Platformer.Debug) Platformer.Debug.log("Options.fullscreen", `native fullscreen=${res.fullscreen}`);
@@ -472,11 +554,11 @@ Platformer.OptionsScene = class extends Phaser.Scene {
       return;
     }
 
-    if (s.fullscreen && !this.scale.isFullscreen) {
+    if (mode === "fullscreen" && !this.scale.isFullscreen) {
       this.scale.startFullscreen();
       if (Platformer.Debug) Platformer.Debug.log("Options.fullscreen", "browser fullscreen start requested");
     }
-    if (!s.fullscreen && this.scale.isFullscreen) {
+    if (mode !== "fullscreen" && this.scale.isFullscreen) {
       this.scale.stopFullscreen();
       if (Platformer.Debug) Platformer.Debug.log("Options.fullscreen", "browser fullscreen stop requested");
     }
@@ -487,13 +569,6 @@ Platformer.OptionsScene = class extends Phaser.Scene {
   }
 
   cleanup() {
-    if (this.returnTo === "menuOverlay") {
-      const menuScene = this.scene.get("MenuScene");
-      if (menuScene) {
-        if (typeof menuScene.setMenuUiVisible === "function") menuScene.setMenuUiVisible(true);
-        if (typeof menuScene.setMenuInteractive === "function") menuScene.setMenuInteractive(true);
-      }
-    }
     if (this.onResize) {
       this.scale.off("resize", this.onResize);
       this.onResize = null;
@@ -503,13 +578,94 @@ Platformer.OptionsScene = class extends Phaser.Scene {
     }
     this.boundDomWheel = null;
     this.optScrollEl = null;
+    if (this.viewportPollEvent) {
+      this.viewportPollEvent.remove(false);
+      this.viewportPollEvent = null;
+    }
+    this.nativeViewport = null;
+    if (this.domWrap && this.domWrap.parentNode) {
+      this.domWrap.parentNode.removeChild(this.domWrap);
+    }
+    this.domWrap = null;
+    this.dom = null;
     if (this.boundKeydown) {
       window.removeEventListener("keydown", this.boundKeydown, true);
       this.boundKeydown = null;
     }
   }
 
+  forceDomVisible(reason = "unknown") {
+    if (!this.domWrap) return;
+    if (!this.domWrap.parentNode) {
+      document.body.appendChild(this.domWrap);
+    }
+    this.domWrap.style.position = "fixed";
+    this.domWrap.style.zIndex = "1000000";
+    this.domWrap.style.display = "block";
+    this.domWrap.style.opacity = "1";
+    this.domWrap.style.visibility = "visible";
+    this.domWrap.style.pointerEvents = "auto";
+    const rect = this.domWrap.getBoundingClientRect();
+    const likelyHidden = rect.width < 40 || rect.height < 40;
+    if (likelyHidden) {
+      const vw = Math.max(640, window.innerWidth || this.scale.width || 640);
+      const vh = Math.max(360, window.innerHeight || this.scale.height || 360);
+      this.domWrap.style.width = `${Math.floor(Math.min(1180, vw * 0.94))}px`;
+      this.domWrap.style.maxHeight = `${Math.floor(Math.max(320, vh * 0.74))}px`;
+      this.domWrap.style.height = `${Math.floor(Math.max(320, vh * 0.74))}px`;
+      this.domWrap.style.left = `${Math.round(vw / 2)}px`;
+      this.domWrap.style.top = `${Math.round(vh / 2)}px`;
+    }
+    if (!this.domRecoveredOnce && Platformer.Debug) {
+      Platformer.Debug.log(
+        "OptionsScene.dom",
+        `forceDomVisible(${reason}) rect=${Math.round(rect.width)}x${Math.round(rect.height)} at ${Math.round(rect.x)},${Math.round(rect.y)}`
+      );
+      this.domRecoveredOnce = true;
+    }
+  }
+
+  startNativeViewportPolling() {
+    if (!(window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_window_size === "function")) {
+      return;
+    }
+    let attempts = 0;
+    const pollOnce = () => {
+      if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+      attempts += 1;
+      window.pywebview.api.get_window_size()
+        .then((res) => {
+          if (!res || !res.ok) return;
+          const nw = Math.max(640, Number(res.width) || 0);
+          const nh = Math.max(360, Number(res.height) || 0);
+          if (!Number.isFinite(nw) || !Number.isFinite(nh)) return;
+          const changed = !this.nativeViewport || this.nativeViewport.w !== nw || this.nativeViewport.h !== nh;
+          this.nativeViewport = { w: nw, h: nh };
+          if (changed) {
+            this.layoutOptions();
+            if (Platformer.Debug) {
+              Platformer.Debug.log("OptionsScene.viewport", `native ${nw}x${nh} fullscreen=${!!res.fullscreen} attempt=${attempts}`);
+            }
+          }
+        })
+        .catch((err) => {
+          if (attempts <= 2 && Platformer.Debug) {
+            Platformer.Debug.warn("OptionsScene.viewport", `native poll failed: ${err && err.message ? err.message : err}`);
+          }
+        });
+      if (attempts >= 12 && this.viewportPollEvent) {
+        this.viewportPollEvent.remove(false);
+        this.viewportPollEvent = null;
+      }
+    };
+    pollOnce();
+    this.viewportPollEvent = this.time.addEvent({ delay: 140, loop: true, callback: pollOnce });
+  }
+
   update(time, delta) {
+    if (this.domWrap && time <= this.domRecoveryUntil) {
+      this.forceDomVisible("update-recovery");
+    }
     const dt = Math.max(0.001, delta / 1000);
     const w = this.scale.width;
     this.bgLines.forEach((line) => {

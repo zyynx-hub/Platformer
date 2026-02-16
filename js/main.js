@@ -11,7 +11,7 @@ window.Platformer = window.Platformer || {};
   const fpsTarget = settings.video.fpsCap === "unlimited" ? 0 : Number(settings.video.fpsCap);
   const isFileProtocol = window.location.protocol === "file:";
   const isDesktopHost = !!(window.pywebview && window.pywebview.api);
-  const dpr = Math.max(1, Math.min(2, Math.round((window.devicePixelRatio || 1) * 100) / 100));
+  const dpr = isDesktopHost ? 1 : Math.max(1, Math.min(2, Math.round((window.devicePixelRatio || 1) * 100) / 100));
   const getViewportSize = () => {
     const root = document.getElementById("game-root");
     const rootW = root && root.clientWidth ? root.clientWidth : 0;
@@ -32,6 +32,8 @@ window.Platformer = window.Platformer || {};
 
   const SafeBootScene = Platformer.wrapSceneSafety(Platformer.BootScene, "BootScene");
   const SafeMenuScene = Platformer.wrapSceneSafety(Platformer.MenuScene, "MenuScene");
+  const SafeWorldMapScene = Platformer.wrapSceneSafety(Platformer.WorldMapScene, "WorldMapScene");
+  const SafeExtrasScene = Platformer.wrapSceneSafety(Platformer.ExtrasScene, "ExtrasScene");
   const SafeIntroScene = Platformer.wrapSceneSafety(Platformer.IntroScene, "IntroScene");
   const SafeOptionsScene = Platformer.wrapSceneSafety(Platformer.OptionsScene, "OptionsScene");
   const SafeGameScene = Platformer.wrapSceneSafety(Platformer.GameScene, "GameScene");
@@ -76,6 +78,8 @@ window.Platformer = window.Platformer || {};
     scene: [
       SafeBootScene,
       SafeMenuScene,
+      SafeWorldMapScene,
+      SafeExtrasScene,
       SafeIntroScene,
       SafeOptionsScene,
       SafeGameScene,
@@ -92,6 +96,24 @@ window.Platformer = window.Platformer || {};
   Platformer.Debug.attachGameMonitors(game);
   let lastW = initial.w;
   let lastH = initial.h;
+
+  const forceActiveSceneRelayout = (w, h) => {
+    if (!(game && game.scene && game.scene.getScenes)) return;
+    const activeScenes = game.scene.getScenes(true);
+    activeScenes.forEach((scene) => {
+      if (!scene || !scene.sys || !scene.sys.settings || !scene.sys.settings.active) return;
+      try {
+        if (typeof scene.handleResize === "function") scene.handleResize(w, h);
+        else if (typeof scene.layoutMenu === "function") scene.layoutMenu();
+        else if (typeof scene.layoutOptions === "function") scene.layoutOptions();
+        if (scene.ui && typeof scene.ui.resize === "function") scene.ui.resize();
+      } catch (e) {
+        if (Platformer.Debug && Platformer.Debug.warn) {
+          Platformer.Debug.warn("ResizeSync", `Scene relayout failed (${scene.scene ? scene.scene.key : "unknown"}): ${e && e.message ? e.message : e}`);
+        }
+      }
+    });
+  };
 
   const applySize = (wRaw, hRaw, source = "window") => {
     const vp = getViewportSize();
@@ -110,6 +132,7 @@ window.Platformer = window.Platformer || {};
       if (game.input && game.input.manager && typeof game.input.manager.resize === "function") {
         game.input.manager.resize(w, h);
       }
+      forceActiveSceneRelayout(w, h);
     }
   };
   const syncGameSize = () => {
@@ -126,14 +149,23 @@ window.Platformer = window.Platformer || {};
     }
   });
   // Keep a lightweight heartbeat for wrappers that occasionally miss resize events.
-  setInterval(syncGameSize, 500);
+  setInterval(syncGameSize, 1200);
+  // Startup relayout pulses for desktop wrappers where initial viewport can be stale until first input.
+  setTimeout(syncGameSize, 60);
+  setTimeout(syncGameSize, 180);
+  setTimeout(syncGameSize, 420);
+  setTimeout(syncGameSize, 900);
 
-  if (settings.video.fullscreen) {
+  const startupDisplayMode = settings.video.displayMode || (settings.video.fullscreen ? "fullscreen" : "windowed");
+  // Desktop wrapper controls fullscreen natively; avoid browser fullscreen API there.
+  if (!isDesktopHost && startupDisplayMode === "fullscreen") {
     game.events.once("ready", () => {
       if (!game.scale.isFullscreen) {
         game.scale.startFullscreen();
       }
     });
+  } else if (isDesktopHost && startupDisplayMode === "fullscreen" && Platformer.Debug) {
+    Platformer.Debug.log("StartupDisplay", "Desktop host fullscreen handled natively.");
   }
 })();
 

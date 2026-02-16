@@ -15,13 +15,30 @@ Platformer.Debug = {
   _nativeLogDropped: 0,
   _lastMismatchKey: "",
   _lastMismatchAt: 0,
+  hitboxesEnabled: false,
+  playerHitboxProfile: { w: 9, h: 24, ox: 0, oy: -3 },
 
   init() {
     if (this.initialized) return;
     this.initialized = true;
-    const desktopHost = !!(window.pywebview && window.pywebview.api);
-    this.enabled = !!(window.DEBUG_MODE || Platformer.BUILD_DEBUG || desktopHost);
-    if (!this.enabled) return;
+    this.enabled = true;
+    const settingsDebug = (Platformer.Settings && Platformer.Settings.current && Platformer.Settings.current.debug) || null;
+    if (settingsDebug) {
+      this.hitboxesEnabled = !!settingsDebug.hitboxesEnabled;
+      this.playerHitboxProfile = {
+        w: this.clampNum(settingsDebug.playerHitbox && settingsDebug.playerHitbox.w, 4, 64, 9),
+        h: this.clampNum(settingsDebug.playerHitbox && settingsDebug.playerHitbox.h, 4, 64, 24),
+        ox: this.clampNum(settingsDebug.playerHitbox && settingsDebug.playerHitbox.ox, -24, 24, 0),
+        oy: this.clampNum(settingsDebug.playerHitbox && settingsDebug.playerHitbox.oy, -24, 24, -3),
+      };
+    } else {
+      try {
+        this.hitboxesEnabled = localStorage.getItem("platformer_hitboxes_enabled") === "1";
+      } catch (_e) {
+        this.hitboxesEnabled = false;
+      }
+      this.loadPlayerHitboxProfile();
+    }
 
     const root = document.createElement("div");
     root.style.position = "fixed";
@@ -82,6 +99,52 @@ Platformer.Debug = {
     clearBtn.style.border = "1px solid #4b5563";
     clearBtn.style.cursor = "pointer";
 
+    const hitboxBtn = document.createElement("button");
+    hitboxBtn.style.padding = "6px 8px";
+    hitboxBtn.style.background = "#1f2937";
+    hitboxBtn.style.color = "#f9fafb";
+    hitboxBtn.style.border = "1px solid #4b5563";
+    hitboxBtn.style.cursor = "pointer";
+    const refreshHitboxBtn = () => {
+      hitboxBtn.textContent = this.hitboxesEnabled ? "Hitboxes: On" : "Hitboxes: Off";
+    };
+    refreshHitboxBtn();
+    const makeMini = (label) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.style.padding = "4px 6px";
+      b.style.background = "#111827";
+      b.style.color = "#cbd5e1";
+      b.style.border = "1px solid #334155";
+      b.style.cursor = "pointer";
+      b.style.fontSize = "11px";
+      return b;
+    };
+    const hbInfo = document.createElement("div");
+    hbInfo.style.color = "#93c5fd";
+    hbInfo.style.fontSize = "11px";
+    hbInfo.style.marginBottom = "6px";
+    const hbRow = document.createElement("div");
+    hbRow.style.display = "flex";
+    hbRow.style.flexWrap = "wrap";
+    hbRow.style.gap = "4px";
+    hbRow.style.marginBottom = "8px";
+    const hbWm = makeMini("W-");
+    const hbWp = makeMini("W+");
+    const hbHm = makeMini("H-");
+    const hbHp = makeMini("H+");
+    const hbXm = makeMini("X-");
+    const hbXp = makeMini("X+");
+    const hbYm = makeMini("Y-");
+    const hbYp = makeMini("Y+");
+    const hbReset = makeMini("HB Reset");
+    const refreshHbInfo = () => {
+      const p = this.playerHitboxProfile;
+      hbInfo.textContent = `Player HB w=${p.w} h=${p.h} ox=${p.ox} oy=${p.oy}`;
+    };
+    refreshHbInfo();
+
+    right.appendChild(hitboxBtn);
     right.appendChild(copyBtn);
     right.appendChild(clearBtn);
 
@@ -104,6 +167,8 @@ Platformer.Debug = {
 
     panel.appendChild(topBar);
     panel.appendChild(status);
+    panel.appendChild(hbInfo);
+    panel.appendChild(hbRow);
     panel.appendChild(log);
     root.appendChild(toggle);
     root.appendChild(panel);
@@ -124,6 +189,36 @@ Platformer.Debug = {
       log.textContent = "";
       status.textContent = "Cleared.";
     });
+
+    hitboxBtn.addEventListener("click", () => {
+      this.setHitboxesEnabled(!this.hitboxesEnabled);
+      refreshHitboxBtn();
+      status.textContent = `Hitbox overlay ${this.hitboxesEnabled ? "enabled" : "disabled"}.`;
+      status.style.color = "#93c5fd";
+    });
+    const bumpHb = (key, delta, min, max) => {
+      const p = { ...this.playerHitboxProfile };
+      p[key] = Math.max(min, Math.min(max, p[key] + delta));
+      this.setPlayerHitboxProfile(p);
+      refreshHbInfo();
+      status.textContent = "Player hitbox updated.";
+      status.style.color = "#93c5fd";
+    };
+    hbWm.addEventListener("click", () => bumpHb("w", -1, 4, 64));
+    hbWp.addEventListener("click", () => bumpHb("w", 1, 4, 64));
+    hbHm.addEventListener("click", () => bumpHb("h", -1, 4, 64));
+    hbHp.addEventListener("click", () => bumpHb("h", 1, 4, 64));
+    hbXm.addEventListener("click", () => bumpHb("ox", -1, -24, 24));
+    hbXp.addEventListener("click", () => bumpHb("ox", 1, -24, 24));
+    hbYm.addEventListener("click", () => bumpHb("oy", -1, -24, 24));
+    hbYp.addEventListener("click", () => bumpHb("oy", 1, -24, 24));
+    hbReset.addEventListener("click", () => {
+      this.setPlayerHitboxProfile({ w: 9, h: 24, ox: 0, oy: -3 });
+      refreshHbInfo();
+      status.textContent = "Player hitbox reset.";
+      status.style.color = "#93c5fd";
+    });
+    [hbWm, hbWp, hbHm, hbHp, hbXm, hbXp, hbYm, hbYp, hbReset].forEach((b) => hbRow.appendChild(b));
 
     copyBtn.addEventListener("click", async () => {
       const text = this.latestErrorBlock || "No captured error block yet.";
@@ -346,6 +441,79 @@ Platformer.Debug = {
       this.error(label, stack);
       return undefined;
     }
+  },
+
+  setHitboxesEnabled(enabled) {
+    this.hitboxesEnabled = !!enabled;
+    if (Platformer.Settings && Platformer.Settings.current) {
+      Platformer.Settings.current.debug = Platformer.Settings.current.debug || {};
+      Platformer.Settings.current.debug.hitboxesEnabled = this.hitboxesEnabled;
+      Platformer.Settings.save();
+    } else {
+      try {
+        localStorage.setItem("platformer_hitboxes_enabled", this.hitboxesEnabled ? "1" : "0");
+      } catch (_e) {
+        // best effort
+      }
+    }
+    try {
+      window.dispatchEvent(new CustomEvent("platformer:hitboxes-toggle", { detail: { enabled: this.hitboxesEnabled } }));
+    } catch (_e) {
+      // best effort
+    }
+    this.log("Debug.hitboxes", `Hitboxes ${this.hitboxesEnabled ? "ON" : "OFF"}`);
+  },
+
+  loadPlayerHitboxProfile() {
+    try {
+      const raw = localStorage.getItem("platformer_player_hitbox");
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      this.playerHitboxProfile = {
+        w: this.clampNum(p.w, 4, 64, 9),
+        h: this.clampNum(p.h, 4, 64, 24),
+        ox: this.clampNum(p.ox, -24, 24, 0),
+        oy: this.clampNum(p.oy, -24, 24, -3),
+      };
+    } catch (_e) {
+      // best effort
+    }
+  },
+
+  setPlayerHitboxProfile(profile) {
+    this.playerHitboxProfile = {
+      w: this.clampNum(profile.w, 4, 64, 9),
+      h: this.clampNum(profile.h, 4, 64, 24),
+      ox: this.clampNum(profile.ox, -24, 24, 0),
+      oy: this.clampNum(profile.oy, -24, 24, -3),
+    };
+    if (Platformer.Settings && Platformer.Settings.current) {
+      Platformer.Settings.current.debug = Platformer.Settings.current.debug || {};
+      Platformer.Settings.current.debug.playerHitbox = { ...this.playerHitboxProfile };
+      Platformer.Settings.save();
+    } else {
+      try {
+        localStorage.setItem("platformer_player_hitbox", JSON.stringify(this.playerHitboxProfile));
+      } catch (_e) {
+        // best effort
+      }
+    }
+    try {
+      window.dispatchEvent(new CustomEvent("platformer:player-hitbox-changed", { detail: { ...this.playerHitboxProfile } }));
+    } catch (_e) {
+      // best effort
+    }
+    this.log("Debug.hitboxProfile", `w=${this.playerHitboxProfile.w} h=${this.playerHitboxProfile.h} ox=${this.playerHitboxProfile.ox} oy=${this.playerHitboxProfile.oy}`);
+  },
+
+  getPlayerHitboxProfile() {
+    return { ...this.playerHitboxProfile };
+  },
+
+  clampNum(v, min, max, fallback) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
   },
 };
 

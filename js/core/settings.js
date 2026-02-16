@@ -1,7 +1,7 @@
 ﻿window.Platformer = window.Platformer || {};
 
 Platformer.DEFAULT_SETTINGS = {
-  settingsVersion: 2,
+  settingsVersion: 6,
   gameplay: {
     difficulty: "normal",
   },
@@ -25,6 +25,8 @@ Platformer.DEFAULT_SETTINGS = {
   },
   video: {
     fullscreen: false,
+    displayMode: "windowed",
+    resolutionPreset: "1920x1080",
     resolutionScale: 100,
     pixelPerfect: true,
     vsync: true,
@@ -53,6 +55,10 @@ Platformer.DEFAULT_SETTINGS = {
     source: "GitHub Releases",
     manifestUrl: "",
     downloadUrl: "",
+  },
+  debug: {
+    hitboxesEnabled: false,
+    playerHitbox: { w: 9, h: 24, ox: 0, oy: -3 },
   },
 };
 
@@ -125,7 +131,34 @@ Platformer.Settings = {
       out.updates.downloadUrl = "";
       out.settingsVersion = 2;
     }
-    out.settingsVersion = 2;
+    if (ver < 3) {
+      if (!out.video || typeof out.video !== "object") out.video = {};
+      if (!out.video.displayMode) {
+        out.video.displayMode = out.video.fullscreen ? "fullscreen" : "windowed";
+      }
+      out.settingsVersion = 3;
+    }
+    if (ver < 4) {
+      if (!out.video || typeof out.video !== "object") out.video = {};
+      if (!out.video.resolutionPreset) out.video.resolutionPreset = "1920x1080";
+      out.settingsVersion = 4;
+    }
+    if (ver < 5) {
+      if (!out.debug || typeof out.debug !== "object") out.debug = {};
+      if (!out.debug.playerHitbox || typeof out.debug.playerHitbox !== "object") {
+        out.debug.playerHitbox = { w: 9, h: 24, ox: 0, oy: -3 };
+      }
+      if (typeof out.debug.hitboxesEnabled !== "boolean") out.debug.hitboxesEnabled = false;
+      out.settingsVersion = 5;
+    }
+    if (ver < 6) {
+      if (!out.debug || typeof out.debug !== "object") out.debug = {};
+      // New global standard hitbox for all installs.
+      out.debug.playerHitbox = { w: 9, h: 24, ox: 0, oy: -3 };
+      if (typeof out.debug.hitboxesEnabled !== "boolean") out.debug.hitboxesEnabled = false;
+      out.settingsVersion = 6;
+    }
+    out.settingsVersion = 6;
     return out;
   },
 
