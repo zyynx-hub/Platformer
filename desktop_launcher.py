@@ -569,15 +569,6 @@ class Api:
                     host_log("WARN", "Updater", f"Exception launching helper ({' '.join(cmd)}): {e}")
 
             if not launched:
-                try:
-                    proc = subprocess.Popen(updater_bat, shell=True, close_fds=True)
-                    launched = bool(getattr(proc, "pid", 0))
-                    if launched:
-                        host_log("INFO", "Updater", f"Helper shell launch ok: pid={proc.pid}")
-                except Exception as e:
-                    host_log("WARN", "Updater", f"Shell launch failed: {e}")
-
-            if not launched:
                 return {"ok": False, "message": f"Failed to launch updater helper. Check {LOG_PATH}"}
             with self._update_lock:
                 self._update_state["stage"] = "applying"
@@ -727,15 +718,10 @@ class Api:
                 'echo [Updater] replace ok >>"%LOG%"',
                 "echo [Updater] Update applied. Restarting game...",
                 'set "START_OK=0"',
-                'pushd "%TARGET_DIR%" >nul 2>&1',
-                'start "" "%TARGET%" >nul 2>&1',
-                'if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
-                'popd >nul 2>&1',
-                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="1" (echo [Updater] restart launch ok>>"%LOG%") else (echo [Updater] restart launch failed>>"%LOG%")',
+                'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { $p = Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR -PassThru -ErrorAction Stop; Start-Sleep -Milliseconds 1200; if (Get-Process -Id $p.Id -ErrorAction SilentlyContinue) { exit 0 } else { exit 2 } } catch { exit 1 }" >nul 2>&1',
+                "if errorlevel 1 goto rollback",
+                'set "START_OK=1"',
+                'echo [Updater] restart launch ok>>"%LOG%"',
                 'del /f /q "%NEWEXE%" >nul 2>&1',
                 "goto done",
                 ":rollback",
@@ -743,14 +729,8 @@ class Api:
                 'echo [Updater] rollback >>"%LOG%"',
                 'copy /Y "%BACKUP%" "%TARGET%" >nul 2>&1',
                 'set "START_OK=0"',
-                'pushd "%TARGET_DIR%" >nul 2>&1',
-                'start "" "%TARGET%" >nul 2>&1',
+                'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { $p = Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR -PassThru -ErrorAction Stop; Start-Sleep -Milliseconds 1200; if (Get-Process -Id $p.Id -ErrorAction SilentlyContinue) { exit 0 } else { exit 2 } } catch { exit 1 }" >nul 2>&1',
                 'if not errorlevel 1 set "START_OK=1"',
-                'if "%START_OK%"=="0" powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { Start-Process -FilePath $env:TARGET -WorkingDirectory $env:TARGET_DIR -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
-                'popd >nul 2>&1',
-                'if "%START_OK%"=="0" explorer "%TARGET%" >nul 2>&1',
-                'if "%START_OK%"=="0" if not errorlevel 1 set "START_OK=1"',
                 'if "%START_OK%"=="1" (echo [Updater] rollback relaunch ok>>"%LOG%") else (echo [Updater] rollback relaunch failed>>"%LOG%")',
                 ":done",
                 'echo ==== updater end %DATE% %TIME% ====>>"%LOG%"',
