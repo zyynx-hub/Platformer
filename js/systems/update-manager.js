@@ -11,6 +11,7 @@ Platformer.UpdateManager = class {
     this.latestChecksumSha256 = "";
     this.autoCheckRetryCount = 0;
     this.autoCheckStartedAt = 0;
+    this.autoCheckInFlight = false;
   }
 
   log(level, msg) {
@@ -176,10 +177,12 @@ Platformer.UpdateManager = class {
     this.log("info", "No update available.");
   }
 
-  async autoCheck() {
+  async autoCheck(options = {}) {
+    const showChecking = options.showChecking !== false;
     const scene = this.scene;
     if (!scene || !scene.sys || !scene.sys.settings || !scene.sys.settings.active) return;
     if (this.updateInProgress) return;
+    if (this.autoCheckInFlight) return;
     if (this.lastManualUpdateAt >= 0 && (this.now() - this.lastManualUpdateAt < 10000)) {
       this.log("info", "Auto-check skipped: recent manual update action.");
       return;
@@ -191,13 +194,32 @@ Platformer.UpdateManager = class {
       return;
     }
 
-    if (this.autoCheckRetryCount === 0) {
-      this.autoCheckStartedAt = this.now();
+    this.autoCheckInFlight = true;
+    let result = null;
+    try {
+      if (this.autoCheckRetryCount === 0) {
+        this.autoCheckStartedAt = this.now();
+      }
+      if (showChecking) this.setStatus("Checking for updates...");
+      result = await Platformer.Updater.check();
+    } catch (err) {
+      this.log("error", `autoCheck exception: ${err && err.message ? err.message : err}`);
+      this.setStatus("Update check failed. Press Update.", true, 10000);
+      this.resetAutoCheckRetry();
+      this.autoCheckInFlight = false;
+      return;
+    } finally {
+      this.autoCheckInFlight = false;
     }
-    this.setStatus("Checking for updates...");
-    const result = await Platformer.Updater.check();
+
     if (!scene.sys || !scene.sys.settings || !scene.sys.settings.active) return;
     if (!scene.scene || !scene.scene.isActive || !scene.scene.isActive("MenuScene")) return;
+    if (!result) {
+      this.log("warn", "autoCheck returned empty result.");
+      this.setStatus("Update check failed. Press Update.", true, 10000);
+      this.resetAutoCheckRetry();
+      return;
+    }
 
     if (!result.ok) {
       if (result.transient) {
@@ -210,10 +232,10 @@ Platformer.UpdateManager = class {
           this.resetAutoCheckRetry();
           return;
         }
-        this.setStatus("Checking for updates...");
+        if (showChecking) this.setStatus("Checking for updates...");
         if (scene.time && scene.sys && scene.sys.settings && scene.sys.settings.active) {
           const retryDelay = Math.min(2400, 800 + this.autoCheckRetryCount * 200);
-          scene.time.delayedCall(retryDelay, () => this.autoCheck());
+          scene.time.delayedCall(retryDelay, () => this.autoCheck({ showChecking }));
         }
         return;
       }

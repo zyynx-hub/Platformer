@@ -71,6 +71,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.updateStatusLockUntil = 0;
     this.lastManualUpdateAt = 0;
     this.updateManager = null;
+    this.updatePollEvent = null;
     this.introConfig = {
       totalMs: 1800,
       uiFadeMs: 260,
@@ -198,6 +199,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.createBottomLeftVersionInfo();
     this.createMenuUpdateWidget();
     this.createWhatsChangedWidget();
+    this.startUpdatePolling();
     this.createMenuMiniStage();
     this.menuCard = this.add.rectangle(0, 0, 360, 390, 0x0b1731, 0.46)
       .setStrokeStyle(2, 0x7dd3fc, 0.38)
@@ -541,7 +543,25 @@ Platformer.MenuScene = class extends Phaser.Scene {
 
   async autoCheckUpdatesForBottomLeft() {
     if (!this.updateManager) return;
-    await this.updateManager.autoCheck();
+    await this.updateManager.autoCheck({ showChecking: true });
+  }
+
+  startUpdatePolling() {
+    if (!this.time) return;
+    if (this.updatePollEvent) {
+      this.updatePollEvent.remove(false);
+      this.updatePollEvent = null;
+    }
+    this.updatePollEvent = this.time.addEvent({
+      delay: 10000,
+      loop: true,
+      callback: () => {
+        if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+        if (!this.updateManager) return;
+        this.updateManager.autoCheck({ showChecking: false });
+      },
+    });
+    if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "Background update polling active (10s interval).");
   }
 
   createWhatsChangedWidget() {
@@ -1279,6 +1299,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     if (this.onResize) {
       this.scale.off("resize", this.onResize);
       this.onResize = null;
+    }
+    if (this.updatePollEvent) {
+      this.updatePollEvent.remove(false);
+      this.updatePollEvent = null;
     }
     if (this.introParticles) {
       this.introParticles.destroy();

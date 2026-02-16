@@ -67,6 +67,8 @@ Platformer.Debug = {
     panel.style.borderRadius = "8px";
     panel.style.padding = "10px";
     panel.style.boxSizing = "border-box";
+    panel.style.flexDirection = "column";
+    panel.style.overflow = "hidden";
     panel.style.display = "none";
 
     const topBar = document.createElement("div");
@@ -158,7 +160,8 @@ Platformer.Debug = {
 
     const log = document.createElement("pre");
     log.style.margin = "0";
-    log.style.height = "calc(100% - 58px)";
+    log.style.flex = "1";
+    log.style.minHeight = "0";
     log.style.overflow = "auto";
     log.style.whiteSpace = "pre-wrap";
     log.style.fontSize = "12px";
@@ -174,13 +177,14 @@ Platformer.Debug = {
     root.appendChild(panel);
     document.body.appendChild(root);
 
-    toggle.addEventListener("click", () => {
-      panel.style.display = panel.style.display === "none" ? "block" : "none";
-    });
+    const togglePanel = () => {
+      panel.style.display = panel.style.display === "none" ? "flex" : "none";
+    };
+    toggle.addEventListener("click", togglePanel);
     window.addEventListener("keydown", (e) => {
       if (e.key === "F1") {
         e.preventDefault();
-        panel.style.display = panel.style.display === "none" ? "block" : "none";
+        togglePanel();
       }
     });
 
