@@ -365,6 +365,22 @@ Platformer.Debug = {
     }
   },
 
+  critical(label, message) {
+    this.append("CRITICAL", label, message);
+    this.latestErrorBlock = [
+      "=== COPY_THIS_TO_ASSISTANT ===",
+      `TIME: ${new Date().toISOString()}`,
+      `SOURCE: ${label}`,
+      "DETAILS:",
+      `[CRITICAL] ${message}`,
+      "=== END_COPY ===",
+    ].join("\n");
+    if (this.statusEl) {
+      this.statusEl.textContent = "Critical error captured. Click 'Copy latest error'.";
+      this.statusEl.style.color = "#ef4444";
+    }
+  },
+
   attachGameMonitors(game) {
     if (!this.enabled) return;
     if (this._monitorsAttached || !game) return;

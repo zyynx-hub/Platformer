@@ -137,7 +137,7 @@ Platformer.GameScene = class extends Phaser.Scene {
       }
     } catch (err) {
       if (Platformer.Debug) {
-        Platformer.Debug.warn("GameScene.preload", `LDtk preload guard failed: ${err && err.message ? err.message : err}`);
+        Platformer.Debug.critical("GameScene.preload", `LDtk preload guard failed: ${err && err.message ? err.message : err}`);
       }
     }
   }
@@ -286,7 +286,7 @@ Platformer.GameScene = class extends Phaser.Scene {
       if (Platformer.Debug) Platformer.Debug.log("GameScene.playerIdle", "Using imported player-idle-sheet.");
     } else if (Platformer.Debug && !this.playerIdleFallbackLogged) {
       this.playerIdleFallbackLogged = true;
-      Platformer.Debug.log("GameScene.playerIdle", "player-idle-sheet missing, using fallback idle textures.");
+      Platformer.Debug.critical("GameScene.playerIdle", "player-idle-sheet missing, using fallback idle textures.");
     }
     const tinyGrid = TILE <= 8;
     if (this.useImportedCharacter) {
@@ -1026,9 +1026,9 @@ Platformer.GameScene = class extends Phaser.Scene {
         const hasLevelFiveJson = !!(this.cache && this.cache.json && this.cache.json.get("level-5"));
         if (Platformer.Debug) {
           if (hasLevelFiveJson || (Platformer.LevelBuilders && typeof Platformer.LevelBuilders[5] === "function")) {
-            Platformer.Debug.log("GameScene.ldtk", "Missing cached ldtk-test JSON; using Level 5 fallback data (JSON/built-in).");
+            Platformer.Debug.critical("GameScene.ldtk", "Missing cached ldtk-test JSON; using Level 5 fallback data (JSON/built-in).");
           } else {
-            Platformer.Debug.warn("GameScene.ldtk", "Missing ldtk-test and level-5 fallback data; using classic fallback level.");
+            Platformer.Debug.critical("GameScene.ldtk", "Missing ldtk-test and level-5 fallback data; using classic fallback level.");
           }
         }
         return null;
@@ -1036,20 +1036,20 @@ Platformer.GameScene = class extends Phaser.Scene {
       const levels = Array.isArray(ldtk.levels) ? ldtk.levels : [];
       const level = levels[0] || null;
       if (!level) {
-        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "No levels in test.ldtk; falling back.");
+        if (Platformer.Debug) Platformer.Debug.critical("GameScene.ldtk", "No levels in test.ldtk; falling back.");
         return null;
       }
       const layers = Array.isArray(level.layerInstances) ? level.layerInstances : [];
       const intLayer = layers.find((li) => li && li.__type === "IntGrid") || null;
       if (!intLayer) {
-        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "No IntGrid layer found in test.ldtk; falling back.");
+        if (Platformer.Debug) Platformer.Debug.critical("GameScene.ldtk", "No IntGrid layer found in test.ldtk; falling back.");
         return null;
       }
       const width = Number(intLayer.__cWid || 0);
       const height = Number(intLayer.__cHei || 0);
       const csv = Array.isArray(intLayer.intGridCsv) ? intLayer.intGridCsv : [];
       if (!width || !height || csv.length !== width * height) {
-        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", `Invalid IntGrid dimensions w=${width} h=${height} csv=${csv.length}; falling back.`);
+        if (Platformer.Debug) Platformer.Debug.critical("GameScene.ldtk", `Invalid IntGrid dimensions w=${width} h=${height} csv=${csv.length}; falling back.`);
         return null;
       }
 
@@ -1094,7 +1094,7 @@ Platformer.GameScene = class extends Phaser.Scene {
   renderLdtkVisualTiles() {
     try {
       if (!this.textures.exists("ldtk-cavernas")) {
-        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "ldtk-cavernas texture missing; visual tile render skipped.");
+        if (Platformer.Debug) Platformer.Debug.critical("GameScene.ldtk", "ldtk-cavernas texture missing; visual tile render skipped.");
         return;
       }
       const ldtk = this.cache && this.cache.json ? this.cache.json.get("ldtk-test") : null;
@@ -2136,7 +2136,7 @@ Platformer.GameScene = class extends Phaser.Scene {
         }
       } else {
         if (!this.idleAnimWarned && Platformer.Debug) {
-          Platformer.Debug.warn("GameScene.playerIdle", "playerIdleAnim not found; fallback idle in use.");
+          Platformer.Debug.critical("GameScene.playerIdle", "playerIdleAnim not found; fallback idle in use.");
           this.idleAnimWarned = true;
         }
         this.player.setTexture((Math.floor(now / 360) % 2 === 0) ? "player-idle-1" : "player-idle-2");

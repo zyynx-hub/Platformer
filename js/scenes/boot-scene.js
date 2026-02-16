@@ -27,17 +27,17 @@ Platformer.BootScene = class extends Phaser.Scene {
         this.playerIdleLoadFailed = true;
         if (Platformer.Debug && !this.playerIdleWarned) {
           this.playerIdleWarned = true;
-          Platformer.Debug.warn("BootScene.playerIdle", "Optional asset missing: assets/IFFY_IDLE.png. Using built-in fallback character.");
+          Platformer.Debug.critical("BootScene.playerIdle", "Missing player sprite asset: assets/IFFY_IDLE.png. Game is falling back to built-in character.");
         }
       }
       if (fileObj && fileObj.key === "ldtk-test") {
-        Platformer.Debug.warn("BootScene.ldtk", "Failed to load assets/test.ldtk; Level 5 will use JSON/built-in fallback.");
+        Platformer.Debug.critical("BootScene.ldtk", "Failed to load assets/test.ldtk; map content fallback engaged.");
       }
       if (fileObj && fileObj.key === "ldtk-cavernas") {
-        Platformer.Debug.warn("BootScene.ldtk", "Failed to load Cavernas tileset; Level 5 visuals will use fallback rendering.");
+        Platformer.Debug.critical("BootScene.ldtk", "Failed to load Cavernas tileset; visual sprite fallback engaged.");
       }
       if (fileObj && /^level-\d+$/.test(fileObj.key || "")) {
-        Platformer.Debug.warn("BootScene.levels", `Level JSON missing for ${fileObj.key}; using built-in fallback.`);
+        Platformer.Debug.critical("BootScene.levels", `Level JSON missing for ${fileObj.key}; map fallback engaged.`);
       }
     });
   }
@@ -331,14 +331,14 @@ Platformer.BootScene = class extends Phaser.Scene {
         const msg = this.playerIdleLoadFailed
           ? "Player idle spritesheet failed to preload. Using built-in fallback character."
           : "Player idle spritesheet not found. Using built-in fallback character.";
-        Platformer.Debug.warn("BootScene.playerIdle", msg);
+        Platformer.Debug.critical("BootScene.playerIdle", msg);
       }
       return;
     }
 
     const source = this.textures.get("player-idle-raw").getSourceImage();
     if (!source || !source.width || !source.height) {
-      if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", "player-idle-raw source has invalid dimensions.");
+      if (Platformer.Debug) Platformer.Debug.critical("BootScene.playerIdle", "player-idle-raw source has invalid dimensions.");
       return;
     }
 
@@ -346,7 +346,7 @@ Platformer.BootScene = class extends Phaser.Scene {
     const frameWidth = Math.floor(source.width / frames);
     const frameHeight = source.height;
     if (frameWidth < 1 || frameHeight < 1) {
-      if (Platformer.Debug) Platformer.Debug.warn("BootScene.playerIdle", `Invalid frame size: ${frameWidth}x${frameHeight}`);
+      if (Platformer.Debug) Platformer.Debug.critical("BootScene.playerIdle", `Invalid frame size: ${frameWidth}x${frameHeight}`);
       return;
     }
 
