@@ -305,7 +305,13 @@ class Api:
             "url": "",
         }
         self._download_thread = None
-        self._direct_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        self._ssl_context = ssl.create_default_context()
+        # Direct opener bypasses OS/browser proxy settings when they are broken.
+        self._direct_opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({}),
+            urllib.request.HTTPSHandler(context=self._ssl_context),
+            urllib.request.HTTPHandler(),
+        )
 
     def exit_app(self):
         webview.windows[0].destroy()
@@ -456,6 +462,13 @@ class Api:
                 "message": f"Update found ({latest})." if has_update else "You're up to date.",
             }
         except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="ignore").strip()
+            except Exception:
+                body = ""
+            if body:
+                host_log("WARN", "Updater.check_update_github", f"HTTP {e.code}: {body[:300]}")
             if e.code == 403:
                 return {"ok": False, "message": "Update server busy, try later."}
             if e.code == 404:
@@ -772,17 +785,40 @@ class Api:
         return json.loads(raw)
 
     def _urlopen(self, request, timeout=8):
-        ctx = ssl.create_default_context()
-        return urllib.request.urlopen(request, timeout=timeout, context=ctx)
+        first_error = None
+        try:
+            return urllib.request.urlopen(request, timeout=timeout, context=self._ssl_context)
+        except Exception as e:
+            first_error = e
+            host_log("WARN", "Updater.net", f"default urlopen failed ({type(e).__name__}); retrying direct opener")
+        try:
+            return self._direct_opener.open(request, timeout=timeout)
+        except Exception as e2:
+            host_log("ERROR", "Updater.net", f"direct opener failed ({type(e2).__name__}): {e2}")
+            if first_error:
+                raise e2 from first_error
+            raise
 
     def _fetch_github_release(self, repo, channel):
         ch = str(channel or "stable").strip().lower()
         if ch in ("stable", "latest"):
             url = f"https://api.github.com/repos/{repo}/releases/latest"
-            return self._fetch_json(url)
+            try:
+                return self._fetch_json(url)
+            except urllib.error.HTTPError as e:
+                if e.code == 403:
+                    host_log("WARN", "Updater.github", "GitHub API rate limited on /releases/latest; using web fallback.")
+                    return self._fetch_github_release_web(repo)
+                raise
 
         url = f"https://api.github.com/repos/{repo}/releases"
-        releases = self._fetch_json(url)
+        try:
+            releases = self._fetch_json(url)
+        except urllib.error.HTTPError as e:
+            if e.code == 403:
+                host_log("WARN", "Updater.github", "GitHub API rate limited on /releases; using web fallback.")
+                return self._fetch_github_release_web(repo)
+            raise
         if isinstance(releases, list):
             token = ch
             for rel in releases:
@@ -793,6 +829,44 @@ class Api:
             if releases:
                 return releases[0]
         raise RuntimeError("No release found for update channel.")
+
+    def _fetch_github_release_web(self, repo):
+        # Fallback path when GitHub API returns 403 rate-limit.
+        latest_url = f"https://github.com/{repo}/releases/latest"
+        req = urllib.request.Request(
+            latest_url,
+            headers={
+                "User-Agent": "AnimePlatformerUpdater/1.0",
+                "Accept": "text/html,application/xhtml+xml",
+            },
+            method="GET",
+        )
+        with self._urlopen(req, timeout=8) as resp:
+            final_url = str(resp.geturl() or latest_url)
+
+        marker = "/releases/tag/"
+        idx = final_url.lower().find(marker)
+        if idx < 0:
+            raise RuntimeError(f"Unable to resolve latest release tag from {final_url}")
+
+        tag = urllib.parse.unquote(final_url[idx + len(marker):]).split("?")[0].split("#")[0].strip("/")
+        if not tag:
+            raise RuntimeError("Resolved latest release URL but tag is empty.")
+
+        safe_tag = urllib.parse.quote(tag, safe="")
+        exe_url = f"https://github.com/{repo}/releases/download/{safe_tag}/AnimePlatformer.exe"
+        sha_url = f"https://github.com/{repo}/releases/download/{safe_tag}/AnimePlatformer.exe.sha256"
+        host_log("INFO", "Updater.github", f"Web fallback resolved latest tag={tag}")
+        return {
+            "tag_name": tag,
+            "name": tag,
+            "body": "Release notes unavailable (GitHub API rate limited).",
+            "published_at": "",
+            "assets": [
+                {"name": "AnimePlatformer.exe", "browser_download_url": exe_url},
+                {"name": "AnimePlatformer.exe.sha256", "browser_download_url": sha_url},
+            ],
+        }
 
     def _choose_release_assets(self, release_payload):
         assets = release_payload.get("assets") or []
