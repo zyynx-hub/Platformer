@@ -451,6 +451,19 @@ class Api:
             latest = str(payload.get("tag_name") or payload.get("name") or current_version or "0.0.0").strip()
             download_url, checksum_sha256 = self._choose_release_assets(payload)
             has_update = self._compare_versions(latest, current_version or "0.0.0") > 0
+            if has_update:
+                if not download_url:
+                    return {
+                        "ok": False,
+                        "message": "Update package not published yet.",
+                    }
+                # Security gate: require checksum for every update payload.
+                if not checksum_sha256:
+                    host_log("WARN", "Updater.security", "Release has EXE but missing checksum; update blocked.")
+                    return {
+                        "ok": False,
+                        "message": "Update package not verified yet. Try again when release checksums are available.",
+                    }
             return {
                 "ok": True,
                 "hasUpdate": has_update,
@@ -802,14 +815,13 @@ class Api:
     def _fetch_github_release(self, repo, channel):
         ch = str(channel or "stable").strip().lower()
         if ch in ("stable", "latest"):
-            url = f"https://api.github.com/repos/{repo}/releases/latest"
             try:
-                return self._fetch_json(url)
-            except urllib.error.HTTPError as e:
-                if e.code == 403:
-                    host_log("WARN", "Updater.github", "GitHub API rate limited on /releases/latest; using web fallback.")
-                    return self._fetch_github_release_web(repo)
-                raise
+                # Prefer public web latest endpoint to avoid API rate-limit churn.
+                return self._fetch_github_release_web(repo)
+            except Exception as e:
+                host_log("WARN", "Updater.github", f"Web latest lookup failed ({type(e).__name__}); retrying API.")
+            url = f"https://api.github.com/repos/{repo}/releases/latest"
+            return self._fetch_json(url)
 
         url = f"https://api.github.com/repos/{repo}/releases"
         try:
