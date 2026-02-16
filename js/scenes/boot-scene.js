@@ -29,6 +29,12 @@ Platformer.BootScene = class extends Phaser.Scene {
           Platformer.Debug.warn("BootScene.playerIdle", "Optional asset missing: assets/IFFY_IDLE.png. Using built-in fallback character.");
         }
       }
+      if (fileObj && fileObj.key === "ldtk-test") {
+        Platformer.Debug.warn("BootScene.ldtk", "Failed to load assets/test.ldtk; Level 5 will use JSON/built-in fallback.");
+      }
+      if (fileObj && fileObj.key === "ldtk-cavernas") {
+        Platformer.Debug.warn("BootScene.ldtk", "Failed to load Cavernas tileset; Level 5 visuals will use fallback rendering.");
+      }
       if (fileObj && /^level-\d+$/.test(fileObj.key || "")) {
         Platformer.Debug.warn("BootScene.levels", `Level JSON missing for ${fileObj.key}; using built-in fallback.`);
       }

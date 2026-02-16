@@ -25,6 +25,7 @@ ORDER = [
     "level/level-2.js",
     "level/level-3.js",
     "level/level-4.js",
+    "level/level-5.js",
     "level/level-data.js",
     "scenes/boot-scene.js",
     "scenes/menu-scene.js",

@@ -3724,6 +3724,31 @@ Platformer.LevelBuilders[4] = function buildLevel4(api) {
 
   /* <<< level/level-4.js */
 
+  /* >>> level/level-5.js */
+// [bundle] namespace init removed; using local Platformer namespace.
+Platformer.LevelBuilders = Platformer.LevelBuilders || {};
+
+// Built-in fallback for Level 5 (LDtk test map) when cached JSON files are unavailable.
+Platformer.LevelBuilders[5] = ({ line, many }) => {
+  line(2, 4, 4, "#");
+  line(8, 10, 4, "#");
+  line(2, 2, 5, "#");
+  line(2, 2, 6, "#");
+  line(5, 10, 6, "#");
+  line(2, 3, 7, "#");
+  line(9, 12, 7, "#");
+  line(5, 6, 8, "#");
+  line(9, 12, 8, "#");
+  line(2, 6, 9, "#");
+  line(10, 11, 9, "#");
+  line(2, 6, 10, "#");
+  line(10, 11, 10, "#");
+  line(4, 6, 11, "#");
+  line(9, 10, 11, "#");
+  many([[3, 5]], "S");
+};
+  /* <<< level/level-5.js */
+
   /* >>> level/level-data.js */
 // [bundle] namespace init removed; using local Platformer namespace.
 Platformer.LevelBuilders = Platformer.LevelBuilders || {};
@@ -3811,6 +3836,12 @@ Platformer.BootScene = class extends Phaser.Scene {
           this.playerIdleWarned = true;
           Platformer.Debug.warn("BootScene.playerIdle", "Optional asset missing: assets/IFFY_IDLE.png. Using built-in fallback character.");
         }
+      }
+      if (fileObj && fileObj.key === "ldtk-test") {
+        Platformer.Debug.warn("BootScene.ldtk", "Failed to load assets/test.ldtk; Level 5 will use JSON/built-in fallback.");
+      }
+      if (fileObj && fileObj.key === "ldtk-cavernas") {
+        Platformer.Debug.warn("BootScene.ldtk", "Failed to load Cavernas tileset; Level 5 visuals will use fallback rendering.");
       }
       if (fileObj && /^level-\d+$/.test(fileObj.key || "")) {
         Platformer.Debug.warn("BootScene.levels", `Level JSON missing for ${fileObj.key}; using built-in fallback.`);
@@ -7756,6 +7787,25 @@ Platformer.GameScene = class extends Phaser.Scene {
     this.jetpackActive = false;
   }
 
+  preload() {
+    try {
+      const jsonCache = this.cache && this.cache.json ? this.cache.json : null;
+      const hasLdtkProject = !!(jsonCache && jsonCache.get("ldtk-test"));
+      const hasLevelFiveJson = !!(jsonCache && jsonCache.get("level-5"));
+
+      if (!hasLdtkProject) {
+        this.load.json("ldtk-test", "assets/test.ldtk");
+      }
+      if (!hasLevelFiveJson) {
+        this.load.json("level-5", "assets/levels/level-ldtk-test.json");
+      }
+    } catch (err) {
+      if (Platformer.Debug) {
+        Platformer.Debug.warn("GameScene.preload", `LDtk preload guard failed: ${err && err.message ? err.message : err}`);
+      }
+    }
+  }
+
   create() {
     const { PLAYER, TILE } = Platformer.Config;
     const settings = Platformer.Settings.current;
@@ -8634,7 +8684,14 @@ Platformer.GameScene = class extends Phaser.Scene {
     try {
       const ldtk = this.cache && this.cache.json ? this.cache.json.get("ldtk-test") : null;
       if (!ldtk || typeof ldtk !== "object") {
-        if (Platformer.Debug) Platformer.Debug.warn("GameScene.ldtk", "Missing cached ldtk-test JSON; falling back to classic level data.");
+        const hasLevelFiveJson = !!(this.cache && this.cache.json && this.cache.json.get("level-5"));
+        if (Platformer.Debug) {
+          if (hasLevelFiveJson || (Platformer.LevelBuilders && typeof Platformer.LevelBuilders[5] === "function")) {
+            Platformer.Debug.log("GameScene.ldtk", "Missing cached ldtk-test JSON; using Level 5 fallback data (JSON/built-in).");
+          } else {
+            Platformer.Debug.warn("GameScene.ldtk", "Missing ldtk-test and level-5 fallback data; using classic fallback level.");
+          }
+        }
         return null;
       }
       const levels = Array.isArray(ldtk.levels) ? ldtk.levels : [];

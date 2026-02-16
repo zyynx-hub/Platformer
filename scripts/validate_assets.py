@@ -15,6 +15,9 @@ REQUIRED = [
     Path('assets/levels/level-2.json'),
     Path('assets/levels/level-3.json'),
     Path('assets/levels/level-4.json'),
+    Path('assets/levels/level-ldtk-test.json'),
+    Path('assets/test.ldtk'),
+    Path('assets/Cavernas_by_Adam_Saltsman.png'),
 ]
 OPTIONAL = [
     Path('assets/IFFY_IDLE.png'),
