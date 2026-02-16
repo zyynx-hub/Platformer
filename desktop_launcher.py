@@ -536,10 +536,10 @@ class Api:
             host_log("INFO", "Updater", f"Helper log expected at: {updater_log_path}")
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
             launched = False
+            # Keep launch flags minimal to avoid WinError 87 / fallback shell window.
             detached_flags = (
                 getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
                 | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-                | getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
                 | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
             )
             launch_attempts = [
@@ -692,23 +692,9 @@ class Api:
                 'if not exist "%TARGET%" echo [Updater] WARN target missing before apply>>"%LOG%"',
                 'if not exist "%NEWEXE%" echo [Updater] ERROR new exe missing before apply>>"%LOG%"',
                 'if "%OLDPID%"=="" goto wait_done',
-                'echo [Updater] waiting for old pid %OLDPID% to exit>>"%LOG%"',
-                "set WAIT=0",
-                ":wait_oldpid_loop",
-                'tasklist /FI "PID eq %OLDPID%" | find "%OLDPID%" >nul 2>&1',
-                "if errorlevel 1 goto oldpid_done",
-                "if %WAIT% GEQ 8 goto oldpid_force_kill",
-                "set /a WAIT+=1",
-                'echo [Updater] old pid still alive, wait !WAIT!/8>>"%LOG%"',
-                "timeout /t 1 /nobreak >nul",
-                "goto wait_oldpid_loop",
-                ":oldpid_force_kill",
-                'echo [Updater] old pid still running after timeout, forcing kill>>"%LOG%"',
+                'echo [Updater] forcing old pid %OLDPID% to close>>"%LOG%"',
                 'taskkill /PID %OLDPID% /F /T >nul 2>&1',
                 "timeout /t 1 /nobreak >nul",
-                "goto wait_done",
-                ":oldpid_done",
-                'echo [Updater] old pid exited cleanly>>"%LOG%"',
                 ":wait_done",
                 "echo [Updater] Creating backup...",
                 "set RETRIES=0",
