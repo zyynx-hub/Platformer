@@ -75,6 +75,24 @@ def host_log(level, source, message):
         pass
 
 
+def get_game_root_dir():
+    try:
+        if getattr(sys, "frozen", False):
+            return os.path.dirname(os.path.abspath(sys.executable))
+    except Exception:
+        pass
+    return ROOT_DIR
+
+
+def get_updater_log_path(target_exe=None):
+    try:
+        if target_exe:
+            return os.path.join(os.path.dirname(os.path.abspath(target_exe)), "updater.log")
+    except Exception:
+        pass
+    return os.path.join(get_game_root_dir(), "updater.log")
+
+
 def ensure_user_log_dir():
     try:
         os.makedirs(USER_LOG_DIR, exist_ok=True)
@@ -495,7 +513,14 @@ class Api:
             return {"ok": False, "message": "Cannot determine current executable path."}
 
         backup_exe = f"{target_exe}.bak"
-        updater_bat = self._write_updater_script(target_exe, downloaded_path, backup_exe, os.getpid())
+        updater_log_path = get_updater_log_path(target_exe)
+        updater_bat = self._write_updater_script(
+            target_exe,
+            downloaded_path,
+            backup_exe,
+            os.getpid(),
+            updater_log_path,
+        )
         if not updater_bat:
             return {"ok": False, "message": "Failed to create updater helper script."}
 
@@ -505,9 +530,10 @@ class Api:
                 "crashCount": 0,
                 "targetExe": target_exe,
                 "backupExe": backup_exe,
+                "downloadedExe": downloaded_path,
                 "updatedAt": datetime.utcnow().isoformat() + "Z",
             })
-            host_log("INFO", "Updater", f"Helper log expected at: {USER_UPDATER_LOG_PATH}")
+            host_log("INFO", "Updater", f"Helper log expected at: {updater_log_path}")
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
             launched = False
             detached_flags = (
@@ -550,7 +576,16 @@ class Api:
                 self._update_state["progress"] = 100.0
                 self._update_state["message"] = "Applying update and restarting..."
             # Close now; helper explicitly waits on current PID before replacing.
-            webview.windows[0].destroy()
+            # Some webview runtimes keep background loops alive after destroy(), so we
+            # schedule a hard process exit to guarantee helper handoff.
+            try:
+                webview.windows[0].destroy()
+            except Exception as e:
+                host_log("WARN", "Updater", f"window destroy failed: {e}")
+            host_log("INFO", "Updater", "Scheduling hard exit for updater handoff.")
+            t = threading.Timer(0.45, lambda: os._exit(0))
+            t.daemon = True
+            t.start()
             return {"ok": True, "message": "Applying update and restarting."}
         except Exception as e:
             host_log("ERROR", "Updater", f"Failed to launch updater helper: {e}")
@@ -638,7 +673,7 @@ class Api:
         # Dev fallback path.
         return os.path.join(ROOT_DIR, "AnimePlatformer.exe")
 
-    def _write_updater_script(self, target_exe, downloaded_exe, backup_exe, current_pid):
+    def _write_updater_script(self, target_exe, downloaded_exe, backup_exe, current_pid, updater_log_path):
         try:
             fd, script_path = tempfile.mkstemp(prefix="anime_platformer_apply_", suffix=".bat")
             os.close(fd)
@@ -649,27 +684,12 @@ class Api:
                 f'set "NEWEXE={downloaded_exe}"',
                 f'set "BACKUP={backup_exe}"',
                 f'set "OLDPID={int(current_pid)}"',
+                f'set "LOG={updater_log_path}"',
                 'for %%I in ("%TARGET%") do set "TARGET_DIR=%%~dpI"',
-                'set "LOG_DIR=%LOCALAPPDATA%\\AnimePlatformer"',
-                'if "%LOCALAPPDATA%"=="" set "LOG_DIR=%TEMP%\\AnimePlatformer"',
-                'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1',
-                'set "LOG=%LOG_DIR%\\updater.log"',
                 'echo ==== updater start %DATE% %TIME% ====>>"%LOG%"',
                 'echo target="%TARGET%" new="%NEWEXE%" backup="%BACKUP%" oldpid="%OLDPID%">>"%LOG%"',
-                "echo [Updater] Waiting for old process to close...",
-                "set RETRIES=0",
-                ":wait_old_pid",
-                'tasklist /FI "PID eq %OLDPID%" | findstr /I "%OLDPID%" >nul',
-                "if errorlevel 1 goto old_pid_gone",
-                "set /a RETRIES+=1",
-                "if %RETRIES% GEQ 30 goto force_kill_old",
-                "timeout /t 1 /nobreak >nul",
-                "goto wait_old_pid",
-                ":force_kill_old",
-                'echo [Updater] old pid still alive; forcing kill >>"%LOG%"',
-                'taskkill /PID %OLDPID% /F >nul 2>&1',
-                "timeout /t 1 /nobreak >nul",
-                ":old_pid_gone",
+                "echo [Updater] Waiting for executable lock release...",
+                'echo [Updater] waiting for lock release (oldpid=%OLDPID%) >>"%LOG%"',
                 "echo [Updater] Creating backup...",
                 "set RETRIES=0",
                 ":backup_retry",
@@ -681,6 +701,7 @@ class Api:
                 "timeout /t 1 /nobreak >nul",
                 "goto backup_retry",
                 ":backup_ok",
+                'echo [Updater] backup ok >>"%LOG%"',
                 "echo [Updater] Replacing executable...",
                 "set RETRIES=0",
                 ":replace_retry",
