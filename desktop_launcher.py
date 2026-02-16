@@ -535,6 +535,11 @@ class Api:
             })
             host_log("INFO", "Updater", f"Helper log expected at: {updater_log_path}")
             host_log("INFO", "Updater", f"Launching helper: {updater_bat}")
+            # small delay to ensure the script file is fully committed to disk
+            try:
+                time.sleep(0.2)
+            except Exception:
+                pass
             launched = False
             # Keep launch flags minimal to avoid WinError 87 / fallback shell window.
             detached_flags = (
@@ -542,11 +547,14 @@ class Api:
                 | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
                 | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
             )
+            # Try a few launch styles; prefer `start` which creates a detached process reliably.
             launch_attempts = [
+                ["cmd", "/c", "start", "", updater_bat],
                 ["cmd", "/c", updater_bat],
             ]
             for cmd in launch_attempts:
                 try:
+                    host_log("INFO", "Updater", f"Helper launch attempt: {' '.join(cmd)}")
                     proc = subprocess.Popen(cmd, creationflags=detached_flags, close_fds=True)
                     if getattr(proc, "pid", 0):
                         launched = True
@@ -691,11 +699,7 @@ class Api:
                 'echo [Updater] script alive>>"%LOG%"',
                 'if not exist "%TARGET%" echo [Updater] WARN target missing before apply>>"%LOG%"',
                 'if not exist "%NEWEXE%" echo [Updater] ERROR new exe missing before apply>>"%LOG%"',
-                'if "%OLDPID%"=="" goto wait_done',
-                'echo [Updater] forcing old pid %OLDPID% to close>>"%LOG%"',
-                'taskkill /PID %OLDPID% /F >nul 2>&1',
-                'echo [Updater] taskkill old pid result err=%ERRORLEVEL%>>"%LOG%"',
-                "timeout /t 1 /nobreak >nul",
+                'echo [Updater] skipping explicit pid kill; waiting via file-lock retries>>"%LOG%"',
                 ":wait_done",
                 "echo [Updater] Creating backup...",
                 "set RETRIES=0",
