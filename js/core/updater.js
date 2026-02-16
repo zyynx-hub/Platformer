@@ -78,16 +78,29 @@ Platformer.Updater = {
           source.channel,
         );
         if (res && res.ok) {
+          const hasUpdate = !!res.hasUpdate;
+          const downloadUrl = res.downloadUrl || source.fallbackDownloadUrl || "";
+          if (hasUpdate && !downloadUrl) {
+            return {
+              ok: false,
+              enabled: true,
+              transient: true,
+              latestVersion: res.latestVersion || source.currentVersion,
+              releaseNotes: res.releaseNotes || "",
+              releasePublishedAt: res.releasePublishedAt || "",
+              message: "Update found, but package is not published yet. Retry in a moment.",
+            };
+          }
           return {
             ok: true,
             enabled: true,
-            hasUpdate: !!res.hasUpdate,
+            hasUpdate,
             latestVersion: res.latestVersion || source.currentVersion,
-            downloadUrl: res.downloadUrl || source.fallbackDownloadUrl || "",
+            downloadUrl,
             checksumSha256: res.checksumSha256 || "",
             releaseNotes: res.releaseNotes || "",
             releasePublishedAt: res.releasePublishedAt || "",
-            message: res.message || (res.hasUpdate ? "Update found." : "You're up to date."),
+            message: res.message || (hasUpdate ? "Update found." : "You're up to date."),
           };
         }
         return {

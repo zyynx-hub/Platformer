@@ -10,6 +10,7 @@ ORDER = [
     "core/settings.js",
     "core/debug.js",
     "core/updater.js",
+    "systems/update-manager.js",
     "worldmap/WorldMapManager.js",
     "worldmap/WorldMapView.js",
     "worldmap/data/world-map-data.js",

@@ -68,6 +68,9 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.menuRunnerDamageFlashUntil = 0;
     this.menuEnemies = [];
     this.onSettingsChanged = null;
+    this.updateStatusLockUntil = 0;
+    this.lastManualUpdateAt = 0;
+    this.updateManager = null;
     this.introConfig = {
       totalMs: 1800,
       uiFadeMs: 260,
@@ -110,6 +113,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(14);
     this.onSettingsChanged = (nextSettings) => this.applyRuntimeSettings(nextSettings);
     this.game.events.on("settings-changed", this.onSettingsChanged);
+    this.updateManager = new Platformer.UpdateManager(this);
     this.setupMenuMusic();
 
     const makeButton = (id, y, label, onClick, opts = {}) => {
@@ -440,83 +444,22 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.updateButton.on("pointerover", () => this.updateButton.setFillStyle(0x3b4f73, 0.98));
     this.updateButton.on("pointerout", () => this.updateButton.setFillStyle(0x334155, 0.95));
     this.updateButton.on("pointerdown", async () => {
-      if (this.updateInProgress) {
-        // Top-right status text intentionally hidden; bottom-left remains source of truth.
+      if (!this.updateManager) {
+        if (Platformer.Debug) Platformer.Debug.error("MenuScene.update", "UpdateManager missing.");
+        this.setBottomLeftUpdateStatus("Update system unavailable.", true);
         return;
       }
-
-      if (this.pendingUpdateUrl) {
-        if (Platformer.Updater.canInAppApply()) {
-          const result = await this.startInAppUpdate(this.pendingUpdateUrl, "Updating game...");
-          if (!result.ok && Platformer.Debug) {
-            Platformer.Debug.error("MenuScene.update", result.message || "Update failed.");
-          }
-          return;
-        }
-
-        if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", `In-app updater unavailable; opening URL: ${this.pendingUpdateUrl}`);
-        const opened = Platformer.Updater.openDownload(this.pendingUpdateUrl);
-        this.setBottomLeftUpdateStatus(opened ? "Downloading update..." : "Update download failed");
-        return;
-      }
-
-      this.setBottomLeftUpdateStatus("Checking for updates...");
-      if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "Manual update check requested.");
-      const result = await Platformer.Updater.check();
-      if (!result.ok) {
-        this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
-        return;
-      }
-      this.setLatestChangesFromResult(result);
-      if (!result.enabled) {
-        this.setBottomLeftUpdateStatus("Auto updates are off.");
-        return;
-      }
-      if (result.hasUpdate) {
-        this.pendingUpdateUrl = result.downloadUrl || "";
-        Platformer.Updater.latestChecksumSha256 = result.checksumSha256 || "";
-        this.updateButtonText.setText(this.pendingUpdateUrl ? "Update + Restart" : "Update");
-        const v = result.latestVersion ? `v${result.latestVersion}` : "new";
-        this.setBottomLeftUpdateStatus(`Update found (${v}).`);
-        if (Platformer.Debug) Platformer.Debug.warn("MenuScene.update", `Update available: ${v}`);
-      } else {
-        this.pendingUpdateUrl = "";
-        Platformer.Updater.latestChecksumSha256 = "";
-        this.updateButtonText.setText("Update");
-        this.setBottomLeftUpdateStatus("You're up to date.");
-        if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", "No update available.");
-      }
+      await this.updateManager.handleUpdateClick();
     });
 
     this.time.delayedCall(100, () => this.autoCheckUpdatesForBottomLeft());
   }
 
   async startInAppUpdate(downloadUrl, startMessage = "Preparing update...") {
-    this.updateInProgress = true;
-    this.updateButton.disableInteractive();
-    this.updateButtonText.setText("Updating...");
-    this.setBottomLeftUpdateStatus(startMessage);
-    if (Platformer.Debug) Platformer.Debug.log("MenuScene.update", startMessage);
-
-    const result = await Platformer.Updater.updateAndRestart(downloadUrl, (status) => {
-      const pct = Number(status.progress || 0);
-      const msg = status.message || status.stage || "Updating...";
-      const compact = status.stage === "downloading" && Number.isFinite(pct)
-        ? `${msg} (${pct.toFixed(1)}%)`
-        : msg;
-      this.setBottomLeftUpdateStatus(compact);
-    });
-
-    if (!result.ok) {
-      this.updateInProgress = false;
-      this.updateButton.setInteractive({ useHandCursor: true });
-      this.updateButtonText.setText("Update + Restart");
-      this.setBottomLeftUpdateStatus(result.message || "Update failed.");
-      return { ok: false, message: result.message || "Update failed." };
+    if (!this.updateManager) {
+      return { ok: false, message: "Update manager unavailable." };
     }
-
-    this.setBottomLeftUpdateStatus(result.message || "Restarting to finish update...");
-    return { ok: true, message: result.message || "Restarting to finish update..." };
+    return this.updateManager.startInAppUpdate(downloadUrl, startMessage);
   }
 
   createBottomLeftVersionInfo() {
@@ -586,8 +529,10 @@ Platformer.MenuScene = class extends Phaser.Scene {
     }
   }
 
-  setBottomLeftUpdateStatus(statusText) {
+  setBottomLeftUpdateStatus(statusText, sticky = false) {
     if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
+    if (!sticky && this.time && this.time.now < this.updateStatusLockUntil) return;
+    if (sticky && this.time) this.updateStatusLockUntil = this.time.now + 8000;
     if (!this.ensureVersionInfoText()) return;
     const currentVersion = ((Platformer.Settings.current.updates || {}).currentVersion || "1.0.0").trim();
     const safeStatus = statusText || "Unknown";
@@ -595,45 +540,8 @@ Platformer.MenuScene = class extends Phaser.Scene {
   }
 
   async autoCheckUpdatesForBottomLeft() {
-    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
-    const cfg = Platformer.Settings.current.updates || {};
-    if (!cfg.enabled) {
-      this.setBottomLeftUpdateStatus("Auto updates are off.");
-      return;
-    }
-
-    this.setBottomLeftUpdateStatus("Checking for updates...");
-    const result = await Platformer.Updater.check();
-    if (!this.sys || !this.sys.settings || !this.sys.settings.active) return;
-    if (!this.scene || !this.scene.isActive || !this.scene.isActive("MenuScene")) return;
-    if (!result.ok) {
-      if (result.transient) {
-        this.setBottomLeftUpdateStatus("Checking for updates...");
-        if (this.time && this.sys && this.sys.settings && this.sys.settings.active) {
-          this.time.delayedCall(1200, () => this.autoCheckUpdatesForBottomLeft());
-        }
-        return;
-      }
-      this.setBottomLeftUpdateStatus(result.message || "Can't reach update server.");
-      return;
-    }
-    if (!result.enabled) {
-      this.setBottomLeftUpdateStatus("Auto updates are off.");
-      return;
-    }
-    this.setLatestChangesFromResult(result);
-
-    if (result.hasUpdate) {
-      const v = result.latestVersion ? `v${result.latestVersion}` : "new version";
-      this.pendingUpdateUrl = result.downloadUrl || "";
-      Platformer.Updater.latestChecksumSha256 = result.checksumSha256 || "";
-      this.safeSetText(this.updateButtonText, this.pendingUpdateUrl ? "Update + Restart" : "Update", "updateButtonText");
-      this.setBottomLeftUpdateStatus(`Update found (${v}). Press Update.`);
-    } else {
-      this.setBottomLeftUpdateStatus("You're up to date.");
-      Platformer.Updater.latestChecksumSha256 = "";
-      this.safeSetText(this.updateButtonText, "Update", "updateButtonText");
-    }
+    if (!this.updateManager) return;
+    await this.updateManager.autoCheck();
   }
 
   createWhatsChangedWidget() {
