@@ -259,15 +259,47 @@ def _apply_window_mode_native(mode, target_width=None, target_height=None):
     return {"ok": True, "mode": "borderless", "fullscreen": False, "width": width, "height": height}
 
 
+def _coerce_int(value, default=0):
+    try:
+        return int(value)
+    except Exception:
+        return int(default)
+
+
+def _is_update_ready_signal(level, source, message):
+    # Menu-ready log confirms the updated runtime reached an interactive state.
+    if str(level or "").upper() != "INFO":
+        return False
+    src = str(source or "")
+    msg = str(message or "")
+    return src == "MenuScene" and "Menu intro complete" in msg
+
+
+def mark_pending_update_healthy(reason):
+    state = read_update_state()
+    if not state or not state.get("pending"):
+        return False
+    why = str(reason or "runtime-ready")
+    host_log("INFO", "Updater.health", f"Startup healthy ({why}); clearing pending update marker.")
+    clear_update_state()
+    return True
+
+
 def maybe_restore_failed_update():
     state = read_update_state()
     if not state or not state.get("pending"):
         return
 
-    crash_count = int(state.get("crashCount", 0)) + 1
+    crash_count = _coerce_int(state.get("crashCount", 0), 0)
+    pending_launch = bool(state.get("pendingLaunch"))
+    if pending_launch:
+        crash_count += 1
+        host_log("WARN", "Updater.health", f"Pending update health check count={crash_count}")
+    else:
+        host_log("INFO", "Updater.health", "Pending update launch started; waiting for runtime healthy signal.")
     state["crashCount"] = crash_count
+    state["pendingLaunch"] = True
     write_update_state(state)
-    host_log("WARN", "Updater.health", f"Pending update health check count={crash_count}")
 
     if crash_count < 3:
         return
@@ -285,10 +317,7 @@ def maybe_restore_failed_update():
 
 def mark_update_healthy_later():
     def _mark():
-        state = read_update_state()
-        if state and state.get("pending"):
-            host_log("INFO", "Updater.health", "Startup healthy; clearing pending update marker.")
-            clear_update_state()
+        mark_pending_update_healthy("watchdog timer")
     t = threading.Timer(20.0, _mark)
     t.daemon = True
     t.start()
@@ -411,6 +440,8 @@ class Api:
         src = str(source or "runtime")
         msg = str(message or "")
         host_log(lvl, src, msg)
+        if _is_update_ready_signal(lvl, src, msg):
+            mark_pending_update_healthy("menu-ready signal")
         return {"ok": True}
 
     def read_settings_blob(self):
@@ -554,6 +585,7 @@ class Api:
             write_update_state({
                 "pending": True,
                 "crashCount": 0,
+                "pendingLaunch": False,
                 "targetExe": target_exe,
                 "backupExe": backup_exe,
                 "downloadedExe": downloaded_path,
