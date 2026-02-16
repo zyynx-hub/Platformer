@@ -6,8 +6,11 @@ Platformer.UpdateManager = class {
     this.pendingUpdateUrl = "";
     this.updateInProgress = false;
     this.statusLockUntil = 0;
-    this.lastManualUpdateAt = 0;
+    // -1 means "no manual update click in this session yet".
+    this.lastManualUpdateAt = -1;
     this.latestChecksumSha256 = "";
+    this.autoCheckRetryCount = 0;
+    this.autoCheckStartedAt = 0;
   }
 
   log(level, msg) {
@@ -34,8 +37,13 @@ Platformer.UpdateManager = class {
     const now = this.now();
     if (!sticky && now < this.statusLockUntil) return;
     if (sticky) this.statusLockUntil = now + Math.max(500, ms);
-    scene.setBottomLeftUpdateStatus(text, true);
+    scene.setBottomLeftUpdateStatus(text, sticky);
     this.syncSceneState();
+  }
+
+  resetAutoCheckRetry() {
+    this.autoCheckRetryCount = 0;
+    this.autoCheckStartedAt = 0;
   }
 
   setButtonText(text) {
@@ -107,7 +115,21 @@ Platformer.UpdateManager = class {
 
     this.setStatus("Checking for updates...", true, 12000);
     this.log("info", "Manual update check requested.");
-    const result = await Platformer.Updater.check();
+    let result;
+    try {
+      result = await Platformer.Updater.check();
+    } catch (err) {
+      this.log("error", `autoCheck failed: ${err && err.message ? err.message : err}`);
+      this.setStatus("Update check failed. Press Update.", true, 10000);
+      this.resetAutoCheckRetry();
+      return;
+    }
+    if (!result) {
+      this.log("warn", "autoCheck returned empty result.");
+      this.setStatus("Update check failed. Press Update.", true, 10000);
+      this.resetAutoCheckRetry();
+      return;
+    }
     if (!result.ok) {
       this.log("warn", `Check failed: ${result.message || "unknown"}`);
       this.setStatus(result.message || "Can't reach update server.", true, 12000);
@@ -158,7 +180,7 @@ Platformer.UpdateManager = class {
     const scene = this.scene;
     if (!scene || !scene.sys || !scene.sys.settings || !scene.sys.settings.active) return;
     if (this.updateInProgress) return;
-    if (this.now() - this.lastManualUpdateAt < 10000) {
+    if (this.lastManualUpdateAt >= 0 && (this.now() - this.lastManualUpdateAt < 10000)) {
       this.log("info", "Auto-check skipped: recent manual update action.");
       return;
     }
@@ -169,6 +191,9 @@ Platformer.UpdateManager = class {
       return;
     }
 
+    if (this.autoCheckRetryCount === 0) {
+      this.autoCheckStartedAt = this.now();
+    }
     this.setStatus("Checking for updates...");
     const result = await Platformer.Updater.check();
     if (!scene.sys || !scene.sys.settings || !scene.sys.settings.active) return;
@@ -176,16 +201,27 @@ Platformer.UpdateManager = class {
 
     if (!result.ok) {
       if (result.transient) {
-        this.log("warn", `Transient check state: ${result.message || "pending"}`);
+        this.autoCheckRetryCount += 1;
+        const elapsed = this.now() - (this.autoCheckStartedAt || this.now());
+        this.log("warn", `Transient check state #${this.autoCheckRetryCount}: ${result.message || "pending"}`);
+        // Avoid infinite "Checking..." loops when bridge/service never becomes ready.
+        if (this.autoCheckRetryCount >= 8 || elapsed > 15000) {
+          this.setStatus("Update service not ready. Press Update.", true, 10000);
+          this.resetAutoCheckRetry();
+          return;
+        }
         this.setStatus("Checking for updates...");
         if (scene.time && scene.sys && scene.sys.settings && scene.sys.settings.active) {
-          scene.time.delayedCall(1200, () => this.autoCheck());
+          const retryDelay = Math.min(2400, 800 + this.autoCheckRetryCount * 200);
+          scene.time.delayedCall(retryDelay, () => this.autoCheck());
         }
         return;
       }
+      this.resetAutoCheckRetry();
       this.setStatus(result.message || "Can't reach update server.");
       return;
     }
+    this.resetAutoCheckRetry();
     if (!result.enabled) {
       this.setStatus("Auto updates are off.");
       return;
@@ -216,4 +252,3 @@ Platformer.UpdateManager = class {
     }
   }
 };
-

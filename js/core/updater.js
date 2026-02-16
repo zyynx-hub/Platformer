@@ -72,11 +72,25 @@ Platformer.Updater = {
         return { ok: false, enabled: true, transient: true, message: "Update bridge not ready yet." };
       }
       try {
-        const res = await window.pywebview.api.check_update_github(
-          source.repo,
-          source.currentVersion,
-          source.channel,
-        );
+        if (Platformer.Debug) {
+          Platformer.Debug.log("Updater", `check_update_github start repo=${source.repo} current=${source.currentVersion} channel=${source.channel}`);
+        }
+        const timeoutMs = 8000;
+        const res = await Promise.race([
+          window.pywebview.api.check_update_github(
+            source.repo,
+            source.currentVersion,
+            source.channel,
+          ),
+          this.wait(timeoutMs).then(() => ({
+            ok: false,
+            transient: true,
+            message: `Update check timed out (${timeoutMs}ms).`,
+          })),
+        ]);
+        if (Platformer.Debug) {
+          Platformer.Debug.log("Updater", `check_update_github done ok=${!!(res && res.ok)} transient=${!!(res && res.transient)}`);
+        }
         if (res && res.ok) {
           const hasUpdate = !!res.hasUpdate;
           const downloadUrl = res.downloadUrl || source.fallbackDownloadUrl || "";
@@ -109,6 +123,9 @@ Platformer.Updater = {
           message: this.friendlyError((res && res.message) || "Can't reach update server."),
         };
       } catch (e) {
+        if (Platformer.Debug) {
+          Platformer.Debug.warn("Updater", `check_update_github exception: ${e && e.message ? e.message : e}`);
+        }
         return { ok: false, enabled: true, message: this.friendlyError(e && e.message ? e.message : e) };
       }
     }
