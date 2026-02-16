@@ -42,6 +42,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.menuCard = null;
     this.titleText = null;
     this.titleShadow = null;
+    this.testBuildText = null;
     this.comingSoonText = null;
     this.menuButtons = {};
     this.onResize = null;
@@ -111,6 +112,13 @@ Platformer.MenuScene = class extends Phaser.Scene {
       stroke: "#1e293b",
       strokeThickness: 7,
     }).setOrigin(0.5).setDepth(14);
+    this.testBuildText = this.add.text(14, 12, "This is a test", {
+      fontFamily: "Consolas",
+      fontSize: `${Math.round(20 * textScale)}px`,
+      color: "#f8fafc",
+      stroke: "#0f172a",
+      strokeThickness: 4,
+    }).setOrigin(0, 0).setDepth(26);
     this.onSettingsChanged = (nextSettings) => this.applyRuntimeSettings(nextSettings);
     this.game.events.on("settings-changed", this.onSettingsChanged);
     this.updateManager = new Platformer.UpdateManager(this);
@@ -250,6 +258,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
       safeRectSizePos(this.bgAccentBottom, w, Math.round(h * 0.2), 0, h - Math.round(h * 0.24));
       safePos(this.titleShadow, cx, 74);
       safePos(this.titleText, cx, 72);
+      safePos(this.testBuildText, 14, 12);
     } catch (err) {
       if (Platformer.Debug) {
         Platformer.Debug.warn("MenuScene.layout", `Skipping stale resize pass: ${err && err.message ? err.message : err}`);
@@ -594,6 +603,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     this.menuUiElements = [];
     if (this.titleText) this.menuUiElements.push(this.titleText);
     if (this.titleShadow) this.menuUiElements.push(this.titleShadow);
+    if (this.testBuildText) this.menuUiElements.push(this.testBuildText);
     if (this.menuCard) this.menuUiElements.push(this.menuCard);
     Object.values(this.menuButtons).forEach((b) => {
       if (b && b.glow) this.menuUiElements.push(b.glow);
@@ -799,6 +809,7 @@ Platformer.MenuScene = class extends Phaser.Scene {
     const targets = [
       this.titleText,
       this.titleShadow,
+      this.testBuildText,
       this.menuCard,
       this.comingSoonText,
       this.updateButton,
