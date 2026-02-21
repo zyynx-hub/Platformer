@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://c48jvshi60xw3"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Blue Karim"
+text = "Kanker man je bent skeer.. Eerst ervoor zorgen dat je doekoe hebt."
+
+[resource]
+script = ExtResource("1_seq")
+description = "Blue Karim not enough gold"
+one_shot = false
+lines = Array[ExtResource("2_line")]([SubResource("line_1")])

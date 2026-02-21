@@ -1,0 +1,144 @@
+[gd_scene format=3 uid="uid://c8hmngwi6kg8u"]
+
+[ext_resource type="Script" path="res://player/Player.gd" id="1_player_script"]
+[ext_resource type="Texture2D" uid="uid://dqg1i6aeer28d" path="res://player/sprites/Owlet_Monster_Idle_4.png" id="2_idle_tex"]
+[ext_resource type="Texture2D" uid="uid://bx58uuubsbwem" path="res://items/sprites/rocket_flame_4.png" id="3_flame_tex"]
+[ext_resource type="AudioStreamWAV" uid="uid://ckmt3uyhs8x1g" path="res://assets/audio/sfx/rocket_thrust.wav" id="4_thrust_wav"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/dash_swoosh.wav" id="5_dash_wav"]
+[ext_resource type="Script" path="res://player/states/StateMachine.gd" id="5_sm_script"]
+[ext_resource type="Script" path="res://player/states/IdleState.gd" id="6_idle_state"]
+[ext_resource type="Script" path="res://player/states/RunState.gd" id="7_run_state"]
+[ext_resource type="Script" path="res://player/states/JumpState.gd" id="8_jump_state"]
+[ext_resource type="Script" path="res://player/states/FallState.gd" id="9_fall_state"]
+[ext_resource type="Script" path="res://player/states/DashState.gd" id="10_dash_state"]
+[ext_resource type="Script" path="res://player/states/WallSlideState.gd" id="11_wallslide_state"]
+[ext_resource type="Script" path="res://player/states/HurtState.gd" id="12_hurt_state"]
+[ext_resource type="Script" path="res://player/states/DeadState.gd" id="13_dead_state"]
+[ext_resource type="Script" path="res://player/states/SpawnState.gd" id="14_spawn_state"]
+[ext_resource type="Shader" path="res://shaders/player_dissolve.gdshader" id="15_dissolve_shader"]
+
+[sub_resource type="ShaderMaterial" id="dissolve_mat"]
+shader = ExtResource("15_dissolve_shader")
+shader_parameter/dissolve_amount = 0.0
+
+[sub_resource type="AtlasTexture" id="3_atlas"]
+atlas = ExtResource("2_idle_tex")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="4_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("3_atlas")
+}],
+"loop": true,
+"name": &"default",
+"speed": 8.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="1_capsule"]
+radius = 7.0
+height = 26.0
+
+[sub_resource type="AtlasTexture" id="5_flame_0"]
+atlas = ExtResource("3_flame_tex")
+region = Rect2(0, 0, 12, 14)
+
+[sub_resource type="AtlasTexture" id="6_flame_1"]
+atlas = ExtResource("3_flame_tex")
+region = Rect2(12, 0, 12, 14)
+
+[sub_resource type="AtlasTexture" id="7_flame_2"]
+atlas = ExtResource("3_flame_tex")
+region = Rect2(24, 0, 12, 14)
+
+[sub_resource type="AtlasTexture" id="8_flame_3"]
+atlas = ExtResource("3_flame_tex")
+region = Rect2(36, 0, 12, 14)
+
+[sub_resource type="SpriteFrames" id="9_flame_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("5_flame_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("6_flame_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("7_flame_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("8_flame_3")
+}],
+"loop": true,
+"name": &"burn",
+"speed": 15.0
+}]
+
+[node name="Player" type="CharacterBody2D" unique_id=906924491]
+script = ExtResource("1_player_script")
+
+[node name="Sprite2D" type="AnimatedSprite2D" parent="." unique_id=1412124692]
+material = SubResource("dissolve_mat")
+texture_filter = 1
+position = Vector2(0, -7)
+sprite_frames = SubResource("4_frames")
+
+[node name="EquipmentSprite" type="AnimatedSprite2D" parent="."]
+material = SubResource("dissolve_mat")
+texture_filter = 1
+position = Vector2(0, -7)
+visible = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2006126721]
+position = Vector2(-1, -4)
+shape = SubResource("1_capsule")
+
+[node name="FlameSprite" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, 16)
+visible = false
+sprite_frames = SubResource("9_flame_frames")
+animation = &"burn"
+
+[node name="ThrustSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_thrust_wav")
+volume_db = -6.0
+bus = &"SFX"
+
+[node name="DashSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_dash_wav")
+volume_db = -3.0
+bus = &"SFX"
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("5_sm_script")
+initial_state = NodePath("Idle")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("6_idle_state")
+
+[node name="Run" type="Node" parent="StateMachine"]
+script = ExtResource("7_run_state")
+
+[node name="Jump" type="Node" parent="StateMachine"]
+script = ExtResource("8_jump_state")
+
+[node name="Fall" type="Node" parent="StateMachine"]
+script = ExtResource("9_fall_state")
+
+[node name="Dash" type="Node" parent="StateMachine"]
+script = ExtResource("10_dash_state")
+
+[node name="WallSlide" type="Node" parent="StateMachine"]
+script = ExtResource("11_wallslide_state")
+
+[node name="Hurt" type="Node" parent="StateMachine"]
+script = ExtResource("12_hurt_state")
+
+[node name="Dead" type="Node" parent="StateMachine"]
+script = ExtResource("13_dead_state")
+
+[node name="Spawn" type="Node" parent="StateMachine"]
+script = ExtResource("14_spawn_state")

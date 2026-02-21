@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://dfolq2wk16j0e"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "Serieus? Laat me nou echt zitten?"
+voice_pitch = 0.9
+
+[sub_resource type="Resource" id="Resource_srroq"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "... Naja.. Prima... Laat maar weten als je van gedachte veranderd.."
+voice_pitch = 0.9
+
+[resource]
+script = ExtResource("1_seq")
+description = "Red Karim reacts to quest decline"
+one_shot = false
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("Resource_srroq")])

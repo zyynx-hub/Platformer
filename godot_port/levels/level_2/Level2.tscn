@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://levels/level_2/testlevel2.ldtk" id="1_ldtk"]
+
+[node name="Level2" type="Node2D"]
+
+[node name="testlevel2" parent="." instance=ExtResource("1_ldtk")]
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(40, 450)

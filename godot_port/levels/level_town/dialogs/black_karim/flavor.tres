@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://dv37fygxt7hge"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Black Karim"
+text = "Man.. wat was die multiplayer mod van Elden Ring leuk zeg! "
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Black Karim"
+text = "Jammer dat de jongens daar anders over denken.."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="Resource_wt74w"]
+script = ExtResource("2_line")
+character_name = "Black Karim"
+text = "Misschien word het ook eens tijd om iets anders te spelen dan alleen ADC.. maar wat?"
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[resource]
+script = ExtResource("1_seq")
+description = "Black Karim gaming flavor dialog"
+one_shot = false
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("Resource_wt74w")])

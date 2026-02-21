@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://bnvq1uurcis38"]
+
+[ext_resource type="Script" uid="uid://djctj6ch4x0d6" path="res://npcs/NPC.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://c2ex083j4vhsg" path="res://assets/sprites/karim/karim_npc.png" id="2_karim"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_npc"]
+radius = 17.0
+
+[node name="NPC" type="Area2D" unique_id=2125045250]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1_script")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=823545071]
+unique_name_in_owner = true
+show_behind_parent = true
+texture_filter = 1
+texture = ExtResource("2_karim")
+offset = Vector2(0, -16)
+
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=1398850240]
+position = Vector2(0, -16)
+shape = SubResource("CircleShape2D_npc")

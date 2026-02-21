@@ -1,0 +1,30 @@
+# ItemDefs.gd
+# Static item definitions — add new items here
+
+class_name ItemDefs
+
+# composited_sheets: maps base character sheet path → composited (character+item) sheet
+# When equipped, Player swaps its SpriteFrames to use these sheets instead
+
+const ALL := {
+	"rocket_boots": {
+		"id": "rocket_boots",
+		"name": "Rocket Boots",
+		"icon_path": "res://items/sprites/rocket_boots_icon.png",
+		"pickup_path": "res://items/sprites/rocket_boots_pickup.png",
+		"composited_sheets": {
+			"res://player/sprites/Owlet_Monster_Idle_4.png": "res://items/sprites/rocket_boots_composited/idle_4.png",
+			"res://player/sprites/Owlet_Monster_Run_6.png": "res://items/sprites/rocket_boots_composited/run_6.png",
+			"res://player/sprites/Owlet_Monster_Jump_8.png": "res://items/sprites/rocket_boots_composited/jump_8.png",
+			"res://player/sprites/Owlet_Monster_Climb_4.png": "res://items/sprites/rocket_boots_composited/climb_4.png",
+			"res://player/sprites/Owlet_Monster_Hurt_4.png": "res://items/sprites/rocket_boots_composited/hurt_4.png",
+			"res://player/sprites/Owlet_Monster_Death_8.png": "res://items/sprites/rocket_boots_composited/death_8.png",
+		},
+	},
+}
+
+static func get_item(id: String) -> Dictionary:
+	if ALL.has(id):
+		return ALL[id]
+	push_error("ItemDefs: unknown item '%s'" % id)
+	return {}

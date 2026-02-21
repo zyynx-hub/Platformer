@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://dskcb2h0s58s7"]
+
+[ext_resource type="Script" path="res://ui/hud/HUD.gd" id="1_hud_script"]
+[ext_resource type="Texture2D" uid="uid://bkcy2gi4qoeba" path="res://assets/sprites/ui/heart_full.png" id="2_heart_full"]
+[ext_resource type="Texture2D" uid="uid://du1f7jb6k2xig" path="res://assets/sprites/ui/dash_icon.png" id="3_dash_icon"]
+[ext_resource type="Texture2D" uid="uid://c56y4ow3pnap0" path="res://assets/sprites/ui/item_frame.png" id="4_item_frame"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud_script")
+
+[node name="HUDRoot" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Heart0" type="TextureRect" parent="HUDRoot"]
+texture_filter = 1
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 12.0
+offset_bottom = 12.0
+texture = ExtResource("2_heart_full")
+mouse_filter = 2
+
+[node name="Heart1" type="TextureRect" parent="HUDRoot"]
+texture_filter = 1
+offset_left = 14.0
+offset_top = 4.0
+offset_right = 22.0
+offset_bottom = 12.0
+texture = ExtResource("2_heart_full")
+mouse_filter = 2
+
+[node name="Heart2" type="TextureRect" parent="HUDRoot"]
+texture_filter = 1
+offset_left = 24.0
+offset_top = 4.0
+offset_right = 32.0
+offset_bottom = 12.0
+texture = ExtResource("2_heart_full")
+mouse_filter = 2
+
+[node name="DashIcon" type="TextureRect" parent="HUDRoot"]
+texture_filter = 1
+offset_left = 38.0
+offset_top = 4.0
+offset_right = 46.0
+offset_bottom = 12.0
+texture = ExtResource("3_dash_icon")
+mouse_filter = 2
+
+[node name="ItemFrame" type="TextureRect" parent="HUDRoot"]
+texture_filter = 1
+modulate = Color(1, 1, 1, 0.2)
+offset_left = 404.0
+offset_top = 4.0
+offset_right = 422.0
+offset_bottom = 22.0
+texture = ExtResource("4_item_frame")
+mouse_filter = 2
+
+[node name="FuelBar" type="ColorRect" parent="HUDRoot/ItemFrame"]
+visible = false
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 17.0
+offset_bottom = 17.0
+mouse_filter = 2
+color = Color(0.2, 0.6, 1, 0.35)
+
+[node name="ItemIcon" type="TextureRect" parent="HUDRoot/ItemFrame"]
+visible = false
+texture_filter = 1
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 17.0
+offset_bottom = 17.0
+custom_minimum_size = Vector2(16, 16)
+mouse_filter = 2
+stretch_mode = 5

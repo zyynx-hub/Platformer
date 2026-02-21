@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://doibabpkivrkb"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Texture2D" uid="uid://2xt3iwircshw" path="res://assets/sprites/portraits/owl_portrait.png" id="2_kni77"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Owl man"
+text = "Waar... waar de kanker ben ik?"
+portrait = ExtResource("2_kni77")
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Owl man"
+text = "Godverdomme man ik moet hier weg.. Zo snel mogelijk!"
+portrait = ExtResource("2_kni77")
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Owl man"
+text = "Er moet een manier zijn..."
+portrait = ExtResource("2_kni77")
+
+[resource]
+script = ExtResource("1_seq")
+description = "Level 1 intro — player wakes up confused, wants to escape"
+one_shot = false
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3")])

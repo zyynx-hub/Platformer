@@ -1,0 +1,193 @@
+[gd_scene format=3 uid="uid://dxmwbjr8jnq3m"]
+
+[ext_resource type="Script" path="res://ui/menus/MenuScene.gd" id="1_vgee4"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="5_theme"]
+[ext_resource type="Shader" uid="uid://bcsqk2ifryc64" path="res://shaders/menu_background.gdshader" id="2_menubg"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="3_vig"]
+[ext_resource type="Shader" uid="uid://darmpho3bg3ol" path="res://shaders/menu_ground.gdshader" id="4_ground"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("2_menubg")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ground"]
+shader = ExtResource("4_ground")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_vgee4"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(640, 360, 1)
+inherit_velocity_ratio = 7.0
+direction = Vector3(0, 1, 0)
+gravity = Vector3(0, 98, 0)
+scale_min = 0.5
+scale_max = 1.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vig"]
+shader = ExtResource("3_vig")
+shader_parameter/strength = 0.5
+shader_parameter/softness = 0.5
+shader_parameter/radius = 0.5
+shader_parameter/tint = Color(0.0, 0.0, 0.05, 1)
+
+[node name="MenuScene" type="Control" unique_id=1098291129]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("5_theme")
+script = ExtResource("1_vgee4")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1827109851]
+material = SubResource("ShaderMaterial_bg")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.08, 1)
+
+[node name="GroundOverlay" type="ColorRect" parent="." unique_id=1564139920]
+material = SubResource("ShaderMaterial_ground")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PlatformBase" type="ColorRect" parent="." unique_id=506670476]
+layout_mode = 0
+offset_left = 856.0
+offset_top = 556.0
+offset_right = 936.0
+offset_bottom = 572.0
+mouse_filter = 2
+color = Color(0.12, 0.1, 0.22, 1)
+
+[node name="PlatformTop" type="ColorRect" parent="." unique_id=1023057413]
+layout_mode = 0
+offset_left = 860.0
+offset_top = 544.0
+offset_right = 932.0
+offset_bottom = 556.0
+mouse_filter = 2
+color = Color(0.18, 0.15, 0.3, 1)
+
+[node name="PlayerSilhouette" type="AnimatedSprite2D" parent="." unique_id=2091922745]
+unique_name_in_owner = true
+position = Vector2(896, 512)
+scale = Vector2(2, 2)
+texture_filter = 1
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=546096856]
+position = Vector2(641, 361)
+amount = 20
+process_material = SubResource("ParticleProcessMaterial_vgee4")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=2125111623]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 80.0
+offset_top = 135.0
+offset_bottom = 215.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 52
+text = "JAJAJA PLATFORMER HAHAHHAHA"
+
+[node name="ButtonContainer" type="VBoxContainer" parent="." unique_id=877442455]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.55
+anchor_bottom = 0.55
+offset_left = 80.0
+offset_top = -80.0
+offset_right = 320.0
+offset_bottom = 120.0
+theme_override_constants/separation = 12
+
+[node name="StartButton" type="Button" parent="ButtonContainer" unique_id=1046872718]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "START"
+alignment = 0
+
+[node name="OptionsButton" type="Button" parent="ButtonContainer" unique_id=246676498]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "OPTIONS"
+alignment = 0
+
+[node name="ExtrasButton" type="Button" parent="ButtonContainer" unique_id=1883988227]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "EXTRAS"
+alignment = 0
+
+[node name="QuitButton" type="Button" parent="ButtonContainer" unique_id=831459841]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "QUIT"
+alignment = 0
+
+[node name="VersionLabel" type="Label" parent="." unique_id=790112345]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -32.0
+offset_right = 200.0
+offset_bottom = -8.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 0.4)
+theme_override_font_sizes/font_size = 12
+text = ""
+
+[node name="UpdateLabel" type="Label" parent="." unique_id=790112346]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -40.0
+offset_right = -16.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 1
+theme_override_colors/font_color = Color(0.6, 0.8, 1.0, 0.7)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 2
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=621348406]
+material = SubResource("ShaderMaterial_vig")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

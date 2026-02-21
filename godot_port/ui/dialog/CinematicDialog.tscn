@@ -1,0 +1,114 @@
+[gd_scene load_steps=5 format=3 uid="uid://dh2pmkyw64ee6"]
+
+[ext_resource type="Script" path="res://ui/dialog/CinematicDialog.gd" id="1_dialog_script"]
+[ext_resource type="AudioStreamWAV" path="res://assets/audio/sfx/dialog_talk.wav" id="2_dialog_talk"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
+bg_color = Color(0.05, 0.05, 0.15, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.4, 0.8, 0.6)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_rtl"]
+
+[node name="CinematicDialog" type="CanvasLayer" unique_id=495295970]
+layer = 15
+script = ExtResource("1_dialog_script")
+
+[node name="DialogRoot" type="Control" parent="." unique_id=816595181]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DarkOverlay" type="ColorRect" parent="DialogRoot" unique_id=1417089986]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="DialogBox" type="PanelContainer" parent="DialogRoot" unique_id=142587923]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 520.0
+offset_right = 1256.0
+offset_bottom = 700.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="DialogRoot/DialogBox" unique_id=2029410643]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBoxContainer" type="HBoxContainer" parent="DialogRoot/DialogBox/MarginContainer" unique_id=323723492]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Portrait" type="TextureRect" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer" unique_id=671361377]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PortraitPlaceholder" type="ColorRect" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer/Portrait" unique_id=1678661840]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.15, 0.15, 0.25, 0.8)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer" unique_id=353574039]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer/VBoxContainer" unique_id=1182048941]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.75, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "???"
+
+[node name="DialogText" type="RichTextLabel" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer/VBoxContainer" unique_id=223111057]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.9, 0.92, 1, 1)
+theme_override_font_sizes/normal_font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxEmpty_rtl")
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+visible_characters = 0
+
+[node name="ContinueLabel" type="Label" parent="DialogRoot/DialogBox/MarginContainer/HBoxContainer/VBoxContainer" unique_id=430677980]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "Click to continue"
+horizontal_alignment = 2
+
+[node name="TalkSound" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("2_dialog_talk")
+volume_db = -6.0
+bus = &"UI"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://h3u61loi5o85"]
+
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="1_m75rs"]
+[ext_resource type="Texture2D" uid="uid://b8gqg4gcv62g8" path="res://assets/sprites/portraits/Karim_portrait.png" id="2_770um"]
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="2_xxvjn"]
+
+[sub_resource type="Resource" id="Resource_pgq0n"]
+script = ExtResource("1_m75rs")
+character_name = "Karim"
+text = "Ik wist niet dat je het in je had. Op naar de volgende dialog!"
+portrait = ExtResource("2_770um")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[resource]
+script = ExtResource("2_xxvjn")
+description = "Player instructions on how to wall jump"
+one_shot = false
+lines = Array[ExtResource("1_m75rs")]([SubResource("Resource_pgq0n")])

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(where:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git show:*)",
+      "Bash(git -C:*)",
+      "Bash(python scripts/:*)",
+      "Bash(python3 scripts/:*)",
+      "Bash(butler:*)",
+      "Bash(\"c:/Users/Robin/Desktop/Godot_v4.6.1-stable_win64.exe\" --headless:*)",
+      "Bash(\"c:/Users/Robin/Desktop/Godot_v4.6.1-stable_win64.exe\" --headless --path \"c:/Users/Robin/Desktop/codex/godot_port\" --quit)"
+    ]
+  }
+}

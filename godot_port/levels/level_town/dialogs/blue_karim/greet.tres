@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://wejab6ugp4m5"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Blue Karim"
+text = "Ha maat! Welkom bij mijn winkel. Vast en zeker dat je hier iets kan vinden wat je wilt!"
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Blue Karim"
+text = "Kijk maar rustig rond! Genoeg gestolen spullen om uit te kiezen."
+
+[resource]
+script = ExtResource("1_seq")
+description = "Blue Karim shopkeeper greeting"
+one_shot = false
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2")])

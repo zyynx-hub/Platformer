@@ -1,0 +1,161 @@
+[gd_scene load_steps=9 format=3 uid="uid://dcsgsjh7iaxws"]
+
+[ext_resource type="Script" path="res://ui/menus/ExtrasScene.gd" id="1_kxbms"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="5_theme"]
+[ext_resource type="Shader" path="res://shaders/menu_background.gdshader" id="2_sky"]
+[ext_resource type="Shader" path="res://shaders/menu_ground.gdshader" id="3_gnd"]
+[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="4_vig"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("2_sky")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gnd"]
+shader = ExtResource("3_gnd")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vig"]
+shader = ExtResource("4_vig")
+
+[node name="ExtrasScene" type="Control" unique_id=783663184]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("5_theme")
+script = ExtResource("1_kxbms")
+
+[node name="Background" type="ColorRect" parent="." unique_id=902221332]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_sky")
+color = Color(0.1, 0.06, 0.16, 1)
+
+[node name="GroundOverlay" type="ColorRect" parent="."]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("ShaderMaterial_gnd")
+color = Color(1, 1, 1, 1)
+
+[node name="TitleLabel" type="Label" parent="." unique_id=403228999]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -104.5
+offset_right = 104.5
+offset_bottom = 79.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 58
+text = "EXTRAS"
+
+[node name="TabContainer" type="TabContainer" parent="." unique_id=1312943991]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 120.0
+offset_right = 280.0
+offset_bottom = 652.0
+grow_horizontal = 2
+current_tab = 2
+
+[node name="Achievements" type="ScrollContainer" parent="TabContainer" unique_id=1258291503]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="AchievementList" type="VBoxContainer" parent="TabContainer/Achievements" unique_id=405387245]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Gallery" type="GridContainer" parent="TabContainer" unique_id=185439968]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+columns = 3
+metadata/_tab_index = 1
+
+[node name="GalleryPlaceholder" type="Label" parent="TabContainer/Gallery"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.7, 0.7)
+text = "No gallery items unlocked yet.
+Complete levels to unlock concept art."
+
+[node name="Stats" type="ScrollContainer" parent="TabContainer" unique_id=268731211]
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="StatsList" type="VBoxContainer" parent="TabContainer/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="PlayTimeLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=1176328371]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Play Time: 0m 00s"
+
+[node name="DeathsLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=1318229721]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Deaths: 0"
+
+[node name="LevelsLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=11390484]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Levels Completed: 0"
+
+[node name="CollectiblesLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=426758828]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Collectibles Found: 0"
+
+[node name="JumpsLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=1757101863]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Total Jumps: 0"
+
+[node name="DashesLabel" type="Label" parent="TabContainer/Stats/StatsList" unique_id=518291483]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Total Dashes: 0"
+
+[node name="BackButton" type="Button" parent="." unique_id=1105583906]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -31.0
+offset_right = 50.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 30
+text = "BACK"
+
+[node name="VignetteOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("ShaderMaterial_vig")
+color = Color(1, 1, 1, 1)

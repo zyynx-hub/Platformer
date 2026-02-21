@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://npcs/Door.gd" id="1_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_door"]
+size = Vector2(20, 24)
+
+[node name="Door" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1_script")
+
+[node name="DoorVisual" type="ColorRect" parent="."]
+show_behind_parent = true
+offset_left = -5.0
+offset_top = -16.0
+offset_right = 5.0
+mouse_filter = 2
+color = Color(0.15, 0.1, 0.06, 1)
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_door")

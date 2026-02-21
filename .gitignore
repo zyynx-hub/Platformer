@@ -1,11 +1,34 @@
-build/
-dist/
+# Godot
+.godot/
+
+# Godot executable (local, not committed)
+*.exe
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-runtime-debug.log
-*.spec
-AnimePlatformer.exe
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+*.swp
+*.swo
+*~
 *.bak
 *.tmp
+
+# Build output
+godot_port/build/
+
+# Logs
+*.log
+
+# Secrets
+.env
+
+# Claude Code worktrees
+.claude/worktrees/

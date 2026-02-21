@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dio2n16nlj1ui"]
+
+[ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
+[ext_resource type="PackedScene" path="res://npcs/NPC.tscn" id="2_npc"]
+[ext_resource type="Script" path="res://npcs/BlueKarimNPC.gd" id="3_blue"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(400, 16)
+
+[node name="House1Interior" type="Node2D" unique_id=252231363]
+
+[node name="Background" type="ColorRect" parent="." unique_id=1728214884]
+offset_left = -300.0
+offset_top = -300.0
+offset_right = 500.0
+mouse_filter = 2
+color = Color(0.55, 0.45, 0.35, 1)
+
+[node name="FloorVisual" type="ColorRect" parent="." unique_id=841827704]
+offset_left = -300.0
+offset_right = 500.0
+offset_bottom = 300.0
+mouse_filter = 2
+color = Color(0.35, 0.25, 0.18, 1)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1686343639]
+
+[node name="FloorShape" type="CollisionShape2D" parent="Floor" unique_id=988240929]
+position = Vector2(80, 8)
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=537888986]
+position = Vector2(11, -13)
+
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=1783920657]
+position = Vector2(-20, -120)
+
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=49490736]
+position = Vector2(180, 30)
+
+[node name="BlueKarim" parent="." instance=ExtResource("2_npc")]
+position = Vector2(120, 0)
+script = ExtResource("3_blue")
+npc_name = "Blue Karim"
+dialog_id = "level_town/blue_karim/greet"
+
+[node name="Sprite" parent="BlueKarim" index="0"]
+modulate = Color(0.3, 0.5, 1.0, 1)
+
+[node name="ExitDoor" parent="." unique_id=212705834 instance=ExtResource("1_door")]
+position = Vector2(10, 0)
+destination_scene = "res://levels/level_town/TownLevel.tscn"
+is_exit_door = true
+
+[editable path="BlueKarim"]

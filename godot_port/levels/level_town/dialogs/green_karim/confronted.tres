@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://bmty66d1aaec3"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Player"
+text = "Wtf man, rooie Karim heeft mij gestuurd om te zeggen dat je voor probleem aan het zorgen bent."
+voice_pitch = 1.2
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Green Karim"
+text = "Problemen? Ik was godverdomme m'n werk aan het doen?"
+voice_pitch = 0.8
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Player"
+text = "Naja, hij zegt in ieder geval dat je moet kappen."
+voice_pitch = 1.2
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Green Karim"
+text = "...Prima, zeg maar dat ik stil ben."
+voice_pitch = 0.8
+
+[resource]
+script = ExtResource("1_seq")
+description = "Player confronts Green Karim about Red Karim's quest"
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4")])

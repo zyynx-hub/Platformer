@@ -1,0 +1,37 @@
+[remap]
+
+importer="ldtk.import"
+type="PackedScene"
+uid="uid://cjlabrmmham6r"
+path="res://.godot/imported/testlevelv2.ldtk-e7b0078fb32795c79b23fa47d854158f.scn"
+
+[deps]
+
+files=["res://levels/level_1/tilesets/tileset_8px.res", "res://levels/level_1/levels/AutoLayer.scn", "res://.godot/imported/testlevelv2.ldtk-e7b0078fb32795c79b23fa47d854158f.scn"]
+
+source_file="res://levels/level_1/testlevelv2.ldtk"
+dest_files=["res://.godot/imported/testlevelv2.ldtk-e7b0078fb32795c79b23fa47d854158f.scn", "res://levels/level_1/tilesets/tileset_8px.res", "res://levels/level_1/levels/AutoLayer.scn", "res://.godot/imported/testlevelv2.ldtk-e7b0078fb32795c79b23fa47d854158f.scn"]
+
+[params]
+
+World=""
+group_world_layers=false
+Level=""
+pack_levels=true
+Layer=""
+layers_always_visible=false
+Tileset=""
+tileset_custom_data=false
+integer_grid_tilesets=true
+atlas_texture_type=0
+Entity=""
+resolve_entityrefs=true
+use_entity_placeholders=false
+Post Import=""
+tileset_post_import="res://levels/shared/tileset_add_collision.gd"
+entities_post_import=""
+level_post_import=""
+world_post_import=""
+Debug=""
+force_tileset_reimport=false
+verbose_output=false

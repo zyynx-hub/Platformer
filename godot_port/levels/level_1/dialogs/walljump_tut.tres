@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://dem7j1v832knv"]
+
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="1_ojp1p"]
+[ext_resource type="Texture2D" uid="uid://b8gqg4gcv62g8" path="res://assets/sprites/portraits/Karim_portrait.png" id="2_qrk2e"]
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="3_1mjek"]
+
+[sub_resource type="Resource" id="Resource_386pi"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "Damn, je bent bij de eerste checkpoint. Insane!"
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="Resource_nopso"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "Voordat we door kunnen gaan, moeten we eerst de basics begrijpen."
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_g5xtm"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "Laten we beginnen bij het begin: Wall hopping."
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_8w4y2"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "Boven zie je 2 muren, spring van muur tot muur om een feel te krijgen voor deze enorm lastige mechanic."
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_lxv5w"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "Je mag pas door als je het hoogste punt hebt bereikt!"
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_kiglj"]
+script = ExtResource("1_ojp1p")
+character_name = "Karim"
+text = "ربك تكست هو اول موقع يسمح لزواره الكرام بتحويل الكتابة العربي الى كتابة مفهومة من قبل اغلب برامج التصميم مثل الفوتوشوب و "
+portrait = ExtResource("2_qrk2e")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[resource]
+script = ExtResource("3_1mjek")
+description = "Player instructions on how to wall jump"
+one_shot = false
+lines = Array[ExtResource("1_ojp1p")]([SubResource("Resource_386pi"), SubResource("Resource_nopso"), SubResource("Resource_g5xtm"), SubResource("Resource_8w4y2"), SubResource("Resource_lxv5w"), SubResource("Resource_kiglj")])

@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://b64f7wbvhixxd"]
+
+[ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
+[ext_resource type="PackedScene" path="res://npcs/NPC.tscn" id="2_npc"]
+[ext_resource type="Script" path="res://npcs/GreenKarimNPC.gd" id="3_green"]
+[ext_resource type="Script" path="res://npcs/RedKarimNPC.gd" id="4_red"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(400, 16)
+
+[node name="House2Interior" type="Node2D" unique_id=1179588705]
+
+[node name="Background" type="ColorRect" parent="." unique_id=516290814]
+offset_left = -300.0
+offset_top = -300.0
+offset_right = 500.0
+mouse_filter = 2
+color = Color(0.35, 0.3, 0.42, 1)
+
+[node name="FloorVisual" type="ColorRect" parent="." unique_id=1708361915]
+offset_left = -300.0
+offset_right = 500.0
+offset_bottom = 300.0
+mouse_filter = 2
+color = Color(0.22, 0.18, 0.28, 1)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1694931549]
+
+[node name="FloorShape" type="CollisionShape2D" parent="Floor" unique_id=1905263777]
+position = Vector2(80, 8)
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=728253148]
+position = Vector2(10, -11)
+
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=1521834160]
+position = Vector2(-20, -120)
+
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=1498714030]
+position = Vector2(180, 30)
+
+[node name="GreenKarim" parent="." instance=ExtResource("2_npc")]
+position = Vector2(80, 0)
+script = ExtResource("3_green")
+npc_name = "Green Karim"
+
+[node name="Sprite" parent="GreenKarim" index="0"]
+modulate = Color(0.3, 0.8, 0.3, 1)
+
+[node name="RedKarim" parent="." instance=ExtResource("2_npc")]
+position = Vector2(140, 0)
+script = ExtResource("4_red")
+npc_name = "Red Karim"
+
+[node name="Sprite" parent="RedKarim" index="0"]
+modulate = Color(1.0, 0.3, 0.3, 1)
+
+[node name="ExitDoor" parent="." unique_id=373265245 instance=ExtResource("1_door")]
+position = Vector2(10, 0)
+destination_scene = "res://levels/level_town/TownLevel.tscn"
+is_exit_door = true
+
+[editable path="GreenKarim"]
+[editable path="RedKarim"]

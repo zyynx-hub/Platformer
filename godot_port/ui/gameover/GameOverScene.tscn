@@ -1,0 +1,111 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://ui/gameover/GameOverScene.gd" id="1_script"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="2_theme"]
+[ext_resource type="Shader" path="res://shaders/game_over_title.gdshader" id="3_title_shader"]
+
+[sub_resource type="ShaderMaterial" id="title_glow_mat"]
+shader = ExtResource("3_title_shader")
+shader_parameter/appear_progress = 0.0
+shader_parameter/glow_color = Vector3(0.4, 0.65, 1.0)
+shader_parameter/accent_color = Vector3(0.55, 0.35, 1.0)
+shader_parameter/glow_spread = 3.0
+shader_parameter/pulse_speed = 1.8
+shader_parameter/shimmer_speed = 0.6
+shader_parameter/intensity = 0.5
+
+[node name="GameOverScene" type="CanvasLayer"]
+layer = 18
+process_mode = 3
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.02, 0.02, 0.08, 0.8)
+
+[node name="FlashOverlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.4, 0.6, 1.0, 0.0)
+
+[node name="ContentRoot" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleGlow" type="ColorRect" parent="ContentRoot"]
+material = SubResource("title_glow_mat")
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -190.0
+offset_right = 320.0
+offset_bottom = -70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentRoot"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="ContentRoot/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1.0, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.8, 0.6)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 52
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="ContentRoot/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.65, 0.9, 0.0)
+theme_override_font_sizes/font_size = 18
+text = "The darkness claims another soul..."
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="ContentRoot/VBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="TryAgainButton" type="Button" parent="ContentRoot/VBoxContainer"]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "TRY AGAIN"
+
+[node name="QuitButton" type="Button" parent="ContentRoot/VBoxContainer"]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "QUIT TO MENU"

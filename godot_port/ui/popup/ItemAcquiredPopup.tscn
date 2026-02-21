@@ -1,0 +1,199 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://ui/popup/ItemAcquiredPopup.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/item_acquired.gdshader" id="2_border_shader"]
+[ext_resource type="Shader" path="res://shaders/orb_glow.gdshader" id="3_orb_shader"]
+
+[sub_resource type="ShaderMaterial" id="border_mat"]
+shader = ExtResource("2_border_shader")
+shader_parameter/appear_progress = 1.0
+
+[sub_resource type="ShaderMaterial" id="orb_mat_blue"]
+shader = ExtResource("3_orb_shader")
+shader_parameter/glow_color = Color(0.3, 0.6, 1.0, 1.0)
+
+[sub_resource type="ShaderMaterial" id="orb_mat_purple"]
+shader = ExtResource("3_orb_shader")
+shader_parameter/glow_color = Color(0.55, 0.35, 1.0, 1.0)
+
+[sub_resource type="ShaderMaterial" id="orb_mat_cyan"]
+shader = ExtResource("3_orb_shader")
+shader_parameter/glow_color = Color(0.2, 0.75, 0.95, 1.0)
+
+[sub_resource type="LabelSettings" id="subtitle_ls"]
+font_size = 14
+font_color = Color(0.55, 0.65, 0.82, 0.9)
+outline_size = 2
+outline_color = Color(0.0, 0.0, 0.1, 0.6)
+
+[sub_resource type="LabelSettings" id="name_ls"]
+font_size = 28
+font_color = Color(0.88, 0.94, 1.0, 1.0)
+outline_size = 4
+outline_color = Color(0.1, 0.2, 0.4, 0.85)
+
+[sub_resource type="LabelSettings" id="help_ls"]
+font_size = 12
+font_color = Color(0.45, 0.52, 0.65, 0.0)
+outline_size = 1
+outline_color = Color(0.0, 0.0, 0.05, 0.4)
+
+[node name="ItemAcquiredPopup" type="CanvasLayer"]
+layer = 12
+script = ExtResource("1_script")
+
+[node name="Screen" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DimOverlay" type="ColorRect" parent="Screen"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0, 0.0, 0.02, 0.0)
+
+[node name="FlashOverlay" type="ColorRect" parent="Screen"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.6, 0.8, 1.0, 0.0)
+
+[node name="RaysContainer" type="Control" parent="Screen"]
+unique_name_in_owner = true
+offset_left = 640.0
+offset_top = 330.0
+offset_right = 640.0
+offset_bottom = 330.0
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
+
+[node name="Box" type="Control" parent="Screen"]
+unique_name_in_owner = true
+offset_left = 410.0
+offset_top = 265.0
+offset_right = 870.0
+offset_bottom = 395.0
+pivot_offset = Vector2(230, 65)
+mouse_filter = 2
+
+[node name="ShaderBg" type="ColorRect" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_right = 460.0
+offset_bottom = 130.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+material = SubResource("border_mat")
+
+[node name="ContentMargin" type="MarginContainer" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_right = 460.0
+offset_bottom = 130.0
+mouse_filter = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="HBox" type="HBoxContainer" parent="Screen/Box/ContentMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="IconContainer" type="Control" parent="Screen/Box/ContentMargin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+mouse_filter = 2
+pivot_offset = Vector2(30, 30)
+
+[node name="IconGlow" type="ColorRect" parent="Screen/Box/ContentMargin/HBox/IconContainer"]
+unique_name_in_owner = true
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 64.0
+offset_bottom = 64.0
+mouse_filter = 2
+color = Color(0.3, 0.6, 1.0, 0.0)
+
+[node name="IconRect" type="TextureRect" parent="Screen/Box/ContentMargin/HBox/IconContainer"]
+unique_name_in_owner = true
+texture_filter = 1
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 56.0
+offset_bottom = 56.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextColumn" type="VBoxContainer" parent="Screen/Box/ContentMargin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="AcquiredLabel" type="Label" parent="Screen/Box/ContentMargin/HBox/TextColumn"]
+layout_mode = 2
+mouse_filter = 2
+text = "YOU'VE ACQUIRED"
+label_settings = SubResource("subtitle_ls")
+
+[node name="NameLabel" type="Label" parent="Screen/Box/ContentMargin/HBox/TextColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = ""
+label_settings = SubResource("name_ls")
+
+[node name="HelpLabel" type="Label" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_top = 144.0
+offset_right = 460.0
+offset_bottom = 168.0
+mouse_filter = 2
+text = "Press E to equip"
+horizontal_alignment = 1
+label_settings = SubResource("help_ls")
+
+[node name="Orb0" type="ColorRect" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_right = 28.0
+offset_bottom = 28.0
+pivot_offset = Vector2(14, 14)
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+material = SubResource("orb_mat_blue")
+modulate = Color(1, 1, 1, 0)
+
+[node name="Orb1" type="ColorRect" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_right = 28.0
+offset_bottom = 28.0
+pivot_offset = Vector2(14, 14)
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+material = SubResource("orb_mat_purple")
+modulate = Color(1, 1, 1, 0)
+
+[node name="Orb2" type="ColorRect" parent="Screen/Box"]
+unique_name_in_owner = true
+offset_right = 28.0
+offset_bottom = 28.0
+pivot_offset = Vector2(14, 14)
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+material = SubResource("orb_mat_cyan")
+modulate = Color(1, 1, 1, 0)

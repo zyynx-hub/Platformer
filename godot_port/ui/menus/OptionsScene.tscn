@@ -1,0 +1,186 @@
+[gd_scene load_steps=9 format=3 uid="uid://m8ci83fnnr2a"]
+
+[ext_resource type="Script" path="res://ui/menus/OptionsScene.gd" id="1_jjaom"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="5_theme"]
+[ext_resource type="Shader" path="res://shaders/menu_background.gdshader" id="2_sky"]
+[ext_resource type="Shader" path="res://shaders/menu_ground.gdshader" id="3_gnd"]
+[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="4_vig"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("2_sky")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gnd"]
+shader = ExtResource("3_gnd")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vig"]
+shader = ExtResource("4_vig")
+
+[node name="OptionsScene" type="Control" unique_id=38726038]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("5_theme")
+script = ExtResource("1_jjaom")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=171719937]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_sky")
+color = Color(0.1, 0.06, 0.16, 1)
+
+[node name="GroundOverlay" type="ColorRect" parent="."]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("ShaderMaterial_gnd")
+color = Color(1, 1, 1, 1)
+
+[node name="TitleLabel" type="Label" parent="." unique_id=1186192089]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -105.5
+offset_right = 105.5
+offset_bottom = 67.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 48
+text = "OPTIONS"
+
+[node name="TabContainer" type="TabContainer" parent="." unique_id=1901037231]
+layout_mode = 0
+offset_left = 360.0
+offset_top = 120.0
+offset_right = 920.0
+offset_bottom = 652.0
+current_tab = 1
+
+[node name="Audio" type="VBoxContainer" parent="TabContainer" unique_id=1795715328]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="MasterVolume" type="Label" parent="TabContainer/Audio" unique_id=994648660]
+layout_mode = 2
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="TabContainer/Audio" unique_id=743683600]
+unique_name_in_owner = true
+layout_mode = 2
+value = 80.0
+
+[node name="MusicVolume" type="Label" parent="TabContainer/Audio" unique_id=56042370]
+layout_mode = 2
+text = "Music Volume"
+
+[node name="MusicSlider" type="HSlider" parent="TabContainer/Audio" unique_id=832804387]
+unique_name_in_owner = true
+layout_mode = 2
+value = 60.0
+
+[node name="SFXVolume" type="Label" parent="TabContainer/Audio" unique_id=1110226243]
+layout_mode = 2
+text = "SFX Volume"
+
+[node name="SFXSlider" type="HSlider" parent="TabContainer/Audio" unique_id=602792713]
+unique_name_in_owner = true
+layout_mode = 2
+value = 85.0
+
+[node name="Display" type="VBoxContainer" parent="TabContainer" unique_id=1778048094]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="FullscreenCheck" type="CheckButton" parent="TabContainer/Display" unique_id=1464263650]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fullscreen"
+
+[node name="VsyncCheck" type="CheckButton" parent="TabContainer/Display" unique_id=1540453675]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "VSync"
+
+[node name="Controls" type="VBoxContainer" parent="TabContainer" unique_id=36014104]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MoveLeft" type="Label" parent="TabContainer/Controls" unique_id=943167777]
+layout_mode = 2
+text = "Move left: A / Left Arrow"
+
+[node name="MoveRight" type="Label" parent="TabContainer/Controls" unique_id=643986641]
+layout_mode = 2
+text = "Move Right: D / Right Arrow"
+
+[node name="Jump" type="Label" parent="TabContainer/Controls" unique_id=1214114294]
+layout_mode = 2
+text = "Jump: W / Up / Space"
+
+[node name="Dash" type="Label" parent="TabContainer/Controls" unique_id=1410821855]
+layout_mode = 2
+text = "Dash: Shift"
+
+[node name="Attack" type="Label" parent="TabContainer/Controls" unique_id=1919815155]
+layout_mode = 2
+text = "Attack: J"
+
+[node name="Interact" type="Label" parent="TabContainer/Controls" unique_id=641312256]
+layout_mode = 2
+text = "Interact: E / Enter"
+
+[node name="BackButton" type="Button" parent="." unique_id=1888664545]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -31.0
+offset_right = 50.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 30
+text = "BACK"
+
+[node name="ResetButton" type="Button" parent="." unique_id=912333075]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -163.0
+offset_top = -31.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 30
+text = "RESET TO DEFAULTS"
+
+[node name="VignetteOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("ShaderMaterial_vig")
+color = Color(1, 1, 1, 1)

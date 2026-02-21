@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/DebugOverlay.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_debug_bg"]
+bg_color = Color(0, 0, 0, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_right = 6.0
+content_margin_top = 4.0
+content_margin_bottom = 4.0
+
+[node name="DebugOverlay" type="CanvasLayer"]
+layer = 99
+process_mode = 3
+visible = false
+script = ExtResource("1_script")
+
+[node name="Panel" type="Panel" parent="."]
+unique_name_in_owner = true
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 200.0
+offset_bottom = 100.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_debug_bg")
+
+[node name="Label" type="Label" parent="Panel"]
+unique_name_in_owner = true
+offset_left = 6.0
+offset_top = 4.0
+offset_right = 194.0
+offset_bottom = 96.0
+theme_override_colors/font_color = Color(0, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 10

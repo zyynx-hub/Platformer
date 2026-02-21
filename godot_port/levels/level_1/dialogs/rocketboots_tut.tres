@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://dtmojayxl4uv6"]
+
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="1_ffwvw"]
+[ext_resource type="Texture2D" uid="uid://b8gqg4gcv62g8" path="res://assets/sprites/portraits/Karim_portrait.png" id="2_j27eh"]
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="3_1jvtq"]
+
+[sub_resource type="Resource" id="Resource_ffwvw"]
+script = ExtResource("1_ffwvw")
+character_name = "Karim"
+text = "Salam alaikum maat, ben ik weer."
+portrait = ExtResource("2_j27eh")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_j27eh"]
+script = ExtResource("1_ffwvw")
+character_name = "Karim"
+text = "Voor je zie je een item, je kan items oppakken met \"E\"."
+portrait = ExtResource("2_j27eh")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[sub_resource type="Resource" id="Resource_qo2db"]
+script = ExtResource("1_ffwvw")
+character_name = "Karim"
+text = "Pak de rocket boots op. In de lucht spatie knoppie gebruiken. "
+portrait = ExtResource("2_j27eh")
+voice_pitch = 0.4
+metadata/_custom_type_script = "uid://bu846m0x63vmq"
+
+[resource]
+script = ExtResource("3_1jvtq")
+description = "Player instructions on how to wall jump"
+one_shot = false
+lines = Array[ExtResource("1_ffwvw")]([SubResource("Resource_ffwvw"), SubResource("Resource_j27eh"), SubResource("Resource_qo2db")])
