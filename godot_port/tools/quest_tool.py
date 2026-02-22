@@ -1309,13 +1309,14 @@ def _aggregate_npc_profiles(quests: dict) -> dict:
 def _build_graph_data(quests: dict) -> dict:
     """Pre-compute Cytoscape.js nodes and edges for the quest dependency graph.
 
-    Every node (NPC, state-key, reward) is parented to its quest container so
-    Cytoscape compound-node layout keeps everything inside the quest box.
-    NPCs that appear in multiple quests get duplicated (qid:npc_id) with
-    cross-quest edges between duplicates.
+    NPCs that both SET a key and later READ a different key (multi-phase NPCs
+    like purple_karim: gives quest at start, receives payment at end) are split
+    into separate visual nodes so dagre can order them chronologically.
     """
     nodes = []
     edges = []
+    node_ids = set()  # track all created node IDs for cross-quest linking
+
     # Track which quests each NPC appears in
     npc_quests: dict[str, list[str]] = {}
     for qid, q in quests.items():
@@ -1329,10 +1330,7 @@ def _build_graph_data(quests: dict) -> dict:
             "classes": q.get("type", "quest"),
         })
 
-        # Compute chronological rank for state keys based on their order in
-        # the JSON array — first key = rank 0, etc.
         all_keys = q.get("state_keys", [])
-        key_rank = {sk["key"]: i for i, sk in enumerate(all_keys)}
 
         # State key nodes (inside quest box)
         for sk in all_keys:
@@ -1345,76 +1343,134 @@ def _build_graph_data(quests: dict) -> dict:
                     "id": "key:" + key, "label": key, "type": "state_key",
                     "parent": qid, "meaning": sk.get("meaning", ""),
                     "subtype": subtype, "parallel_group": sk.get("parallel_group", ""),
-                    "rank": key_rank.get(key, 0),
                 },
                 "classes": "state-key " + subtype,
             })
 
-        # Collect which keys each NPC sets (for cycle-avoidance below)
-        npc_sets_keys: dict[str, set[str]] = {}
+        # --- Analyze NPC phases ---
         for npc_id, npc_data in q.get("npcs", {}).items():
-            keys_set = set()
+            # Collect keys this NPC sets (via on_dialog_end)
+            keys_set = {}  # key -> dialog_id
             for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
                 for a in iter_actions(actions):
                     if a.get("action") == "set_key":
-                        keys_set.add(a["key"])
-            npc_sets_keys[npc_id] = keys_set
+                        keys_set[a["key"]] = dialog_id
 
-        # NPC nodes (inside quest box, duplicated per quest if shared)
-        for npc_id, npc_data in q.get("npcs", {}).items():
-            npc_node_id = qid + ":npc:" + npc_id
-            nodes.append({
-                "data": {
-                    "id": npc_node_id, "label": npc_id, "type": "npc",
-                    "role": npc_data.get("role", ""), "parent": qid,
-                    "quest": qid, "npc_id": npc_id,
-                },
-                "classes": "npc",
-            })
-            # Edges: NPC -> state key (sets)
-            for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
-                for a in iter_actions(actions):
-                    if a.get("action") == "set_key":
-                        edges.append({
-                            "data": {
-                                "source": npc_node_id, "target": "key:" + a["key"],
-                                "label": "sets", "etype": "sets",
-                            },
-                        })
-            # Edges: state key -> NPC (enables / condition)
-            # Skip if this NPC also SETS that same key (would create a cycle
-            # that confuses dagre's top-to-bottom ordering).
-            my_keys = npc_sets_keys.get(npc_id, set())
+            # Collect keys from appears_when
+            appears_keys = set()
+            appears = npc_data.get("appears_when", {})
+            for rk in appears.get("all_true", []):
+                appears_keys.add(rk)
+
+            # Collect keys this NPC reads (dialog_selection requires)
+            keys_read = set()
             for entry in npc_data.get("dialog_selection", []):
                 for req_key in entry.get("requires", {}):
-                    if req_key in my_keys:
-                        continue  # skip self-cycle
-                    key_node = "key:" + req_key
-                    edges.append({
-                        "data": {
-                            "source": key_node, "target": npc_node_id,
-                            "label": "requires", "etype": "condition",
-                        },
-                    })
-            # Edges: appears_when (all_true keys -> NPC)
-            appears = npc_data.get("appears_when", {})
-            for req_key in appears.get("all_true", []):
-                edges.append({
+                    keys_read.add(req_key)
+            keys_read |= appears_keys
+
+            # External reads = keys read but NOT set by this NPC
+            reads_external = keys_read - set(keys_set.keys())
+
+            # Split when NPC both sets keys AND reads other keys it doesn't set
+            needs_split = len(keys_set) > 0 and len(reads_external) > 0
+
+            if needs_split:
+                # Phase 1: "start" — the NPC gives the quest / sets initial keys
+                start_id = qid + ":npc:" + npc_id + ":start"
+                node_ids.add(start_id)
+                nodes.append({
                     "data": {
-                        "source": "key:" + req_key, "target": npc_node_id,
-                        "label": "spawns", "etype": "appears",
+                        "id": start_id, "label": npc_id, "type": "npc",
+                        "role": npc_data.get("role", ""), "parent": qid,
+                        "quest": qid, "npc_id": npc_id, "phase": "start",
                     },
+                    "classes": "npc npc-start",
                 })
+                # Phase 2: "return" — the player comes back after completing steps
+                return_id = qid + ":npc:" + npc_id + ":return"
+                node_ids.add(return_id)
+                nodes.append({
+                    "data": {
+                        "id": return_id, "label": npc_id + " (return)",
+                        "type": "npc",
+                        "role": npc_data.get("role", ""), "parent": qid,
+                        "quest": qid, "npc_id": npc_id, "phase": "return",
+                    },
+                    "classes": "npc npc-return",
+                })
+
+                # Figure out which keys are set by the "start" phase vs "return" phase.
+                # Keys set in dialogs gated by external requires → return phase.
+                # All other keys → start phase.
+                return_phase_keys = set()
+                for entry in npc_data.get("dialog_selection", []):
+                    req_keys_for_entry = set(entry.get("requires", {}).keys())
+                    if req_keys_for_entry & reads_external:
+                        dialog = entry.get("dialog", "")
+                        for a in iter_actions(npc_data.get("on_dialog_end", {}).get(dialog, [])):
+                            if a.get("action") == "set_key":
+                                return_phase_keys.add(a["key"])
+
+                start_phase_keys = set(keys_set.keys()) - return_phase_keys
+
+                # Start node → sets early keys
+                for key in start_phase_keys:
+                    edges.append({"data": {
+                        "source": start_id, "target": "key:" + key,
+                        "label": "sets", "etype": "sets",
+                    }})
+                # Return node ← reads external keys
+                for rk in reads_external:
+                    etype = "appears" if rk in appears_keys else "condition"
+                    label = "spawns" if rk in appears_keys else "requires"
+                    edges.append({"data": {
+                        "source": "key:" + rk, "target": return_id,
+                        "label": label, "etype": etype,
+                    }})
+                # Return node → sets late keys
+                for key in return_phase_keys:
+                    edges.append({"data": {
+                        "source": return_id, "target": "key:" + key,
+                        "label": "sets", "etype": "sets",
+                    }})
+
+            else:
+                # Single-node NPC (no split needed)
+                npc_node_id = qid + ":npc:" + npc_id
+                node_ids.add(npc_node_id)
+                nodes.append({
+                    "data": {
+                        "id": npc_node_id, "label": npc_id, "type": "npc",
+                        "role": npc_data.get("role", ""), "parent": qid,
+                        "quest": qid, "npc_id": npc_id,
+                    },
+                    "classes": "npc",
+                })
+                for key in keys_set:
+                    edges.append({"data": {
+                        "source": npc_node_id, "target": "key:" + key,
+                        "label": "sets", "etype": "sets",
+                    }})
+                for rk in reads_external:
+                    edges.append({"data": {
+                        "source": "key:" + rk, "target": npc_node_id,
+                        "label": "requires", "etype": "condition",
+                    }})
+                for rk in appears_keys:
+                    edges.append({"data": {
+                        "source": "key:" + rk, "target": npc_node_id,
+                        "label": "spawns", "etype": "appears",
+                    }})
 
         # Reward node (inside quest box)
         reward = q.get("reward", {})
         if reward.get("type") == "item":
             r_id = "reward:" + qid
-            max_rank = len(all_keys)
             nodes.append({
                 "data": {
                     "id": r_id, "label": reward["item_id"], "type": "reward",
-                    "parent": qid, "rank": max_rank,
+                    "parent": qid,
                 },
                 "classes": "reward",
             })
@@ -1436,17 +1492,24 @@ def _build_graph_data(quests: dict) -> dict:
                         },
                     })
 
-    # Cross-quest NPC link edges (dotted, between duplicate NPC nodes)
+    # Cross-quest NPC link edges (dotted, between NPC nodes in different quests)
     for npc_id, quest_ids in npc_quests.items():
         if len(quest_ids) > 1:
             for i in range(len(quest_ids) - 1):
-                edges.append({
-                    "data": {
-                        "source": quest_ids[i] + ":npc:" + npc_id,
-                        "target": quest_ids[i + 1] + ":npc:" + npc_id,
-                        "label": "same NPC", "etype": "npc_link",
-                    },
-                })
+                # Find the best node for this NPC in each quest (prefer :start if split)
+                src_candidates = [quest_ids[i] + ":npc:" + npc_id + ":start",
+                                  quest_ids[i] + ":npc:" + npc_id]
+                tgt_candidates = [quest_ids[i + 1] + ":npc:" + npc_id + ":start",
+                                  quest_ids[i + 1] + ":npc:" + npc_id]
+                src = next((c for c in src_candidates if c in node_ids), None)
+                tgt = next((c for c in tgt_candidates if c in node_ids), None)
+                if src and tgt:
+                    edges.append({
+                        "data": {
+                            "source": src, "target": tgt,
+                            "label": "same NPC", "etype": "npc_link",
+                        },
+                    })
 
     return {"nodes": nodes, "edges": edges}
 
@@ -1826,6 +1889,7 @@ function renderGraph(app,sub){
       {selector:'.active',style:{'border-color':'#f59e0b','border-width':2}},
       {selector:'.complete',style:{'border-color':'#22c55e','border-width':2}},
       {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':2,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':12,'text-valign':'center','text-halign':'center'}},
+      {selector:'.npc-return',style:{'border-style':'dashed','border-color':'#a78bfa'}},
       {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':10,'width':50,'height':50,'text-valign':'center','text-halign':'center'}},
       {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#94a3b8','label':'data(label)','text-opacity':0.8,'text-background-color':'#0f172a','text-background-opacity':0.7,'text-background-padding':2}},
       {selector:'edge[etype="prerequisite"]',style:{'line-style':'dashed','line-color':'#f59e0b','target-arrow-color':'#f59e0b','width':2}},
