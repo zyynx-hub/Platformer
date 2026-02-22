@@ -1940,8 +1940,23 @@ function renderGraph(app,sub){
         return dr!==0?dr:(a.id()<b.id()?-1:1);
       });
     }
-    /* Assign positions: quests side-by-side, children stacked vertically */
-    var colWidth=400;var rowHeight=65;var padding=80;
+    /* Compute each quest's width (max nodes at any single rank * nodeSpacing) */
+    var nodeSpacing=170;var rowHeight=65;var questGap=100;var padding=80;
+    var questWidths=[];
+    for(var qi=0;qi<qkeys.length;qi++){
+      var children=questChildren[qkeys[qi]];
+      var rankCount={};
+      for(var k=0;k<children.length;k++){
+        var r=rank[children[k].id()];
+        rankCount[r]=(rankCount[r]||0)+1;
+      }
+      var maxAtRank=0;
+      var rkeys=Object.keys(rankCount);
+      for(var k=0;k<rkeys.length;k++){if(rankCount[rkeys[k]]>maxAtRank)maxAtRank=rankCount[rkeys[k]]}
+      questWidths.push(Math.max(maxAtRank,1)*nodeSpacing);
+    }
+    /* Assign positions: cumulative X offset per quest column */
+    var cumX=padding;
     cy.startBatch();
     for(var ci=0;ci<qkeys.length;ci++){
       var children=questChildren[qkeys[ci]];
@@ -1949,15 +1964,15 @@ function renderGraph(app,sub){
       for(var k=1;k<children.length;k++){
         var rk=rank[children[k].id()];if(rk<minRank)minRank=rk;
       }
-      /* Track how many nodes placed at each rank for horizontal spread */
       var rankSlot={};
       for(var k=0;k<children.length;k++){
         var r=rank[children[k].id()]-minRank;
         if(rankSlot[r]===undefined)rankSlot[r]=0;
-        var xOff=rankSlot[r]*160;
+        var xOff=rankSlot[r]*nodeSpacing;
         rankSlot[r]++;
-        children[k].position({x:ci*colWidth+padding+xOff,y:r*rowHeight+padding});
+        children[k].position({x:cumX+xOff,y:r*rowHeight+padding});
       }
+      cumX+=questWidths[ci]+questGap;
     }
     cy.endBatch();
     cy.fit(null,40);
