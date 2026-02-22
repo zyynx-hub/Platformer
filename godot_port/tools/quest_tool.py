@@ -1439,6 +1439,7 @@ def _build_graph_data(quests: dict) -> dict:
                 fi += 1
 
         # ---- NPC nodes + edges ----
+        quest_level = q.get("level", "")
         for npc_id, npc_data in npcs_data.items():
             keys_set = {}
             for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
@@ -1457,31 +1458,55 @@ def _build_graph_data(quests: dict) -> dict:
 
             dialog_reads_external = dialog_reads - set(keys_set.keys())
 
+            # Determine which level this NPC lives in from first dialog ID
+            npc_level = quest_level
+            ds = npc_data.get("dialog_selection", [])
+            if ds:
+                first_dialog = ds[-1].get("dialog", "")  # last = default/fallback
+                parts = first_dialog.split("/")
+                if len(parts) >= 2:
+                    npc_level = parts[0]
+            is_remote = npc_level != quest_level
+
             # Detect if NPC was assigned two ranks (start + return)
             base_id = qid + ":npc:" + npc_id
             ret_id = base_id + ":return"
             has_return = ret_id in node_rank
 
+            # Pretty level name for label
+            def _level_tag(lvl: str) -> str:
+                return lvl.replace("level_", "").replace("_", " ").title()
+
             if has_return:
                 start_id = base_id
-                # Relabel as :start for clarity
                 start_rank = node_rank[start_id]
                 return_rank = node_rank[ret_id]
                 node_ids.update([start_id, ret_id])
 
-                nodes.append({"data": {
-                    "id": start_id, "label": npc_id, "type": "npc",
-                    "role": npc_data.get("role", ""), "parent": qid,
-                    "quest": qid, "npc_id": npc_id, "phase": "start",
-                    "rank": start_rank,
-                }, "classes": "npc npc-start"})
+                start_label = npc_id
+                if is_remote:
+                    start_label += "\n@ " + _level_tag(npc_level)
+                return_label = npc_id + " (return)"
+
+                start_cls = "npc npc-start"
+                ret_cls = "npc npc-return"
+                if is_remote:
+                    start_cls += " npc-remote"
+                    ret_cls += " npc-remote"
 
                 nodes.append({"data": {
-                    "id": ret_id, "label": npc_id + " (return)", "type": "npc",
+                    "id": start_id, "label": start_label, "type": "npc",
+                    "role": npc_data.get("role", ""), "parent": qid,
+                    "quest": qid, "npc_id": npc_id, "phase": "start",
+                    "rank": start_rank, "npc_level": npc_level,
+                }, "classes": start_cls})
+
+                nodes.append({"data": {
+                    "id": ret_id, "label": return_label, "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
                     "quest": qid, "npc_id": npc_id, "phase": "return",
-                    "rank": return_rank,
-                }, "classes": "npc npc-return"})
+                    "rank": return_rank, "npc_level": quest_level,
+                }, "classes": ret_cls})
 
                 # Classify keys into start vs return phase by rank:
                 # keys at ranks just after start_rank are start phase,
@@ -1501,12 +1526,18 @@ def _build_graph_data(quests: dict) -> dict:
                 node_ids.add(npc_node_id)
                 npc_rank = node_rank.get(npc_node_id, 0)
 
+                npc_label = npc_id
+                npc_cls = "npc"
+                if is_remote:
+                    npc_label += "\n@ " + _level_tag(npc_level)
+                    npc_cls += " npc-remote"
+
                 nodes.append({"data": {
-                    "id": npc_node_id, "label": npc_id, "type": "npc",
+                    "id": npc_node_id, "label": npc_label, "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
                     "quest": qid, "npc_id": npc_id,
-                    "rank": npc_rank,
-                }, "classes": "npc"})
+                    "rank": npc_rank, "npc_level": npc_level,
+                }, "classes": npc_cls})
 
                 for key in keys_set:
                     edges.append({"data": {"source": npc_node_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
@@ -1921,8 +1952,9 @@ function renderGraph(app,sub){
       {selector:'.state-key',style:{'shape':'round-rectangle','background-color':'#1f2937','border-color':'#4b5563','border-width':1,'label':'data(label)','color':'#e2e8f0','font-size':9,'width':'label','height':26,'padding':8,'text-max-width':160,'text-valign':'center','text-halign':'center','text-wrap':'ellipsis'}},
       {selector:'.active',style:{'border-color':'#f59e0b','border-width':2}},
       {selector:'.complete',style:{'border-color':'#22c55e','border-width':2}},
-      {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':2,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':12,'text-valign':'center','text-halign':'center'}},
+      {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':2,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':12,'text-valign':'center','text-halign':'center','text-wrap':'wrap'}},
       {selector:'.npc-return',style:{'border-style':'dashed','border-color':'#a78bfa'}},
+      {selector:'.npc-remote',style:{'background-color':'#14532d','border-color':'#4ade80','border-width':3}},
       {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':10,'width':50,'height':50,'text-valign':'center','text-halign':'center'}},
       {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#94a3b8','label':'data(label)','text-opacity':0.8,'text-background-color':'#0f172a','text-background-opacity':0.7,'text-background-padding':2}},
       {selector:'edge[etype="prerequisite"]',style:{'line-style':'dashed','line-color':'#f59e0b','target-arrow-color':'#f59e0b','width':2}},
