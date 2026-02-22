@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Bible &mdash; AnimePlatformer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-0:#0a0f1a;--bg-1:#111827;--bg-2:#1e293b;--bg-3:#334155;
+  --border:#475569;--text-1:#f1f5f9;--text-2:#94a3b8;--text-3:#64748b;
+  --blue:#3b82f6;--amber:#f59e0b;--green:#22c55e;--purple:#a78bfa;
+  --pink:#f472b6;--gold:#fbbf24;--red:#ef4444;
+}
+body{background:var(--bg-0);color:var(--text-2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
+.header{background:var(--bg-1);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:90}
+.header-title{color:var(--text-1);font-size:16px;font-weight:600;white-space:nowrap}
+.header-title span{color:var(--text-3);font-weight:400;font-size:12px;margin-left:8px}
+.nav{display:flex;gap:2px;flex:1}
+.nav-tab{padding:8px 16px;color:var(--text-3);cursor:pointer;border-radius:4px;font-size:13px;transition:all .15s;user-select:none}
+.nav-tab:hover{background:var(--bg-2);color:var(--text-2)}
+.nav-tab.active{background:var(--bg-2);color:var(--text-1)}
+.search-wrap{position:relative}
+.search-input{background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);padding:6px 12px 6px 32px;font-size:13px;border-radius:4px;width:260px;font-family:inherit}
+.search-input:focus{outline:none;border-color:var(--blue)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:14px;pointer-events:none}
+.search-results{position:absolute;top:100%;left:0;right:0;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;margin-top:4px;max-height:400px;overflow-y:auto;z-index:100;display:none;min-width:320px}
+.search-results.open{display:block}
+.sr-group{padding:4px 0;border-bottom:1px solid var(--border)}
+.sr-group:last-child{border-bottom:none}
+.sr-group-label{padding:4px 12px;font-size:10px;text-transform:uppercase;color:var(--text-3);letter-spacing:.05em}
+.sr-item{padding:6px 12px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+.sr-item:hover{background:var(--bg-3)}
+.sr-item-title{color:var(--text-1);font-size:13px}
+.sr-item-sub{color:var(--text-3);font-size:11px}
+#app{padding:24px;max-width:1400px;margin:0 auto}
+.view-title{color:var(--text-1);font-size:18px;font-weight:600;margin-bottom:16px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:16px;cursor:pointer;transition:border-color .15s}
+.stat-card:hover{border-color:var(--blue)}
+.stat-value{font-size:28px;font-weight:700;color:var(--text-1)}
+.stat-label{font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.card{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.card-quest{border-left:3px solid var(--blue)}
+.card-event{border-left:3px solid var(--amber)}
+.card-hdr{padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-hdr:hover{background:var(--bg-2)}
+.card-name{color:var(--text-1);font-size:14px;font-weight:500}
+.card-id{color:var(--text-3);font-size:11px;font-family:'Courier New',monospace;margin-top:2px}
+.card-badges{display:flex;gap:4px;align-items:center}
+.badge{font-size:11px;padding:2px 8px;border-radius:3px}
+.badge-quest{background:#1e3a5f;color:#93c5fd}
+.badge-event{background:#3d2800;color:#fde68a}
+.badge-role{background:var(--bg-3);color:var(--text-2)}
+.chevron{color:var(--text-3);font-size:12px;transition:transform .15s;display:inline-block}
+.card.open .chevron{transform:rotate(90deg)}
+.card-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.card.open .card-body{display:block}
+.sec{margin-top:12px}
+.sec-title{color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bg-3)}
+.row{display:flex;gap:8px;margin-bottom:4px;align-items:baseline}
+.row-label{color:var(--text-3);min-width:80px;font-size:12px}
+.row-value{color:var(--text-2);font-size:12px}
+.kc{display:inline-block;background:var(--bg-0);border:1px solid var(--border);padding:1px 6px;font-size:11px;color:#93c5fd;border-radius:3px;margin:1px 2px;cursor:pointer;font-family:'Courier New',monospace;text-decoration:none}
+.kc:hover{border-color:var(--blue)}
+.kc-active{color:var(--gold);border-color:#92400e}
+.kc-complete{color:#86efac;border-color:#166534}
+.npc-block{margin-bottom:8px;padding:8px 10px;background:var(--bg-0);border:1px solid var(--bg-3);border-radius:4px}
+.npc-hdr{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
+.npc-name{color:var(--purple);font-weight:600;font-size:13px;cursor:pointer}
+.npc-name:hover{text-decoration:underline}
+.npc-role{color:var(--text-3);font-size:11px}
+.sub-t{color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 3px}
+.sel-row{font-size:12px;margin-bottom:2px}
+.sel-cond{color:var(--text-3)}
+.on-end{margin-bottom:4px}
+.on-end-trigger{font-size:11px;color:var(--text-3);margin-bottom:2px}
+.act{font-size:12px;margin-bottom:1px;font-family:'Courier New',monospace}
+.act-kw{color:var(--pink)}
+.act-dialog{color:#a5b4fc}
+.act-item{color:var(--gold)}
+.act-meta{color:var(--text-3)}
+.act-branch{margin-left:16px}
+.act-branch-label{color:var(--text-3)}
+.transcript{margin-top:8px}
+.dl-line{padding:4px 8px;border-left:2px solid var(--bg-3);margin-bottom:4px}
+.dl-char{color:var(--purple);font-size:11px;font-weight:600}
+.dl-text{color:var(--text-2);font-size:12px}
+.sk-table{width:100%;border-collapse:collapse;font-size:12px}
+.sk-table th{text-align:left;padding:8px 12px;color:var(--text-3);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.sk-table th:hover{color:var(--text-1)}
+.sk-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3);vertical-align:top}
+.sk-table tr:hover{background:var(--bg-1)}
+.npc-card{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:16px}
+.npc-card-name{color:var(--purple);font-size:16px;font-weight:600;margin-bottom:4px}
+.npc-card-role{color:var(--text-3);font-size:12px;margin-bottom:12px}
+.npc-card-stat{display:flex;gap:8px;margin-bottom:4px;font-size:12px}
+.npc-card-stat-label{color:var(--text-3);min-width:80px}
+.world-section{margin-bottom:24px}
+.world-section h3{color:var(--text-1);font-size:14px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.w-table{width:100%;border-collapse:collapse;font-size:12px}
+.w-table th{text-align:left;padding:8px 12px;color:var(--text-3);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.w-table td{padding:8px 12px;border-bottom:1px solid var(--bg-3)}
+.w-table tr:hover{background:var(--bg-1)}
+.implemented{color:var(--green)}
+.placeholder{color:var(--text-3);font-style:italic}
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.item-card{background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:12px}
+.item-name{color:var(--text-1);font-weight:500}
+.item-desc{color:var(--text-3);font-size:12px;margin-top:4px}
+.item-cost{color:var(--gold);font-size:12px;margin-top:4px}
+.ach-hidden{opacity:.5}
+#cy{width:100%;height:calc(100vh - 140px);min-height:400px;background:var(--bg-0);border:1px solid var(--border);border-radius:6px}
+.graph-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.graph-btn{background:var(--bg-2);border:1px solid var(--border);color:var(--text-2);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit}
+.graph-btn:hover{background:var(--bg-3);color:var(--text-1)}
+.graph-detail{position:fixed;right:0;top:52px;width:320px;height:calc(100vh - 52px);background:var(--bg-1);border-left:1px solid var(--border);padding:16px;overflow-y:auto;z-index:50;display:none}
+.graph-detail.open{display:block}
+.graph-detail h3{color:var(--text-1);font-size:14px;margin-bottom:8px}
+.graph-detail-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:18px}
+.steps{margin-top:8px}
+.step{font-size:12px;color:var(--text-2);margin-bottom:4px;padding-left:8px;border-left:2px solid var(--bg-3)}
+.step strong{color:var(--text-1)}
+.step code{color:#a5b4fc;font-size:11px}
+.footer{padding:12px 24px;text-align:center;color:var(--text-3);font-size:11px;border-top:1px solid var(--border);margin-top:24px}
+.gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.gate h1{color:var(--text-1);font-size:20px}
+.gate input{background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);padding:10px 16px;font-size:14px;border-radius:4px;width:260px;font-family:inherit}
+.gate input:focus{outline:none;border-color:var(--blue)}
+.gate button{background:var(--blue);color:white;border:none;padding:10px 24px;border-radius:4px;cursor:pointer;font-size:14px}
+.gate button:hover{opacity:.9}
+.gate .error{color:var(--red);font-size:12px;min-height:18px}
+.muted{color:var(--text-3)}
+.reward-item{color:var(--gold)}
+.overview-quests{margin-top:24px}
+.overview-quests h3{color:var(--text-1);font-size:14px;margin-bottom:12px}
+.oq-item{display:flex;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--bg-3);cursor:pointer}
+.oq-item:hover .oq-name{text-decoration:underline}
+.oq-name{color:var(--text-1);font-weight:500}
+.oq-type{font-size:11px}
+.oq-desc{color:var(--text-3);font-size:12px;flex:1}
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-btn{background:var(--bg-2);border:1px solid var(--border);color:var(--text-3);padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px}
+.filter-btn.active{color:var(--text-1);border-color:var(--blue)}
+@media(max-width:768px){
+  .header{flex-wrap:wrap;gap:8px;padding:8px 12px}
+  .nav{order:2;width:100%;overflow-x:auto}
+  .search-wrap{order:1;width:100%}
+  .search-input{width:100%}
+  #app{padding:12px}
+  .card-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="gate" class="gate" style="display:none"><h1>AnimePlatformer Game Bible</h1><input type="password" id="gate-input" placeholder="Enter password..." autofocus /><button id="gate-btn">Unlock</button><div class="error" id="gate-error"></div></div>
+<div id="main-app" style="display:none">
+<div class="header">
+  <div class="header-title">AnimePlatformer<span>Game Bible</span></div>
+  <div class="nav"><div class="nav-tab" data-view="overview" onclick="navigate('overview')">Overview</div><div class="nav-tab" data-view="graph" onclick="navigate('graph')">Graph</div><div class="nav-tab" data-view="quests" onclick="navigate('quests')">Quests</div><div class="nav-tab" data-view="npcs" onclick="navigate('npcs')">NPCs</div><div class="nav-tab" data-view="keys" onclick="navigate('keys')">State Keys</div><div class="nav-tab" data-view="world" onclick="navigate('world')">World</div></div>
+  <div class="search-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" class="search-input" id="search-box" placeholder="Search quests, NPCs, keys..." />
+    <div class="search-results" id="search-results"></div>
+  </div>
+</div>
+<div id="app"></div>
+<div class="footer">AnimePlatformer Game Bible &mdash; Generated 2026-02-22 &mdash; 2 quests, 1 events, 8 NPCs, 28 dialogs, 10 state keys, 7 levels</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+<script>window.GAME_DATA={"meta": {"generated": "2026-02-22", "tool": "quest_tool.py --dashboard", "quest_count": 2, "event_count": 1, "npc_count": 8, "dialog_count": 28, "state_key_count": 10, "level_count": 7, "achievement_count": 7}, "quests": {"event_brown_karim": {"id": "event_brown_karim", "type": "event", "name": "Brown Karim Vanishes", "description": "Brown Karim delivers one cryptic line and permanently disappears from the world.", "level": "level_town", "prerequisites": [], "npcs": {"brown_karim": {"voice_pitch": 0.4, "role": "event", "dialog_selection": [{"dialog": "level_town/brown_karim/spooky"}], "on_dialog_end": {"level_town/brown_karim/spooky": [{"action": "set_key", "key": "brown_karim_vanished"}, {"action": "fade_and_remove", "duration": 1.5, "slide_x": 200}]}}}, "state_keys": [{"key": "brown_karim_vanished", "set_by": "brown_karim — after level_town/brown_karim/spooky ends", "read_by": ["BrownKarimNPC._ready"], "meaning": "Brown Karim has permanently left the world"}]}, "quest_purple_karim": {"id": "quest_purple_karim", "type": "quest", "name": "Purple Karim's Debt", "description": "Purple Karim couldn't pay off his PC debt because of his busted knee. Miffy delivered the payment to the terrifying three-headed Hydra Karim deep in the jungle village, narrowly avoiding threats of violence. Purple Karim was relieved and grateful.", "level": "level_town", "secondary_levels": ["level_jungle"], "prerequisites": [], "active_key": "quest_purple_karim_active", "complete_key": "quest_purple_karim_complete", "reward": {"type": "item", "item_id": "Vibrator"}, "npcs": {"purple_karim": {"voice_pitch": 0.95, "role": "giver", "dialog_selection": [{"requires": {"quest_purple_karim_complete": true}, "dialog": "level_town/purple_karim/done"}, {"requires": {"three_headed_karim_paid": true}, "dialog": "level_town/purple_karim/complete"}, {"requires": {"quest_purple_karim_active": true}, "dialog": "level_town/purple_karim/waiting"}, {"dialog": "level_town/purple_karim/intro"}], "on_dialog_end": {"level_town/purple_karim/intro": [{"action": "choice_panel", "prompt": "Wil je zijn schuld betalen?", "choices": ["Ja, ik doe het", "Nee, geen tijd"], "delay": 0.5, "on_accept": [{"action": "set_key", "key": "quest_purple_karim_active"}, {"action": "play_dialog", "dialog": "level_town/purple_karim/accept"}], "on_decline": [{"action": "play_dialog", "dialog": "level_town/purple_karim/decline"}]}], "level_town/purple_karim/complete": [{"action": "set_key", "key": "quest_purple_karim_complete"}, {"action": "item_popup", "item_id": "Vibrator", "delay": 0.5}]}}, "hydra_body_1": {"voice_pitch": 0.3, "role": "target", "dialog_selection": [{"dialog": "level_jungle/hydra_body_1/dialog"}], "on_dialog_end": {"level_jungle/hydra_body_1/dialog": [{"action": "set_key", "key": "hydra_body_1_gone"}, {"action": "fade_and_remove", "duration": 1.2}]}}, "hydra_body_2": {"voice_pitch": 0.3, "role": "target", "dialog_selection": [{"dialog": "level_jungle/hydra_body_2/dialog"}], "on_dialog_end": {"level_jungle/hydra_body_2/dialog": [{"action": "set_key", "key": "hydra_body_2_gone"}, {"action": "fade_and_remove", "duration": 1.2}]}}, "hydra_body_3": {"voice_pitch": 0.3, "role": "target", "dialog_selection": [{"dialog": "level_jungle/hydra_body_3/dialog"}], "on_dialog_end": {"level_jungle/hydra_body_3/dialog": [{"action": "set_key", "key": "hydra_body_3_gone"}, {"action": "fade_and_remove", "duration": 1.2}]}}, "three_headed_karim": {"voice_pitch": 0.2, "role": "boss", "appears_when": {"all_true": ["hydra_body_1_gone", "hydra_body_2_gone", "hydra_body_3_gone"], "all_false": ["three_headed_karim_paid"]}, "dialog_selection": [{"dialog": "level_jungle/three_headed_karim/encounter"}], "on_dialog_end": {"level_jungle/three_headed_karim/encounter": [{"action": "set_key", "key": "three_headed_karim_paid"}, {"action": "fade_and_remove", "duration": 1.5}]}}}, "state_keys": [{"key": "quest_purple_karim_active", "set_by": "purple_karim — accept choice after level_town/purple_karim/intro", "read_by": ["purple_karim"], "meaning": "Player accepted Purple Karim's debt delivery quest"}, {"key": "hydra_body_1_gone", "set_by": "hydra_body_1 — after level_jungle/hydra_body_1/dialog ends + fade", "read_by": ["JungleLevelController", "HydraBodyNPC._ready"], "meaning": "Hydra Body 1 has been dismissed and removed", "parallel_group": "hydra_bodies"}, {"key": "hydra_body_2_gone", "set_by": "hydra_body_2 — after level_jungle/hydra_body_2/dialog ends + fade", "read_by": ["JungleLevelController", "HydraBodyNPC._ready"], "meaning": "Hydra Body 2 has been dismissed and removed", "parallel_group": "hydra_bodies"}, {"key": "hydra_body_3_gone", "set_by": "hydra_body_3 — after level_jungle/hydra_body_3/dialog ends + fade", "read_by": ["JungleLevelController", "HydraBodyNPC._ready"], "meaning": "Hydra Body 3 has been dismissed and removed", "parallel_group": "hydra_bodies"}, {"key": "three_headed_karim_paid", "set_by": "three_headed_karim — after level_jungle/three_headed_karim/encounter ends + fade", "read_by": ["purple_karim", "JungleLevelController", "ThreeHeadedKarimNPC._ready"], "meaning": "Payment delivered to Hydra Karim; player should return to Purple Karim"}, {"key": "quest_purple_karim_complete", "set_by": "purple_karim — after level_town/purple_karim/complete", "read_by": ["purple_karim"], "meaning": "Quest fully resolved, Vibrator reward given"}]}, "quest_red_karim": {"id": "quest_red_karim", "type": "quest", "name": "Red Karim's Problem", "description": "Green Karim needed to shut his mouth according to Red Karim. Miffy resolved this conflict by putting his foot down hard.", "level": "level_town", "prerequisites": [], "active_key": "quest_red_karim_accepted", "complete_key": "quest_red_karim_complete", "reward": {"type": "item", "item_id": "Dildo"}, "npcs": {"red_karim": {"voice_pitch": 0.9, "role": "giver", "dialog_selection": [{"requires": {"quest_red_karim_complete": true}, "dialog": "level_town/red_karim/done"}, {"requires": {"quest_green_karim_confronted": true}, "dialog": "level_town/red_karim/complete"}, {"requires": {"quest_red_karim_accepted": true}, "dialog": "level_town/red_karim/waiting"}, {"dialog": "level_town/red_karim/intro"}], "on_dialog_end": {"level_town/red_karim/intro": [{"action": "choice_panel", "prompt": "Will you help Red Karim?", "choices": ["Accept the quest", "Decline"], "delay": 0.5, "on_accept": [{"action": "set_key", "key": "quest_red_karim_accepted"}, {"action": "play_dialog", "dialog": "level_town/red_karim/accept"}], "on_decline": [{"action": "play_dialog", "dialog": "level_town/red_karim/decline"}]}], "level_town/red_karim/complete": [{"action": "set_key", "key": "quest_red_karim_complete"}, {"action": "item_popup", "item_id": "Dildo", "delay": 0.5}]}}, "green_karim": {"voice_pitch": 0.8, "role": "target", "dialog_selection": [{"requires": {"quest_red_karim_complete": true}, "dialog": "level_town/green_karim/reformed"}, {"requires": {"quest_red_karim_accepted": true, "quest_green_karim_confronted": false}, "dialog": "level_town/green_karim/confronted"}, {"dialog": "level_town/green_karim/default"}], "on_dialog_end": {"level_town/green_karim/confronted": [{"action": "set_key", "key": "quest_green_karim_confronted"}]}}}, "state_keys": [{"key": "quest_red_karim_accepted", "set_by": "red_karim — accept choice after level_town/red_karim/intro", "read_by": ["red_karim", "green_karim"], "meaning": "Player agreed to help Red Karim silence Green Karim"}, {"key": "quest_green_karim_confronted", "set_by": "green_karim — after level_town/green_karim/confronted ends", "read_by": ["red_karim", "green_karim"], "meaning": "Player has spoken to Green Karim about the complaint"}, {"key": "quest_red_karim_complete", "set_by": "red_karim — after level_town/red_karim/complete ends", "read_by": ["red_karim", "green_karim"], "meaning": "Quest fully resolved, Dildo reward given"}]}}, "levels": [{"id": "level_1", "title": "Awakening", "scene": "res://levels/level_1/Level1.tscn", "unlock_requires": "", "star_pos": [0.2, 0.55], "connections": ["level_2", "level_town"]}, {"id": "level_2", "title": "Rooftops", "scene": "res://levels/level_2/Level2.tscn", "unlock_requires": "level_1", "star_pos": [0.35, 0.38], "connections": ["level_1", "level_3"]}, {"id": "level_3", "title": "The Descent", "scene": "", "unlock_requires": "level_2", "star_pos": [0.52, 0.5], "connections": ["level_2", "level_4"]}, {"id": "level_4", "title": "Neon District", "scene": "", "unlock_requires": "level_3", "star_pos": [0.65, 0.3], "connections": ["level_3", "level_5"]}, {"id": "level_5", "title": "Escape", "scene": "", "unlock_requires": "level_4", "star_pos": [0.8, 0.45], "connections": ["level_4"]}, {"id": "level_town", "title": "Town", "scene": "res://levels/level_town/TownLevel.tscn", "unlock_requires": "", "star_pos": [0.1, 0.38], "connections": ["level_1", "level_jungle"]}, {"id": "level_jungle", "title": "Jungle Village", "scene": "res://levels/level_jungle/JungleLevel.tscn", "unlock_requires": "", "star_pos": [0.05, 0.62], "connections": ["level_town"]}], "items": {"all": {"rocket_boots": {"id": "rocket_boots", "name": "Rocket Boots"}, "composited_sheets": {"id": "composited_sheets"}}, "shop": [{"id": "extra_heart", "name": "Extra Heart", "desc": "+1 max HP permanently", "cost": 80}, {"id": "speed_charm", "name": "Speed Charm", "desc": "Move 10% faster", "cost": 120}, {"id": "town_key", "name": "Town Key", "desc": "Opens the east gate", "cost": 60}]}, "achievements": [{"id": "first_jump", "title": "Liftoff", "description": "Perform your first jump.", "hidden": false}, {"id": "first_dash", "title": "Speed Demon", "description": "Perform your first dash.", "hidden": false}, {"id": "first_death", "title": "Learning Experience", "description": "Die for the first time.", "hidden": false}, {"id": "level_1_complete", "title": "Escape Artist", "description": "Complete Level 1.", "hidden": false}, {"id": "wall_jumper", "title": "Wall Runner", "description": "Perform 50 wall jumps.", "hidden": false}, {"id": "die_10_times", "title": "Persistence", "description": "Die 10 times total.", "hidden": true}, {"id": "play_1_hour", "title": "Dedicated", "description": "Play for a total of 1 hour.", "hidden": false}], "dialogs": {"level_1/rocketboots_tut": {"description": "Player instructions on how to wall jump", "one_shot": false, "line_count": 1, "lines": [{"character": "Karim", "text": "Salam alaikum maat, ben ik weer.", "voice_pitch": 0.4}], "file": "level_1/dialogs/rocketboots_tut.tres"}, "level_1/spawn": {"description": "Level 1 intro — player wakes up confused, wants to escape", "one_shot": false, "line_count": 1, "lines": [{"character": "Owl man", "text": "Waar... waar de kanker ben ik?", "voice_pitch": 1.0}], "file": "level_1/dialogs/spawn.tres"}, "level_1/walljump_tut": {"description": "Player instructions on how to wall jump", "one_shot": false, "line_count": 1, "lines": [{"character": "Karim", "text": "Damn, je bent bij de eerste checkpoint. Insane!", "voice_pitch": 0.4}], "file": "level_1/dialogs/walljump_tut.tres"}, "level_1/walljump_tut_succeed": {"description": "Player instructions on how to wall jump", "one_shot": false, "line_count": 1, "lines": [{"character": "Karim", "text": "Ik wist niet dat je het in je had. Op naar de volgende dialog!", "voice_pitch": 0.4}], "file": "level_1/dialogs/walljump_tut_succeed.tres"}, "level_jungle/hydra_body_1/dialog": {"description": "Hydra Body 1 speaks once before fading", "one_shot": true, "line_count": 1, "lines": [{"character": "???", "text": "…", "voice_pitch": 0.3}], "file": "level_jungle/dialogs/hydra_body_1/dialog.tres"}, "level_jungle/hydra_body_2/dialog": {"description": "Hydra Body 2 speaks once before fading", "one_shot": true, "line_count": 1, "lines": [{"character": "???", "text": "…", "voice_pitch": 0.3}], "file": "level_jungle/dialogs/hydra_body_2/dialog.tres"}, "level_jungle/hydra_body_3/dialog": {"description": "Hydra Body 3 speaks once before fading", "one_shot": true, "line_count": 1, "lines": [{"character": "???", "text": "…", "voice_pitch": 0.3}], "file": "level_jungle/dialogs/hydra_body_3/dialog.tres"}, "level_jungle/three_headed_karim/encounter": {"description": "Three-Headed Karim receives payment and threatens Purple Karim", "one_shot": true, "line_count": 1, "lines": [{"character": "Hydra Karim", "text": "Spreek, maat.", "voice_pitch": 0.2}], "file": "level_jungle/dialogs/three_headed_karim/encounter.tres"}, "level_town/black_karim/flavor": {"description": "Black Karim gaming flavor dialog", "one_shot": false, "line_count": 1, "lines": [{"character": "Black Karim", "text": "Man.. wat was die multiplayer mod van Elden Ring leuk zeg! ", "voice_pitch": 0.4}], "file": "level_town/dialogs/black_karim/flavor.tres"}, "level_town/blue_karim/bought": {"description": "Blue Karim purchase confirmation", "one_shot": false, "line_count": 1, "lines": [{"character": "Blue Karim", "text": "Good choice! That'll serve you well out there.", "voice_pitch": 1.0}], "file": "level_town/dialogs/blue_karim/bought.tres"}, "level_town/blue_karim/greet": {"description": "Blue Karim shopkeeper greeting", "one_shot": false, "line_count": 1, "lines": [{"character": "Blue Karim", "text": "Ha maat! Welkom bij mijn winkel. Vast en zeker dat je hier iets kan vinden wat je wilt!", "voice_pitch": 1.0}], "file": "level_town/dialogs/blue_karim/greet.tres"}, "level_town/blue_karim/no_money": {"description": "Blue Karim not enough gold", "one_shot": false, "line_count": 1, "lines": [{"character": "Blue Karim", "text": "Kanker man je bent skeer.. Eerst ervoor zorgen dat je doekoe hebt.", "voice_pitch": 1.0}], "file": "level_town/dialogs/blue_karim/no_money.tres"}, "level_town/brown_karim/spooky": {"description": "Brown Karim spooky encounter", "one_shot": true, "line_count": 1, "lines": [{"character": "???", "text": "........ AAAAAAAAAAAAAA", "voice_pitch": 0.4}], "file": "level_town/dialogs/brown_karim/spooky.tres"}, "level_town/green_karim/confronted": {"description": "Player confronts Green Karim about Red Karim's quest", "one_shot": true, "line_count": 1, "lines": [{"character": "Player", "text": "Wtf man, rooie Karim heeft mij gestuurd om te zeggen dat je voor probleem aan het zorgen bent.", "voice_pitch": 1.2}], "file": "level_town/dialogs/green_karim/confronted.tres"}, "level_town/green_karim/default": {"description": "Green Karim war stories", "one_shot": false, "line_count": 1, "lines": [{"character": "Green Karim", "text": "... Ik heb dingen gezien... Je hebt geen kanker idee...", "voice_pitch": 0.8}], "file": "level_town/dialogs/green_karim/default.tres"}, "level_town/green_karim/reformed": {"description": "Green Karim post-quest flavor", "one_shot": false, "line_count": 1, "lines": [{"character": "Green Karim", "text": "Kheb toch al gezegd dat ik m'n bek dicht doe.. Jesus.", "voice_pitch": 0.8}], "file": "level_town/dialogs/green_karim/reformed.tres"}, "level_town/purple_karim/accept": {"description": "Purple Karim thanks player for accepting the quest", "one_shot": true, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Echt maat, ik wist wel dat ik op jou kon rekenen.", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/accept.tres"}, "level_town/purple_karim/complete": {"description": "Purple Karim thanks player and gives reward", "one_shot": true, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Nu al terug? Zo, dat was snel.", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/complete.tres"}, "level_town/purple_karim/decline": {"description": "Purple Karim reacts to player declining the quest", "one_shot": false, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Ja… oké. Geen probleem.", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/decline.tres"}, "level_town/purple_karim/done": {"description": "Purple Karim after quest is complete", "one_shot": false, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Bedankt voor alles, neef.", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/done.tres"}, "level_town/purple_karim/intro": {"description": "Purple Karim explains his debt and gives the quest", "one_shot": true, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Yo, alles goed maat?", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/intro.tres"}, "level_town/purple_karim/waiting": {"description": "Purple Karim waits for the quest to be resolved", "one_shot": false, "line_count": 1, "lines": [{"character": "Purple Karim", "text": "Nog nieuws? Hopelijk komt alles goed.", "voice_pitch": 0.95}], "file": "level_town/dialogs/purple_karim/waiting.tres"}, "level_town/red_karim/accept": {"description": "Red Karim thanks player for accepting quest", "one_shot": true, "line_count": 1, "lines": [{"character": "Red Karim", "text": "Oh YES, bedankt! Ik wist dat ik op je kon rekenen!", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/accept.tres"}, "level_town/red_karim/complete": {"description": "Red Karim grateful after quest completion", "one_shot": true, "line_count": 1, "lines": [{"character": "Red Karim", "text": "No way! Je hebt 't echt gedaan? Hij zei dat hij zou stoppen?", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/complete.tres"}, "level_town/red_karim/decline": {"description": "Red Karim reacts to quest decline", "one_shot": false, "line_count": 1, "lines": [{"character": "Red Karim", "text": "Serieus? Laat me nou echt zitten?", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/decline.tres"}, "level_town/red_karim/done": {"description": "Red Karim post-quest flavor", "one_shot": false, "line_count": 1, "lines": [{"character": "Red Karim", "text": "Het is zo rustig. Zo fijn..", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/done.tres"}, "level_town/red_karim/intro": {"description": "Red Karim introduces his quest", "one_shot": false, "line_count": 1, "lines": [{"character": "Red Karim", "text": "Hey! Jij ziet eruit als iemand die een probleem kan oplossen.", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/intro.tres"}, "level_town/red_karim/waiting": {"description": "Red Karim waiting for confrontation", "one_shot": false, "line_count": 1, "lines": [{"character": "Red Karim", "text": "HIJ BLIJFT MAAR BIDDEN!!! LAAT HET STOPPEN!!", "voice_pitch": 0.9}], "file": "level_town/dialogs/red_karim/waiting.tres"}}, "npc_profiles": {"brown_karim": {"voice_pitch": 0.4, "role": "event", "quest_ids": ["event_brown_karim"], "dialog_ids": ["level_town/brown_karim/spooky"], "state_keys_set": ["brown_karim_vanished"], "state_keys_read": []}, "purple_karim": {"voice_pitch": 0.95, "role": "giver", "quest_ids": ["quest_purple_karim"], "dialog_ids": ["level_town/purple_karim/done", "level_town/purple_karim/complete", "level_town/purple_karim/waiting", "level_town/purple_karim/intro"], "state_keys_set": ["quest_purple_karim_active", "quest_purple_karim_complete"], "state_keys_read": ["quest_purple_karim_complete", "three_headed_karim_paid", "quest_purple_karim_active"]}, "hydra_body_1": {"voice_pitch": 0.3, "role": "target", "quest_ids": ["quest_purple_karim"], "dialog_ids": ["level_jungle/hydra_body_1/dialog"], "state_keys_set": ["hydra_body_1_gone"], "state_keys_read": []}, "hydra_body_2": {"voice_pitch": 0.3, "role": "target", "quest_ids": ["quest_purple_karim"], "dialog_ids": ["level_jungle/hydra_body_2/dialog"], "state_keys_set": ["hydra_body_2_gone"], "state_keys_read": []}, "hydra_body_3": {"voice_pitch": 0.3, "role": "target", "quest_ids": ["quest_purple_karim"], "dialog_ids": ["level_jungle/hydra_body_3/dialog"], "state_keys_set": ["hydra_body_3_gone"], "state_keys_read": []}, "three_headed_karim": {"voice_pitch": 0.2, "role": "boss", "quest_ids": ["quest_purple_karim"], "dialog_ids": ["level_jungle/three_headed_karim/encounter"], "state_keys_set": ["three_headed_karim_paid"], "state_keys_read": ["hydra_body_1_gone", "hydra_body_2_gone", "hydra_body_3_gone", "three_headed_karim_paid"]}, "red_karim": {"voice_pitch": 0.9, "role": "giver", "quest_ids": ["quest_red_karim"], "dialog_ids": ["level_town/red_karim/done", "level_town/red_karim/complete", "level_town/red_karim/waiting", "level_town/red_karim/intro"], "state_keys_set": ["quest_red_karim_accepted", "quest_red_karim_complete"], "state_keys_read": ["quest_red_karim_complete", "quest_green_karim_confronted", "quest_red_karim_accepted"]}, "green_karim": {"voice_pitch": 0.8, "role": "target", "quest_ids": ["quest_red_karim"], "dialog_ids": ["level_town/green_karim/reformed", "level_town/green_karim/confronted", "level_town/green_karim/default"], "state_keys_set": ["quest_green_karim_confronted"], "state_keys_read": ["quest_red_karim_complete", "quest_red_karim_accepted", "quest_green_karim_confronted"]}}, "state_keys": {"brown_karim_vanished": {"meaning": "Brown Karim has permanently left the world", "set_by": "brown_karim — after level_town/brown_karim/spooky ends", "read_by": [], "quest_id": "event_brown_karim", "quest_name": "Brown Karim Vanishes", "parallel_group": "", "is_active": false, "is_complete": false}, "quest_purple_karim_active": {"meaning": "Player accepted Purple Karim's debt delivery quest", "set_by": "purple_karim — accept choice after level_town/purple_karim/intro", "read_by": ["purple_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "", "is_active": true, "is_complete": false}, "hydra_body_1_gone": {"meaning": "Hydra Body 1 has been dismissed and removed", "set_by": "hydra_body_1 — after level_jungle/hydra_body_1/dialog ends + fade", "read_by": ["three_headed_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "hydra_bodies", "is_active": false, "is_complete": false}, "hydra_body_2_gone": {"meaning": "Hydra Body 2 has been dismissed and removed", "set_by": "hydra_body_2 — after level_jungle/hydra_body_2/dialog ends + fade", "read_by": ["three_headed_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "hydra_bodies", "is_active": false, "is_complete": false}, "hydra_body_3_gone": {"meaning": "Hydra Body 3 has been dismissed and removed", "set_by": "hydra_body_3 — after level_jungle/hydra_body_3/dialog ends + fade", "read_by": ["three_headed_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "hydra_bodies", "is_active": false, "is_complete": false}, "three_headed_karim_paid": {"meaning": "Payment delivered to Hydra Karim; player should return to Purple Karim", "set_by": "three_headed_karim — after level_jungle/three_headed_karim/encounter ends + fade", "read_by": ["purple_karim", "three_headed_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "", "is_active": false, "is_complete": false}, "quest_purple_karim_complete": {"meaning": "Quest fully resolved, Vibrator reward given", "set_by": "purple_karim — after level_town/purple_karim/complete", "read_by": ["purple_karim"], "quest_id": "quest_purple_karim", "quest_name": "Purple Karim's Debt", "parallel_group": "", "is_active": false, "is_complete": true}, "quest_red_karim_accepted": {"meaning": "Player agreed to help Red Karim silence Green Karim", "set_by": "red_karim — accept choice after level_town/red_karim/intro", "read_by": ["red_karim", "green_karim"], "quest_id": "quest_red_karim", "quest_name": "Red Karim's Problem", "parallel_group": "", "is_active": true, "is_complete": false}, "quest_green_karim_confronted": {"meaning": "Player has spoken to Green Karim about the complaint", "set_by": "green_karim — after level_town/green_karim/confronted ends", "read_by": ["red_karim", "green_karim"], "quest_id": "quest_red_karim", "quest_name": "Red Karim's Problem", "parallel_group": "", "is_active": false, "is_complete": false}, "quest_red_karim_complete": {"meaning": "Quest fully resolved, Dildo reward given", "set_by": "red_karim — after level_town/red_karim/complete ends", "read_by": ["red_karim", "green_karim"], "quest_id": "quest_red_karim", "quest_name": "Red Karim's Problem", "parallel_group": "", "is_active": false, "is_complete": true}}, "graph": {"nodes": [{"data": {"id": "event_brown_karim", "label": "Brown Karim Vanishes", "type": "event"}, "classes": "event"}, {"data": {"id": "key:brown_karim_vanished", "label": "brown_karim_vanished", "type": "state_key", "parent": "event_brown_karim", "meaning": "Brown Karim has permanently left the world", "subtype": "regular", "parallel_group": ""}, "classes": "state-key regular"}, {"data": {"id": "npc:brown_karim", "label": "brown_karim", "type": "npc", "role": "event"}, "classes": "npc"}, {"data": {"id": "quest_purple_karim", "label": "Purple Karim's Debt", "type": "quest"}, "classes": "quest"}, {"data": {"id": "key:quest_purple_karim_active", "label": "quest_purple_karim_active", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Player accepted Purple Karim's debt delivery quest", "subtype": "active", "parallel_group": ""}, "classes": "state-key active"}, {"data": {"id": "key:hydra_body_1_gone", "label": "hydra_body_1_gone", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Hydra Body 1 has been dismissed and removed", "subtype": "regular", "parallel_group": "hydra_bodies"}, "classes": "state-key regular"}, {"data": {"id": "key:hydra_body_2_gone", "label": "hydra_body_2_gone", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Hydra Body 2 has been dismissed and removed", "subtype": "regular", "parallel_group": "hydra_bodies"}, "classes": "state-key regular"}, {"data": {"id": "key:hydra_body_3_gone", "label": "hydra_body_3_gone", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Hydra Body 3 has been dismissed and removed", "subtype": "regular", "parallel_group": "hydra_bodies"}, "classes": "state-key regular"}, {"data": {"id": "key:three_headed_karim_paid", "label": "three_headed_karim_paid", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Payment delivered to Hydra Karim; player should return to Purple Karim", "subtype": "regular", "parallel_group": ""}, "classes": "state-key regular"}, {"data": {"id": "key:quest_purple_karim_complete", "label": "quest_purple_karim_complete", "type": "state_key", "parent": "quest_purple_karim", "meaning": "Quest fully resolved, Vibrator reward given", "subtype": "complete", "parallel_group": ""}, "classes": "state-key complete"}, {"data": {"id": "npc:purple_karim", "label": "purple_karim", "type": "npc", "role": "giver"}, "classes": "npc"}, {"data": {"id": "npc:hydra_body_1", "label": "hydra_body_1", "type": "npc", "role": "target"}, "classes": "npc"}, {"data": {"id": "npc:hydra_body_2", "label": "hydra_body_2", "type": "npc", "role": "target"}, "classes": "npc"}, {"data": {"id": "npc:hydra_body_3", "label": "hydra_body_3", "type": "npc", "role": "target"}, "classes": "npc"}, {"data": {"id": "npc:three_headed_karim", "label": "three_headed_karim", "type": "npc", "role": "boss"}, "classes": "npc"}, {"data": {"id": "reward:quest_purple_karim", "label": "Vibrator", "type": "reward", "parent": "quest_purple_karim"}, "classes": "reward"}, {"data": {"id": "quest_red_karim", "label": "Red Karim's Problem", "type": "quest"}, "classes": "quest"}, {"data": {"id": "key:quest_red_karim_accepted", "label": "quest_red_karim_accepted", "type": "state_key", "parent": "quest_red_karim", "meaning": "Player agreed to help Red Karim silence Green Karim", "subtype": "active", "parallel_group": ""}, "classes": "state-key active"}, {"data": {"id": "key:quest_green_karim_confronted", "label": "quest_green_karim_confronted", "type": "state_key", "parent": "quest_red_karim", "meaning": "Player has spoken to Green Karim about the complaint", "subtype": "regular", "parallel_group": ""}, "classes": "state-key regular"}, {"data": {"id": "key:quest_red_karim_complete", "label": "quest_red_karim_complete", "type": "state_key", "parent": "quest_red_karim", "meaning": "Quest fully resolved, Dildo reward given", "subtype": "complete", "parallel_group": ""}, "classes": "state-key complete"}, {"data": {"id": "npc:red_karim", "label": "red_karim", "type": "npc", "role": "giver"}, "classes": "npc"}, {"data": {"id": "npc:green_karim", "label": "green_karim", "type": "npc", "role": "target"}, "classes": "npc"}, {"data": {"id": "reward:quest_red_karim", "label": "Dildo", "type": "reward", "parent": "quest_red_karim"}, "classes": "reward"}], "edges": [{"data": {"source": "npc:brown_karim", "target": "key:brown_karim_vanished", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:purple_karim", "target": "key:quest_purple_karim_active", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:purple_karim", "target": "key:quest_purple_karim_complete", "label": "sets", "etype": "sets"}}, {"data": {"source": "key:quest_purple_karim_complete", "target": "npc:purple_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:three_headed_karim_paid", "target": "npc:purple_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_purple_karim_active", "target": "npc:purple_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "npc:hydra_body_1", "target": "key:hydra_body_1_gone", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:hydra_body_2", "target": "key:hydra_body_2_gone", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:hydra_body_3", "target": "key:hydra_body_3_gone", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:three_headed_karim", "target": "key:three_headed_karim_paid", "label": "sets", "etype": "sets"}}, {"data": {"source": "key:quest_purple_karim_complete", "target": "reward:quest_purple_karim", "label": "unlocks", "etype": "unlocks"}}, {"data": {"source": "npc:red_karim", "target": "key:quest_red_karim_accepted", "label": "sets", "etype": "sets"}}, {"data": {"source": "npc:red_karim", "target": "key:quest_red_karim_complete", "label": "sets", "etype": "sets"}}, {"data": {"source": "key:quest_red_karim_complete", "target": "npc:red_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_green_karim_confronted", "target": "npc:red_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_red_karim_accepted", "target": "npc:red_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "npc:green_karim", "target": "key:quest_green_karim_confronted", "label": "sets", "etype": "sets"}}, {"data": {"source": "key:quest_red_karim_complete", "target": "npc:green_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_red_karim_accepted", "target": "npc:green_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_green_karim_confronted", "target": "npc:green_karim", "label": "enables", "etype": "condition"}}, {"data": {"source": "key:quest_red_karim_complete", "target": "reward:quest_red_karim", "label": "unlocks", "etype": "unlocks"}}]}};</script>
+<script>window.PW_HASH="62655df588bc4dcc";</script>
+<script>
+async function hashPw(pw){
+  const enc=new TextEncoder().encode(pw);
+  const buf=await crypto.subtle.digest('SHA-256',enc);
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,16);
+}
+async function checkGate(){
+  const hash=window.PW_HASH;
+  if(!hash){document.getElementById('main-app').style.display='';return}
+  const stored=localStorage.getItem('gamebible_auth');
+  if(stored===hash){document.getElementById('main-app').style.display='';return}
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('gate-btn').onclick=async function(){
+    const input=document.getElementById('gate-input').value;
+    const h=await hashPw(input);
+    if(h===hash){
+      localStorage.setItem('gamebible_auth',hash);
+      document.getElementById('gate').style.display='none';
+      document.getElementById('main-app').style.display='';
+    }else{
+      document.getElementById('gate-error').textContent='Wrong password.';
+    }
+  };
+  document.getElementById('gate-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('gate-btn').click()});
+}
+checkGate();
+</script>
+<script>
+const D = window.GAME_DATA;
+const VIEWS = {overview:renderOverview,graph:renderGraph,quests:renderQuests,npcs:renderNPCs,keys:renderKeys,world:renderWorld};
+let searchIndex = [];
+let currentView = 'overview';
+
+function esc(s){const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+function keyChip(k,extra){
+  extra=extra||'';
+  const sk=D.state_keys[k];
+  let cls='kc';
+  if(sk){if(sk.is_active)cls+=' kc-active';if(sk.is_complete)cls+=' kc-complete'}
+  if(extra)cls+=' '+extra;
+  return '<a class="'+cls+'" href="#keys/'+esc(k)+'" onclick="event.stopPropagation()">'+esc(k)+'</a>';
+}
+function npcLink(id){return '<a class="npc-name" href="#npcs/'+esc(id)+'" onclick="event.stopPropagation()">'+esc(id)+'</a>'}
+
+function navigate(view,sub){
+  currentView=view;
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.dataset.view===view)});
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  if(VIEWS[view])VIEWS[view](app,sub);
+}
+function toggleCard(el){el.closest('.card').classList.toggle('open')}
+
+/* ---- Search ---- */
+function buildSearchIndex(){
+  searchIndex=[];
+  for(const[qid,q]of Object.entries(D.quests)){
+    const parts=[q.name||'',qid,q.level||'',q.description||'',q.active_key||'',q.complete_key||''];
+    (q.state_keys||[]).forEach(function(sk){parts.push(sk.key,sk.meaning||'')});
+    for(const nid of Object.keys(q.npcs||{}))parts.push(nid);
+    const r=q.reward||{};if(r.item_id)parts.push(r.item_id);
+    searchIndex.push({type:'quest',id:qid,text:parts.join(' ').toLowerCase(),hash:'#quests/'+qid,title:q.name||qid,sub:q.type+' — '+(q.level||'')});
+  }
+  for(const[nid,np]of Object.entries(D.npc_profiles)){
+    searchIndex.push({type:'npc',id:nid,text:[nid,np.role,...np.quest_ids,...np.dialog_ids].join(' ').toLowerCase(),hash:'#npcs/'+nid,title:nid,sub:np.role});
+  }
+  for(const[k,info]of Object.entries(D.state_keys)){
+    searchIndex.push({type:'key',id:k,text:[k,info.meaning,info.set_by,...info.read_by].join(' ').toLowerCase(),hash:'#keys/'+k,title:k,sub:info.meaning});
+  }
+  for(const[did,dl]of Object.entries(D.dialogs)){
+    const lt=(dl.lines||[]).map(function(l){return l.text}).join(' ');
+    searchIndex.push({type:'dialog',id:did,text:[did,dl.description||'',lt].join(' ').toLowerCase(),hash:'#quests',title:did,sub:dl.description||''});
+  }
+}
+function onSearch(e){
+  const q=e.target.value.toLowerCase().trim();
+  const box=document.getElementById('search-results');
+  if(!q){box.classList.remove('open');return}
+  const matches=searchIndex.filter(function(r){return r.text.indexOf(q)!==-1}).slice(0,15);
+  if(!matches.length){box.classList.remove('open');return}
+  const groups={};
+  matches.forEach(function(m){if(!groups[m.type])groups[m.type]=[];groups[m.type].push(m)});
+  let html='';
+  for(const[type,items]of Object.entries(groups)){
+    html+='<div class="sr-group"><div class="sr-group-label">'+esc(type)+'s</div>';
+    items.forEach(function(item){
+      html+='<div class="sr-item" onclick="location.hash=\''+item.hash+'\';document.getElementById(\'search-results\').classList.remove(\'open\');document.getElementById(\'search-box\').value=\'\'">';
+      html+='<span class="sr-item-title">'+esc(item.title)+'</span><span class="sr-item-sub">'+esc(item.sub)+'</span></div>';
+    });
+    html+='</div>';
+  }
+  box.innerHTML=html;
+  box.classList.add('open');
+}
+
+/* ---- Action renderer (shared) ---- */
+function renderAction(a,depth){
+  depth=depth||0;
+  const pad='&nbsp;'.repeat(depth*4);
+  const act=a.action||'?';
+  if(act==='set_key')return '<div class="act">'+pad+'<span class="act-kw">set_key</span> '+keyChip(a.key)+'</div>';
+  if(act==='item_popup'){
+    const dl=a.delay?(' <span class="act-meta">delay '+a.delay+'s</span>'):'';
+    return '<div class="act">'+pad+'<span class="act-kw">item_popup</span> <span class="act-item">'+esc(a.item_id)+'</span>'+dl+'</div>';
+  }
+  if(act==='play_dialog')return '<div class="act">'+pad+'<span class="act-kw">play_dialog</span> <span class="act-dialog">'+esc(a.dialog)+'</span></div>';
+  if(act==='fade_and_remove'){
+    const extra=a.slide_x?', slide_x='+a.slide_x:'';
+    return '<div class="act">'+pad+'<span class="act-kw">fade_and_remove</span> <span class="act-meta">'+(a.duration||'?')+'s'+extra+'</span></div>';
+  }
+  if(act==='choice_panel'){
+    const dl=a.delay?(' <span class="act-meta">delay '+a.delay+'s</span>'):'';
+    let h='<div class="act">'+pad+'<span class="act-kw">choice_panel</span> <span class="act-meta">&ldquo;'+esc(a.prompt)+'&rdquo;</span>'+dl+'</div>';
+    (a.choices||[]).forEach(function(ch,i){
+      const branch=i===0?'on_accept':'on_decline';
+      h+='<div class="act act-branch">'+pad+'&nbsp;&nbsp;<span class="act-branch-label">['+i+'] '+esc(ch)+'</span></div>';
+      (a[branch]||[]).forEach(function(sub){h+=renderAction(sub,depth+2)});
+    });
+    return h;
+  }
+  return '<div class="act">'+pad+'<span class="act-kw">'+esc(act)+'</span></div>';
+}
+
+/* ---- Overview ---- */
+function renderOverview(app){
+  const m=D.meta;
+  let h='<div class="view-title">Game Bible Overview</div>';
+  h+='<div class="stat-grid">';
+  h+='<div class="stat-card" onclick="navigate(\'quests\')"><div class="stat-value">'+m.quest_count+'</div><div class="stat-label">Quests</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'quests\')"><div class="stat-value">'+m.event_count+'</div><div class="stat-label">Events</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'npcs\')"><div class="stat-value">'+m.npc_count+'</div><div class="stat-label">NPCs</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'keys\')"><div class="stat-value">'+m.state_key_count+'</div><div class="stat-label">State Keys</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.dialog_count+'</div><div class="stat-label">Dialogs</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.level_count+'</div><div class="stat-label">Levels</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.achievement_count+'</div><div class="stat-label">Achievements</div></div>';
+  const shopTotal=D.items.shop.reduce(function(s,i){return s+(i.cost||0)},0);
+  h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+shopTotal+'</div><div class="stat-label">Total Shop Cost</div></div>';
+  h+='</div>';
+  // Quest summary list
+  h+='<div class="overview-quests"><h3>Quest & Event Summary</h3>';
+  const sorted=Object.values(D.quests).sort(function(a,b){return(a.type==='quest'?0:1)-(b.type==='quest'?0:1)||a.name.localeCompare(b.name)});
+  sorted.forEach(function(q){
+    const badge=q.type==='quest'?'<span class="badge badge-quest">quest</span>':'<span class="badge badge-event">event</span>';
+    const reward=q.reward&&q.reward.item_id?(' &rarr; <span class="reward-item">'+esc(q.reward.item_id)+'</span>'):'';
+    h+='<div class="oq-item" onclick="location.hash=\'#quests/'+esc(q.id)+'\'">';
+    h+='<span class="oq-name">'+esc(q.name)+'</span>'+badge;
+    h+='<span class="oq-desc">'+esc(q.level||'')+reward+'</span></div>';
+  });
+  h+='</div>';
+  app.innerHTML=h;
+}
+
+/* ---- Quest Graph ---- */
+function renderGraph(app,sub){
+  let h='<div class="view-title">Quest Dependency Graph</div>';
+  h+='<div class="graph-controls">';
+  h+='<button class="graph-btn" id="graph-fit">Fit to View</button>';
+  h+='<button class="graph-btn" id="graph-dagre">Hierarchical Layout</button>';
+  h+='<button class="graph-btn" id="graph-cose">Force Layout</button>';
+  h+='</div>';
+  h+='<div id="cy"></div>';
+  h+='<div class="graph-detail" id="graph-detail"><button class="graph-detail-close" onclick="document.getElementById(\'graph-detail\').classList.remove(\'open\')">&times;</button><div id="graph-detail-content"></div></div>';
+  app.innerHTML=h;
+  if(typeof cytoscape==='undefined'){
+    document.getElementById('cy').innerHTML='<div style="padding:40px;text-align:center;color:var(--text-3)">Graph library not loaded. Connect to the internet to use the interactive graph.<br><br>CDN: cytoscape.js + dagre</div>';
+    return;
+  }
+  const cy=cytoscape({
+    container:document.getElementById('cy'),
+    elements:D.graph.nodes.concat(D.graph.edges),
+    style:[
+      {selector:'.quest',style:{'background-color':'#1e3a5f','border-color':'#3b82f6','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#93c5fd','font-size':11,'padding':20,'shape':'round-rectangle'}},
+      {selector:'.event',style:{'background-color':'#3d2800','border-color':'#f59e0b','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#fde68a','font-size':11,'padding':20,'shape':'round-rectangle'}},
+      {selector:'.state-key',style:{'shape':'round-rectangle','background-color':'#1f2937','border-color':'#4b5563','border-width':1,'label':'data(label)','color':'#93c5fd','font-size':8,'width':'label','height':22,'padding':6,'text-max-width':120}},
+      {selector:'.active',style:{'border-color':'#f59e0b'}},
+      {selector:'.complete',style:{'border-color':'#22c55e'}},
+      {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':1,'label':'data(label)','color':'#e9d5ff','font-size':9,'width':55,'height':35}},
+      {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':9,'width':45,'height':45}},
+      {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#64748b','label':'data(label)','text-opacity':0.7}},
+      {selector:'edge[etype="prerequisite"]',style:{'line-style':'dashed','line-color':'#f59e0b','target-arrow-color':'#f59e0b','width':2}},
+      {selector:'edge[etype="condition"]',style:{'line-style':'dotted','line-color':'#64748b','width':1}},
+      {selector:'edge[etype="unlocks"]',style:{'line-color':'#22c55e','target-arrow-color':'#22c55e'}},
+      {selector:':selected',style:{'border-width':3,'border-color':'#3b82f6'}},
+    ],
+    layout:{name:'preset'},
+    wheelSensitivity:0.3,
+  });
+  function runDagre(){
+    if(typeof cytoscapeDagre!=='undefined'||cy.layout({name:'dagre'}).options){
+      cy.layout({name:'dagre',rankDir:'LR',nodeSep:25,rankSep:60,edgeSep:10,animate:true,animationDuration:300}).run();
+    }
+  }
+  function runCose(){cy.layout({name:'cose',animate:true,animationDuration:300,nodeRepulsion:function(){return 8000},idealEdgeLength:function(){return 80}}).run()}
+  try{runDagre()}catch(e){runCose()}
+  document.getElementById('graph-fit').onclick=function(){cy.fit(null,30)};
+  document.getElementById('graph-dagre').onclick=function(){try{runDagre()}catch(e){runCose()}};
+  document.getElementById('graph-cose').onclick=runCose;
+  cy.on('tap','node',function(evt){
+    const d=evt.target.data();
+    const panel=document.getElementById('graph-detail');
+    const content=document.getElementById('graph-detail-content');
+    let h='<h3>'+esc(d.label||d.id)+'</h3>';
+    h+='<div class="row"><span class="row-label">Type</span><span class="row-value">'+esc(d.type)+'</span></div>';
+    if(d.type==='state_key'){
+      const sk=D.state_keys[d.label];
+      if(sk){
+        h+='<div class="row"><span class="row-label">Quest</span><span class="row-value">'+esc(sk.quest_name)+'</span></div>';
+        h+='<div class="row"><span class="row-label">Meaning</span><span class="row-value">'+esc(sk.meaning)+'</span></div>';
+        h+='<div class="row"><span class="row-label">Set by</span><span class="row-value">'+esc(sk.set_by)+'</span></div>';
+        if(sk.read_by.length)h+='<div class="row"><span class="row-label">Read by</span><span class="row-value">'+sk.read_by.map(function(n){return esc(n)}).join(', ')+'</span></div>';
+      }
+    }else if(d.type==='npc'){
+      const np=D.npc_profiles[d.label];
+      if(np){
+        h+='<div class="row"><span class="row-label">Role</span><span class="row-value">'+esc(np.role)+'</span></div>';
+        if(np.voice_pitch!=null)h+='<div class="row"><span class="row-label">Voice</span><span class="row-value">'+np.voice_pitch+'</span></div>';
+        h+='<div class="row"><span class="row-label">Quests</span><span class="row-value">'+np.quest_ids.map(function(q){return esc(q)}).join(', ')+'</span></div>';
+        h+='<div class="row"><span class="row-label">Dialogs</span><span class="row-value">'+np.dialog_ids.length+'</span></div>';
+      }
+    }else if(d.type==='quest'||d.type==='event'){
+      const q=D.quests[d.id];
+      if(q){
+        h+='<div class="row"><span class="row-label">Level</span><span class="row-value">'+esc(q.level||'')+'</span></div>';
+        if(q.reward&&q.reward.item_id)h+='<div class="row"><span class="row-label">Reward</span><span class="row-value reward-item">'+esc(q.reward.item_id)+'</span></div>';
+        h+='<div class="row"><span class="row-label">NPCs</span><span class="row-value">'+Object.keys(q.npcs||{}).join(', ')+'</span></div>';
+      }
+    }
+    content.innerHTML=h;
+    panel.classList.add('open');
+  });
+  if(sub){
+    const node=cy.getElementById(sub);
+    if(node.length){cy.animate({center:{eles:node},zoom:1.5},300);node.select()}
+  }
+}
+
+/* ---- Quests ---- */
+function renderQuests(app,sub){
+  let h='<div class="view-title">Quests & Events</div>';
+  h+='<div class="filter-bar">';
+  h+='<button class="filter-btn active" data-f="all" onclick="filterQuests(this)">All</button>';
+  h+='<button class="filter-btn" data-f="quest" onclick="filterQuests(this)">Quests</button>';
+  h+='<button class="filter-btn" data-f="event" onclick="filterQuests(this)">Events</button>';
+  h+='</div>';
+  h+='<div class="card-grid" id="quest-cards">';
+  const sorted=Object.values(D.quests).sort(function(a,b){return(a.type==='quest'?0:1)-(b.type==='quest'?0:1)||a.name.localeCompare(b.name)});
+  sorted.forEach(function(q){
+    const qid=q.id;const qtype=q.type||'quest';const open=sub===qid?' open':'';
+    h+='<div class="card card-'+qtype+open+'" data-qtype="'+qtype+'" id="q-'+esc(qid)+'">';
+    h+='<div class="card-hdr" onclick="toggleCard(this)">';
+    h+='<div><div class="card-name">'+esc(q.name||qid)+'</div><div class="card-id">'+esc(qid)+'</div></div>';
+    h+='<div class="card-badges"><span class="badge badge-'+qtype+'">'+qtype+'</span><span class="chevron">&#9654;</span></div></div>';
+    h+='<div class="card-body">';
+    // Basics
+    h+='<div class="sec"><div class="sec-title">Basics</div>';
+    h+='<div class="row"><span class="row-label">Level</span><span class="row-value">'+esc(q.level||'?')+'</span></div>';
+    if(q.secondary_levels&&q.secondary_levels.length)h+='<div class="row"><span class="row-label">Also</span><span class="row-value">'+esc(q.secondary_levels.join(', '))+'</span></div>';
+    const reward=q.reward&&q.reward.item_id?'<span class="reward-item">'+esc(q.reward.item_id)+'</span>':'<span class="muted">none</span>';
+    h+='<div class="row"><span class="row-label">Reward</span><span class="row-value">'+reward+'</span></div>';
+    if(q.prerequisites&&q.prerequisites.length)h+='<div class="row"><span class="row-label">Prereqs</span><span class="row-value">'+q.prerequisites.map(function(p){return keyChip(p)}).join('')+'</span></div>';
+    h+='</div>';
+    // Quest keys
+    if(q.active_key||q.complete_key){
+      h+='<div class="sec"><div class="sec-title">Quest Keys</div>';
+      if(q.active_key)h+='<div class="row"><span class="row-label">Active</span><span class="row-value">'+keyChip(q.active_key,'kc-active')+'</span></div>';
+      if(q.complete_key)h+='<div class="row"><span class="row-label">Complete</span><span class="row-value">'+keyChip(q.complete_key,'kc-complete')+'</span></div>';
+      h+='</div>';
+    }
+    // NPCs
+    const npcs=q.npcs||{};
+    if(Object.keys(npcs).length){
+      h+='<div class="sec"><div class="sec-title">NPCs ('+Object.keys(npcs).length+')</div>';
+      for(const[nid,nd]of Object.entries(npcs)){
+        h+='<div class="npc-block"><div class="npc-hdr">'+npcLink(nid)+' <span class="npc-role">'+esc(nd.role||'')+'</span></div>';
+        // Dialog selection
+        if(nd.dialog_selection&&nd.dialog_selection.length){
+          h+='<div class="sub-t">dialog selection</div>';
+          nd.dialog_selection.forEach(function(entry){
+            const req=entry.requires||{};const did=entry.dialog||'?';
+            if(Object.keys(req).length){
+              const conds=Object.entries(req).map(function(e){return e[0]+'='+e[1]}).join(', ');
+              h+='<div class="sel-row"><span class="sel-cond">['+esc(conds)+']</span> &rarr; <span class="act-dialog">'+esc(did)+'</span></div>';
+            }else{
+              h+='<div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">'+esc(did)+'</span></div>';
+            }
+          });
+        }
+        // On dialog end
+        const onEnd=nd.on_dialog_end||{};
+        if(Object.keys(onEnd).length){
+          h+='<div class="sub-t">on dialog end</div>';
+          for(const[did,actions]of Object.entries(onEnd)){
+            h+='<div class="on-end"><div class="on-end-trigger">after <span class="act-dialog">'+esc(did)+'</span>:</div>';
+            actions.forEach(function(a){h+=renderAction(a)});
+            h+='</div>';
+          }
+        }
+        // Dialog transcripts
+        const allDialogIds=[];
+        (nd.dialog_selection||[]).forEach(function(e){if(e.dialog&&allDialogIds.indexOf(e.dialog)===-1)allDialogIds.push(e.dialog)});
+        Object.keys(onEnd).forEach(function(d){if(allDialogIds.indexOf(d)===-1)allDialogIds.push(d)});
+        const hasTranscripts=allDialogIds.some(function(did){return D.dialogs[did]&&D.dialogs[did].lines.length>0});
+        if(hasTranscripts){
+          h+='<div class="sub-t">dialog transcripts</div>';
+          allDialogIds.forEach(function(did){
+            const dl=D.dialogs[did];
+            if(!dl||!dl.lines.length)return;
+            h+='<div style="margin-bottom:6px"><span class="act-dialog" style="font-size:11px">'+esc(did)+'</span>';
+            if(dl.description)h+=' <span class="muted" style="font-size:10px">&mdash; '+esc(dl.description)+'</span>';
+            h+='<div class="transcript">';
+            dl.lines.forEach(function(line){
+              h+='<div class="dl-line"><div class="dl-char">'+esc(line.character)+'</div><div class="dl-text">'+esc(line.text)+'</div></div>';
+            });
+            h+='</div></div>';
+          });
+        }
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+    // State keys
+    const sks=q.state_keys||[];
+    if(sks.length){
+      h+='<div class="sec"><div class="sec-title">State Keys ('+sks.length+')</div>';
+      sks.forEach(function(sk){
+        const pg=sk.parallel_group?' <span class="muted">[parallel: '+esc(sk.parallel_group)+']</span>':'';
+        h+='<div style="margin-bottom:6px"><div>'+keyChip(sk.key)+pg+'</div>';
+        h+='<div style="color:var(--text-3);font-size:11px;padding-left:8px;margin-top:2px">'+esc(sk.meaning||'')+'</div>';
+        h+='<div style="color:var(--text-3);font-size:10px;padding-left:8px">'+esc(sk.set_by||'')+'</div></div>';
+      });
+      h+='</div>';
+    }
+    h+='</div></div>';
+  });
+  h+='</div>';
+  app.innerHTML=h;
+  if(sub){const el=document.getElementById('q-'+sub);if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'center'})}}
+}
+window.filterQuests=function(btn){
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  const f=btn.dataset.f;
+  document.querySelectorAll('#quest-cards .card').forEach(function(c){
+    c.style.display=(f==='all'||c.dataset.qtype===f)?'':'none';
+  });
+};
+
+/* ---- NPCs ---- */
+function renderNPCs(app,sub){
+  let h='<div class="view-title">NPC Profiles</div><div class="card-grid">';
+  const sorted=Object.entries(D.npc_profiles).sort(function(a,b){return a[0].localeCompare(b[0])});
+  sorted.forEach(function(entry){
+    const nid=entry[0],np=entry[1];
+    const open=sub===nid?' open':'';
+    h+='<div class="card'+open+'" id="npc-'+esc(nid)+'">';
+    h+='<div class="card-hdr" onclick="toggleCard(this)">';
+    h+='<div><div class="card-name" style="color:var(--purple)">'+esc(nid)+'</div><div class="card-id">'+esc(np.role)+'</div></div>';
+    h+='<div class="card-badges"><span class="badge badge-role">'+esc(np.role)+'</span><span class="chevron">&#9654;</span></div></div>';
+    h+='<div class="card-body">';
+    h+='<div class="sec"><div class="sec-title">Profile</div>';
+    if(np.voice_pitch!=null)h+='<div class="row"><span class="row-label">Voice Pitch</span><span class="row-value">'+np.voice_pitch+'</span></div>';
+    h+='<div class="row"><span class="row-label">Quests</span><span class="row-value">'+np.quest_ids.map(function(q){return '<a href="#quests/'+esc(q)+'" style="color:var(--blue);text-decoration:none" onclick="event.stopPropagation()">'+esc(q)+'</a>'}).join(', ')+'</span></div>';
+    h+='<div class="row"><span class="row-label">Dialogs</span><span class="row-value">'+np.dialog_ids.length+'</span></div>';
+    h+='</div>';
+    if(np.state_keys_set.length){
+      h+='<div class="sec"><div class="sec-title">Sets Keys</div><div>'+np.state_keys_set.map(function(k){return keyChip(k)}).join(' ')+'</div></div>';
+    }
+    if(np.state_keys_read.length){
+      h+='<div class="sec"><div class="sec-title">Reads Keys</div><div>'+np.state_keys_read.map(function(k){return keyChip(k)}).join(' ')+'</div></div>';
+    }
+    if(np.dialog_ids.length){
+      h+='<div class="sec"><div class="sec-title">All Dialogs</div>';
+      np.dialog_ids.forEach(function(did){
+        const dl=D.dialogs[did];
+        h+='<div style="margin-bottom:4px"><span class="act-dialog" style="font-size:12px">'+esc(did)+'</span>';
+        if(dl){
+          h+=' <span class="muted" style="font-size:10px">('+dl.line_count+' lines'+(dl.one_shot?', one-shot':'')+') '+esc(dl.description||'')+'</span>';
+        }
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div></div>';
+  });
+  h+='</div>';
+  app.innerHTML=h;
+  if(sub){const el=document.getElementById('npc-'+sub);if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'center'})}}
+}
+
+/* ---- State Keys ---- */
+function renderKeys(app,sub){
+  let h='<div class="view-title">State Keys</div>';
+  h+='<div class="filter-bar">';
+  h+='<button class="filter-btn active" data-f="all" onclick="filterKeys(this)">All</button>';
+  h+='<button class="filter-btn" data-f="active" onclick="filterKeys(this)">Active Keys</button>';
+  h+='<button class="filter-btn" data-f="complete" onclick="filterKeys(this)">Complete Keys</button>';
+  h+='<button class="filter-btn" data-f="regular" onclick="filterKeys(this)">Regular</button>';
+  h+='</div>';
+  h+='<table class="sk-table"><thead><tr>';
+  h+='<th>Key</th><th>Quest</th><th>Set By</th><th>Read By</th><th>Meaning</th>';
+  h+='</tr></thead><tbody id="sk-body">';
+  const sorted=Object.entries(D.state_keys).sort(function(a,b){return a[0].localeCompare(b[0])});
+  sorted.forEach(function(entry){
+    const k=entry[0],info=entry[1];
+    const subtype=info.is_active?'active':(info.is_complete?'complete':'regular');
+    const highlight=sub===k?' style="background:var(--bg-2)"':'';
+    h+='<tr data-subtype="'+subtype+'" id="sk-'+esc(k)+'"'+highlight+'>';
+    h+='<td>'+keyChip(k)+'</td>';
+    h+='<td><a href="#quests/'+esc(info.quest_id)+'" style="color:var(--blue);text-decoration:none">'+esc(info.quest_name)+'</a></td>';
+    h+='<td style="font-size:11px">'+esc(info.set_by)+'</td>';
+    h+='<td>'+info.read_by.map(function(n){return npcLink(n)}).join(', ')+'</td>';
+    h+='<td style="color:var(--text-3);font-size:11px">'+esc(info.meaning)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  app.innerHTML=h;
+  if(sub){const el=document.getElementById('sk-'+sub);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}
+}
+window.filterKeys=function(btn){
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  const f=btn.dataset.f;
+  document.querySelectorAll('#sk-body tr').forEach(function(r){
+    r.style.display=(f==='all'||r.dataset.subtype===f)?'':'none';
+  });
+};
+
+/* ---- World ---- */
+function renderWorld(app){
+  let h='<div class="view-title">World</div>';
+  // Levels
+  h+='<div class="world-section"><h3>Levels ('+D.levels.length+')</h3>';
+  if(D.levels.length){
+    h+='<table class="w-table"><thead><tr><th>ID</th><th>Title</th><th>Scene</th><th>Connections</th><th>Requires</th><th>Status</th></tr></thead><tbody>';
+    D.levels.forEach(function(lv){
+      const hasScene=lv.scene&&lv.scene!=='';
+      const status=hasScene?'<span class="implemented">Implemented</span>':'<span class="placeholder">Placeholder</span>';
+      h+='<tr><td style="font-family:monospace;font-size:12px">'+esc(lv.id||'')+'</td>';
+      h+='<td>'+esc(lv.title||'')+'</td>';
+      h+='<td style="font-size:11px;color:var(--text-3)">'+esc(lv.scene||'(none)')+'</td>';
+      h+='<td style="font-size:12px">'+(lv.connections||[]).join(', ')+'</td>';
+      h+='<td style="font-size:12px">'+(lv.unlock_requires||'(always)')+'</td>';
+      h+='<td>'+status+'</td></tr>';
+    });
+    h+='</tbody></table>';
+  }else{h+='<div class="muted">No level data parsed.</div>'}
+  h+='</div>';
+  // Shop items
+  h+='<div class="world-section"><h3>Shop Items ('+D.items.shop.length+')</h3>';
+  if(D.items.shop.length){
+    h+='<div class="item-grid">';
+    D.items.shop.forEach(function(item){
+      h+='<div class="item-card"><div class="item-name">'+esc(item.name||item.id)+'</div>';
+      if(item.desc)h+='<div class="item-desc">'+esc(item.desc)+'</div>';
+      if(item.cost!=null)h+='<div class="item-cost">'+item.cost+' coins</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }else{h+='<div class="muted">No shop data parsed.</div>'}
+  h+='</div>';
+  // Collectibles
+  const allItems=D.items.all||{};
+  const collectKeys=Object.keys(allItems);
+  if(collectKeys.length){
+    h+='<div class="world-section"><h3>Collectible Items ('+collectKeys.length+')</h3>';
+    h+='<div class="item-grid">';
+    collectKeys.forEach(function(k){
+      const item=allItems[k];
+      h+='<div class="item-card"><div class="item-name">'+esc(item.name||item.id)+'</div></div>';
+    });
+    h+='</div></div>';
+  }
+  // Achievements
+  h+='<div class="world-section"><h3>Achievements ('+D.achievements.length+')</h3>';
+  if(D.achievements.length){
+    h+='<div class="item-grid">';
+    D.achievements.forEach(function(ach){
+      const cls=ach.hidden?'item-card ach-hidden':'item-card';
+      h+='<div class="'+cls+'"><div class="item-name">'+esc(ach.title||ach.id)+'</div>';
+      h+='<div class="item-desc">'+esc(ach.description||'')+'</div>';
+      if(ach.hidden)h+='<div style="color:var(--text-3);font-size:10px;margin-top:4px">Hidden achievement</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }else{h+='<div class="muted">No achievement data parsed.</div>'}
+  h+='</div>';
+  app.innerHTML=h;
+}
+
+/* ---- Init ---- */
+function init(){
+  buildSearchIndex();
+  document.getElementById('search-box').addEventListener('input',onSearch);
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.search-wrap'))document.getElementById('search-results').classList.remove('open');
+  });
+  window.addEventListener('hashchange',function(){
+    const hash=location.hash.slice(1)||'overview';
+    const parts=hash.split('/');
+    navigate(parts[0],parts.slice(1).join('/'));
+  });
+  const hash=location.hash.slice(1)||'overview';
+  const parts=hash.split('/');
+  navigate(parts[0],parts.slice(1).join('/'));
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

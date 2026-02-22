@@ -29,6 +29,7 @@ godot_port/build/
 
 # Secrets
 .env
+.dashboard_password
 
 # Claude Code worktrees
 .claude/worktrees/
