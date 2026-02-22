@@ -22,14 +22,15 @@ Boot → MenuScene → LevelSelectScene → GameScene (loads selected level + Pl
 ```
 godot_port/
 ├── project.godot
-├── core/                              # All autoloads + infrastructure (9 scripts + 1 scene)
+├── core/                              # All autoloads + infrastructure (10 scripts + 1 scene)
 │   ├── AudioManager.gd                # Autoload: music A/B crossfade + SFX playback
 │   ├── Constants.gd                   # Physics values + APP_VERSION
+│   ├── DayNightCycle.gd               # Autoload: time_of_day 0-1 float, 5-min cycle
 │   ├── DebugOverlay.tscn              # Autoload scene: CanvasLayer → Panel → Label
-│   ├── DebugOverlay.gd                # Autoload: toggleable F3 overlay (state, velocity, FPS, fuel)
+│   ├── DebugOverlay.gd                # Autoload: toggleable F3 overlay (state, velocity, FPS, fuel, time_of_day)
 │   ├── DragonFlyby.gd                 # Autoload: Karim fly-by (persists across menu scenes)
 │   ├── EventBus.gd                    # Autoload: signal relay
-│   ├── GameData.gd                    # Autoload: session data (selected level, etc.)
+│   ├── GameData.gd                    # Autoload: session data (selected level, town_player_position, etc.)
 │   ├── SceneTransition.gd             # Autoload: fade-to-black scene transitions
 │   ├── SettingsManager.gd             # Autoload: audio/display settings persistence
 │   └── VersionChecker.gd              # Static utility: HTTP version check + semver compare
@@ -39,7 +40,8 @@ godot_port/
 │   ├── DialogLine.gd                  # class_name DialogLine extends Resource
 │   ├── DialogSequence.gd              # class_name DialogSequence (description, one_shot, lines[])
 │   ├── ItemDefs.gd                    # Static item definitions (composited sprite sheet paths)
-│   ├── LevelDefs.gd                   # 5 levels, constellation positions, connections
+│   ├── LevelDefs.gd                   # 7 levels, constellation positions, connections
+│   ├── QuestDefs.gd                   # Static quest registry (id, name, reward, description, active/complete keys)
 │   └── ProgressData.gd                # Stats/achievements/level-completion persistence
 ├── player/                            # Player: scene + script + states + sprites (co-located)
 │   ├── Player.tscn                    # AnimatedSprite2D + EquipmentSprite + StateMachine, CapsuleShape2D
@@ -66,6 +68,29 @@ godot_port/
 │       ├── testlevel2.ldtk            # LDtk source file
 │       ├── levels/AutoLayer.scn       # LDtk-generated
 │       └── tilesets/tileset_8px.res   # LDtk-generated
+│   └── level_town/                    # Town Level — flat ground, 2200px wide, no LDtk
+│       ├── TownLevel.tscn             # Main town scene (6 houses, props, parallax, day/night)
+│       ├── TownController.gd          # @tool: pushes time_of_day to shaders, manual parallax
+│       ├── dialogs/                   # 18 dialog .tres files for 6 NPCs (incl. purple_karim/)
+│       ├── interiors/                 # House1Interior.tscn, House2Interior.tscn
+│       ├── props/                     # Bench, Tree, Fence, FlowerPot, StreetSign, Streetlight, House, GrassTuft (.tscn + .gd)
+│       └── ambient/                   # BirdFlock.gd, Bird.gd, WeatherController.tscn + .gd
+│   └── level_jungle/                  # Jungle Village — flat ground, 1600px wide, no LDtk
+│       ├── JungleLevel.tscn           # Main jungle scene (1 house, atmosphere, Hydra NPCs)
+│       ├── JungleLevelController.gd   # @tool: green atmosphere, quest-conditional NPC visibility
+│       ├── dialogs/                   # 4 dialog .tres files (hydra_body_1/2/3 + three_headed_karim)
+│       └── interiors/                 # JungleHouseInterior.tscn (Hydra Body 1 inside)
+├── npcs/                              # NPC system
+│   ├── NPC.tscn + NPC.gd             # Base NPC: Area2D, E-key interact, dialog_requested
+│   ├── Door.tscn + Door.gd           # Door: Area2D, E-key, emits door_entered
+│   ├── WanderingNPC.gd               # Random wander with bounds
+│   ├── BlueKarimNPC.gd               # Shopkeeper → ShopPanel
+│   ├── GreenKarimNPC.gd              # Soldier, quest-conditional dialog
+│   ├── RedKarimNPC.gd                # Quest giver → ChoicePanel → reward
+│   ├── BrownKarimNPC.gd              # Spooky → permanent vanish
+│   ├── PurpleKarimNPC.gd             # Quest giver → auto-accept → Vibrator reward
+│   ├── HydraBodyNPC.gd               # One of 3 Hydra Bodies — speaks once, fades, sets state_key
+│   └── ThreeHeadedKarimNPC.gd        # Merged Hydra form — appears after all bodies gone, fades after encounter
 ├── gates/                             # Progression gate system
 │   ├── ProgressionTrigger.tscn + .gd  # Area2D trigger (set gate_id in Inspector)
 │   └── ProgressionGate.tscn + .gd     # StaticBody2D blocker (draws colored rect, fades on signal)
@@ -91,12 +116,17 @@ godot_port/
 │   ├── dialog/
 │   │   ├── CinematicDialog.tscn + .gd # CanvasLayer dialog UI (typewriter, layer 15)
 │   │   ├── DialogTrigger.tscn + .gd   # Area2D trigger zone (set dialog_id in Inspector)
+│   │   └── ChoicePanel.tscn + .gd     # CanvasLayer overlay (layer 16, 2-4 buttons, pauses game)
+│   ├── shop/
+│   │   └── ShopPanel.tscn + .gd       # Placeholder shop overlay (pauses game)
 │   ├── popup/
 │   │   ├── ItemAcquiredPopup.tscn + .gd # CanvasLayer popup (scene-built UI, shader border + orbs, layer 12)
 │   ├── gameover/
 │   │   ├── GameOverScene.tscn + .gd   # Game over overlay (CanvasLayer layer 18, retry/quit)
+│   ├── quest_log/
+│   │   ├── QuestLogScene.tscn + .gd   # Quest log overlay (CanvasLayer layer 21, Q key, quest_log_requested signal)
 │   └── pause/
-│       ├── PauseScene.tscn + .gd      # Pause overlay (CanvasLayer layer 20)
+│       ├── PauseScene.tscn + .gd      # Pause overlay (CanvasLayer layer 20, includes QUEST LOG button)
 ├── items/                             # Collectibles (scene + script + sprites)
 │   ├── Pickup.tscn                    # Area2D world item (set item_id in Inspector)
 │   ├── Pickup.gd                      # E-key interact, proximity prompt, sparkles
@@ -108,7 +138,7 @@ godot_port/
 │   └── sprites/
 │       ├── ui/                        # HUD sprites: hearts, dash icons, item_frame
 │       └── karim/                     # Menu fly-by character
-├── shaders/                           # 8 shaders
+├── shaders/                           # 19 shaders
 │   ├── menu_background.gdshader       # Night sky with twinkling stars and aurora
 │   ├── menu_ground.gdshader           # Procedural blocky terrain silhouette
 │   ├── vignette.gdshader              # Radial edge darkening overlay
@@ -116,7 +146,18 @@ godot_port/
 │   ├── item_acquired.gdshader         # Animated glowing border for item popup
 │   ├── orb_glow.gdshader              # SDF orb with FBM noise + chromatic shift (blend_add)
 │   ├── game_over_title.gdshader       # Pulsing aura glow behind Game Over title (blend_add)
-│   └── portal.gdshader                # Swirl/vortex shader for level portals (polar UV rotation + FBM noise)
+│   ├── portal.gdshader                # Swirl/vortex shader for level portals (polar UV rotation + FBM noise)
+│   ├── town_sky.gdshader              # Gradient sky, sun/moon arcs, twinkling stars, FBM wisps
+│   ├── town_mountains.gdshader        # Blocky mountain silhouettes, time-of-day coloring
+│   ├── town_clouds.gdshader           # FBM cloud shapes, auto-drift, weather_darken uniform
+│   ├── town_ground.gdshader           # Soil texture: 4px block noise, pebbles, root streaks
+│   ├── streetlight_glow.gdshader      # SDF cone, blend_add, warm yellow, flicker
+│   ├── night_overlay.gdshader         # Semi-transparent dark blue overlay, darkness uniform
+│   ├── rain.gdshader                  # 3-layer pixel-art rain streaks (hash columns, wind shear)
+│   ├── snow.gdshader                  # 4-layer drifting snowflakes (sine drift, varying sizes)
+│   ├── rain_puddles.gdshader          # Ground puddle accumulation (wet patches + reflective pools)
+│   ├── snow_ground.gdshader           # Ground snow accumulation (noise-edged white layer)
+│   └── window_glow.gdshader           # Analytic radial glow for house windows (blend_add, UV-based)
 ├── tools/                             # Python utilities
 │   ├── generate_ui_sounds.py          # Procedural UI SFX (rocket_thrust.wav guarded by --all)
 │   ├── generate_flame_sprites.py      # Pillow: rocket_flame_4.png
@@ -127,13 +168,13 @@ godot_port/
 
 ## Distribution (itch.io)
 
-- **Current version**: 0.2.4
+- **Current version**: 0.2.6.5
 - **itch.io page**: `https://zyynx-hub.itch.io/platformer` (restricted, playtest access)
 - **GitHub repo**: `https://github.com/zyynx-hub/platformerv2` — only hosts `version.json` for update checks
 - **Version file**: `version.json` at repo root — remote check target (raw URL in Constants.gd)
 - **Push script**: `scripts/push_itch.sh` — headless export + butler push
 - **Version check**: `VersionChecker.gd` fetches `version.json` from GitHub on boot, shows "Update Available" in menu bottom-right if remote > local
-- **Version label**: Permanent "v0.2.4" label at menu bottom-left (always visible)
+- **Version label**: Permanent "v0.2.5" label at menu bottom-left (always visible)
 - **Build output**: `godot_port/build/` (gitignored)
 - **Update workflow**: bump `APP_VERSION` in Constants.gd → re-export in Godot → `butler push godot_port\build zyynx-hub/platformer:windows --userversion X.Y.Z` → update `version.json` on GitHub
 
@@ -154,7 +195,7 @@ godot_port/
 - **Scene-first construction**: ALL scene structure must be built in .tscn files using Godot's built-in nodes. Use `@onready var _x = %NodeName` for script refs. ShaderMaterials/LabelSettings as `[sub_resource]` in .tscn. Script ONLY for: dynamic particles, procedural loops, animation tweens, per-frame updates. Never build entire UIs programmatically via `.new()` + `add_child()`.
 - Godot hot-reloads scripts on F5 — no build step
 - Project gravity = 0; gravity applied manually in Player.gd
-- Seven autoloads (load order): EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay
+- Eight autoloads (load order): EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle
 - **Editor–runtime parity**: shaders embedded in .tscn, scripts use @tool for styling, `Engine.is_editor_hint()` guards runtime-only code. Editor preview must always match runtime.
 - User-built scene structure (do not change node hierarchy): Level1.tscn
 - Menu .tscn files may be edited for shader/material embedding and overlay nodes
@@ -166,6 +207,7 @@ godot_port/
 
 - [docs/status.md](docs/status.md) — what works, what's broken, what's next
 - [docs/decisions.md](docs/decisions.md) — architectural decision records
+- [docs/quest-flowchart.md](docs/quest-flowchart.md) — Town NPC quest flow (Mermaid diagram)
 - [docs/phaser-archive.md](docs/phaser-archive.md) — legacy Phaser build context
 
 ## Legacy

@@ -1,19 +1,36 @@
-[gd_scene load_steps=9 format=3 uid="uid://m8ci83fnnr2a"]
+[gd_scene format=3 uid="uid://m8ci83fnnr2a"]
 
-[ext_resource type="Script" path="res://ui/menus/OptionsScene.gd" id="1_jjaom"]
-[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="5_theme"]
-[ext_resource type="Shader" path="res://shaders/menu_background.gdshader" id="2_sky"]
-[ext_resource type="Shader" path="res://shaders/menu_ground.gdshader" id="3_gnd"]
-[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="4_vig"]
+[ext_resource type="Script" uid="uid://weomf7ef6cmc" path="res://ui/menus/OptionsScene.gd" id="1_jjaom"]
+[ext_resource type="Shader" uid="uid://bcsqk2ifryc64" path="res://shaders/menu_background.gdshader" id="2_sky"]
+[ext_resource type="Shader" uid="uid://darmpho3bg3ol" path="res://shaders/menu_ground.gdshader" id="3_gnd"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="4_vig"]
+[ext_resource type="Theme" uid="uid://vfyph3x3xxdf" path="res://ui/menus/NightSkyTheme.tres" id="5_theme"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("2_sky")
+shader_parameter/color_top = Color(0.02, 0.02, 0.08, 1)
+shader_parameter/color_horizon = Color(0.08, 0.06, 0.18, 1)
+shader_parameter/star_density = 60.0
+shader_parameter/star_brightness = 0.9
+shader_parameter/aurora_strength = 0.06
+shader_parameter/aurora_speed = 0.04
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gnd"]
 shader = ExtResource("3_gnd")
+shader_parameter/far_color = Color(0.06, 0.04, 0.14, 1)
+shader_parameter/near_color = Color(0.03, 0.02, 0.08, 1)
+shader_parameter/far_height = 0.45
+shader_parameter/near_height = 0.3
+shader_parameter/block_freq = 30.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vig"]
 shader = ExtResource("4_vig")
+shader_parameter/strength = 0.45
+shader_parameter/softness = 0.55
+shader_parameter/radius = 0.55
+shader_parameter/tint = Color(0.15, 0.05, 0.1, 1)
 
 [node name="OptionsScene" type="Control" unique_id=38726038]
 layout_mode = 3
@@ -26,17 +43,18 @@ theme = ExtResource("5_theme")
 script = ExtResource("1_jjaom")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=171719937]
+material = SubResource("ShaderMaterial_sky")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-material = SubResource("ShaderMaterial_sky")
 color = Color(0.1, 0.06, 0.16, 1)
 
-[node name="GroundOverlay" type="ColorRect" parent="."]
+[node name="GroundOverlay" type="ColorRect" parent="." unique_id=706866022]
 modulate = Color(1, 1, 1, 0.5)
+material = SubResource("ShaderMaterial_gnd")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -44,8 +62,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-material = SubResource("ShaderMaterial_gnd")
-color = Color(1, 1, 1, 1)
 
 [node name="TitleLabel" type="Label" parent="." unique_id=1186192089]
 layout_mode = 1
@@ -110,11 +126,23 @@ metadata/_tab_index = 1
 [node name="FullscreenCheck" type="CheckButton" parent="TabContainer/Display" unique_id=1464263650]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_none")
 text = "Fullscreen"
 
 [node name="VsyncCheck" type="CheckButton" parent="TabContainer/Display" unique_id=1540453675]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_none")
 button_pressed = true
 text = "VSync"
 
@@ -174,7 +202,8 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 30
 text = "RESET TO DEFAULTS"
 
-[node name="VignetteOverlay" type="ColorRect" parent="."]
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=582985280]
+material = SubResource("ShaderMaterial_vig")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -182,5 +211,3 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-material = SubResource("ShaderMaterial_vig")
-color = Color(1, 1, 1, 1)

@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://ui/pause/PauseScene.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
 
 [node name="PauseScene" type="CanvasLayer"]
 layer = 20
@@ -24,9 +26,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -200.0
-offset_top = -140.0
+offset_top = -175.0
 offset_right = 200.0
-offset_bottom = 140.0
+offset_bottom = 175.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_theme")
@@ -48,8 +50,163 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "RESUME"
 
+[node name="QuestLogButton" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "QUEST LOG"
+
+[node name="OptionsButton" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "OPTIONS"
+
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "QUIT TO MENU"
+
+[node name="OptionsPanel" type="VBoxContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -220.0
+offset_right = 280.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+theme_override_constants/separation = 8
+
+[node name="OptionsTitleLabel" type="Label" parent="OptionsPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 48
+text = "OPTIONS"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="OptionsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Audio" type="VBoxContainer" parent="OptionsPanel/TabContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+metadata/_tab_index = 0
+
+[node name="MasterLabel" type="Label" parent="OptionsPanel/TabContainer/Audio"]
+layout_mode = 2
+text = "Master Volume"
+
+[node name="PauseMasterSlider" type="HSlider" parent="OptionsPanel/TabContainer/Audio"]
+unique_name_in_owner = true
+layout_mode = 2
+value = 80.0
+
+[node name="MusicLabel" type="Label" parent="OptionsPanel/TabContainer/Audio"]
+layout_mode = 2
+text = "Music Volume"
+
+[node name="PauseMusicSlider" type="HSlider" parent="OptionsPanel/TabContainer/Audio"]
+unique_name_in_owner = true
+layout_mode = 2
+value = 60.0
+
+[node name="SFXLabel" type="Label" parent="OptionsPanel/TabContainer/Audio"]
+layout_mode = 2
+text = "SFX Volume"
+
+[node name="PauseSFXSlider" type="HSlider" parent="OptionsPanel/TabContainer/Audio"]
+unique_name_in_owner = true
+layout_mode = 2
+value = 85.0
+
+[node name="Display" type="VBoxContainer" parent="OptionsPanel/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="PauseFullscreenCheck" type="CheckButton" parent="OptionsPanel/TabContainer/Display"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_none")
+text = "Fullscreen"
+
+[node name="PauseVsyncCheck" type="CheckButton" parent="OptionsPanel/TabContainer/Display"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_none")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_none")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_none")
+button_pressed = true
+text = "VSync"
+
+[node name="Controls" type="VBoxContainer" parent="OptionsPanel/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MoveLeft" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Move Left: A / Left Arrow"
+
+[node name="MoveRight" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Move Right: D / Right Arrow"
+
+[node name="Jump" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Jump: W / Up / Space"
+
+[node name="Dash" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Dash: Shift"
+
+[node name="Attack" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Attack: J"
+
+[node name="Interact" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Interact: E / Enter"
+
+[node name="QuestLog" type="Label" parent="OptionsPanel/TabContainer/Controls"]
+layout_mode = 2
+text = "Quest Log: Q"
+
+[node name="ButtonRow" type="HBoxContainer" parent="OptionsPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="OptionsBackButton" type="Button" parent="OptionsPanel/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "BACK"
+
+[node name="OptionsResetButton" type="Button" parent="OptionsPanel/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "RESET TO DEFAULTS"

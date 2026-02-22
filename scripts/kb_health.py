@@ -50,6 +50,34 @@ CONTAMINATION_EXCLUDES = {"phaser-archive.md", "index.md"}
 NEGATION_PATTERNS = [r"\bNo\s+PyInstaller\b", r"\bNo\s+PyWebView\b", r"\bnot\b.*\bPyInstaller\b"]
 
 
+def _expand_entry(entry: str) -> list[str]:
+    """Expand multi-file shorthand into individual filenames.
+
+    Handles patterns like:
+      "NPC.tscn + NPC.gd"        -> ["NPC.tscn", "NPC.gd"]
+      "ProgressionTrigger.tscn + .gd"  -> ["ProgressionTrigger.tscn", "ProgressionTrigger.gd"]
+      "Rock1.png, Rock2.png"     -> ["Rock1.png", "Rock2.png"]
+      "Boot.tscn"                -> ["Boot.tscn"]
+    """
+    # Split on " + " or ", "
+    parts = re.split(r"\s*[+,]\s*", entry)
+    if len(parts) == 1:
+        return [entry]
+
+    base_name = Path(parts[0]).stem  # e.g. "NPC" from "NPC.tscn"
+    result = []
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        if p.startswith("."):
+            # Shorthand like ".gd" -> use base name from first part
+            result.append(base_name + p)
+        else:
+            result.append(p)
+    return result
+
+
 def check_phantom_paths():
     """Parse CLAUDE.md directory tree, verify each file exists."""
     claude_md = REPO / "CLAUDE.md"
@@ -101,11 +129,13 @@ def check_phantom_paths():
             if not full_dir.is_dir():
                 failures.append(f"  {'/'.join(d for _, d in dir_stack)}/ (directory not found)")
         else:
-            # File entry — build full path from stack
-            parts = [d for _, d in dir_stack] + [entry]
-            full_path = GODOT / "/".join(parts)
-            if not full_path.exists():
-                failures.append(f"  {'/'.join(parts)} (not found)")
+            # Expand multi-file shorthand: "A.tscn + .gd", "A.png, B.png"
+            files = _expand_entry(entry)
+            for f in files:
+                parts = [d for _, d in dir_stack] + [f]
+                full_path = GODOT / "/".join(parts)
+                if not full_path.exists():
+                    failures.append(f"  {'/'.join(parts)} (not found)")
 
     return failures
 

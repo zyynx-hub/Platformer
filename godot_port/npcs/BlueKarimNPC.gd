@@ -1,6 +1,7 @@
 # BlueKarimNPC.gd
 # Shopkeeper in House 1. Shows shop panel after greeting dialog.
 
+@tool
 extends "res://npcs/NPC.gd"
 
 var ShopPanelScene = preload("res://ui/shop/ShopPanel.tscn")

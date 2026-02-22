@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-02-21 (Session 36)
+Last updated: 2026-02-22 (Session 48 — v0.2.7 release)
 
 ## Current Workstreams
 
@@ -78,6 +78,12 @@ Verified by F5 runtime testing:
 - Music ducking: ducks on death (-14 dB), stays ducked through Game Over, gradually restores over full respawn sequence (1.45s). Cinematic dialog ducks to -18 dB during zoom-in, restores on zoom-out.
 - Dialog talk SFX: Animal Crossing-style per-character voice blips (formant-filtered pulse wave, random pitch variation, per-line voice_pitch control via DialogLine resource)
 - Portal system: oval swirl/vortex shader portal, E-key interaction, cinematic pull-in + dissolve + flash + scene transition to destination level. Inspector-configurable: destination_level_id, portal_color, portal_scale. Placed in levels same as Pickup/DialogTrigger.
+- Town weather system: shader-based rain/snow overlays with smooth 2s transitions, ground accumulation (puddles/snow), cloud darkening, F6 debug cycling, z_index=99 below NightOverlay
+- Town ground polish: noise-varied soil shader (4px blocks, pebbles, root streaks) on GroundVisual + 15 animated GrassTuft props (sine-sway blades, staggered phases, colour variation) placed across 2200px town width
+- Town vignette: camera-tracked VignetteOverlay (z_index=102) in TownLevel using existing vignette.gdshader, tracked same as sky in TownController._process()
+- Day/night debug hotkeys: F7 fast-forwards time by 12% (≈36 game-minutes), F9 toggles cycle pause — both show flash label. F8 reserved by Godot editor (stop game), remapped to F9.
+- Town house window glow: analytic radial gradient shader (window_glow.gdshader, blend_add, UV-centered, modulate.a = brightness from TownController)
+- ShopPanel: full buy/sell UI (Session 42). 3 item slots (Extra Heart 80c, Speed Charm 120c, Town Key 60c). Grey-out unaffordable, Owned state, 2-step confirm, red flash on denied. F10 debug adds 100 coins. ProgressData.coins + purchased_items persisted.
 
 ## Broken / Untested
 
@@ -100,6 +106,178 @@ Verified by F5 runtime testing:
 - Export / packaging (export preset exists — re-export via Project > Export when pushing updates)
 
 ## Session Log
+
+### Session 45 (2026-02-22) — Bug fixes + knowledge save
+
+**Knowledge updates:**
+- MEMORY.md: updated directory structure to Session 44, added Quest Log + Jungle Level + HydraBodyNPC/ThreeHeadedKarim subsystem entries, added 5 new Godot gotchas
+- Created `.claude/rules/quest-registry.md` — mandatory rule: update docs/quest-registry.md whenever any NPC/quest/dialog/state key changes
+- Updated `.claude/rules/session-protocol.md` — added quest-registry update to Doc Integrity section
+
+**Bug fixes (from F5 test output):**
+- `CinematicDialog.gd:98` — `maxf(..., 0.05)` clamp on `pitch_scale`. voice_pitch=0.2 with spread=0.3 → raw -0.1 → Godot runtime error. Was spamming 30+ debugger errors per dialog.
+- `HydraBodyNPC.gd`, `ThreeHeadedKarimNPC.gd`, `PurpleKarimNPC.gd` — added `@tool`. NPC.gd has @tool; all scripts in chain must also have it.
+
+**Non-actionable pre-existing warnings:** signal unused ×25, ternary mismatch ×2, invalid UID (path fallback, non-fatal).
+
+**Headless:** 0 errors.
+
+**F5 verified (Session 46 follow-up):** #1 quest loop, #2 Q key, #3 QUEST LOG button (ESC close added this session), #4 green atmosphere, #5 house interior, #6 body fades all working.
+
+---
+
+### Session 46 (2026-02-22) — Boss spawn cutscene + hydra body layout fix
+
+**Fixes from F5 test feedback:**
+- `QuestLogScene.gd` — added `ui_cancel` (ESC) to close quest log
+- `JungleHouseInterior.tscn` — removed HydraBody1 from interior (was invisible to player); interior is now an empty room
+- `JungleLevel.tscn` — added HydraBody1 as exterior NPC at x:450, wander 380-520 (between house and body 2). All 3 bodies are now exterior, clear left-to-right order.
+
+**Boss spawn cutscene (ThreeHeadedKarim reveal):**
+- `EventBus.gd` — added `camera_shake_requested(duration, intensity)` signal
+- `GameScene.gd` — handles camera shake via async loop (Time.get_ticks_msec() tracking, applies camera.offset with decay, clears on finish)
+- `JungleLevelController.gd` — replaced instant `visible = all_gone` with `_trigger_boss_spawn()` coroutine:
+  - Fade to black (0.6s) via SceneTransition.fade_to_black()
+  - Teleport boss to x:900, scale=0.1 while black
+  - Play `dash_swoosh.wav` at pitch=0.13 (deep bass rumble) for dramatic effect
+  - 0.5s suspense, fade back in (0.8s)
+  - Camera shake (0.9s, intensity=5) + scale-pop from 0.1→1.3 (TRANS_BACK overshoot)
+  - `_boss_spawning` flag prevents double-trigger during cutscene
+  - `play_cutscene=false` on initial load (no cutscene if already triggered in prior session)
+
+**Three-headed Karim sprite (3-body boss look):**
+- `JungleLevel.tscn` — added LeftHead and RightHead Sprite2D nodes as children of ThreeHeadedKarim instance
+- LeftHead: position (-14,-6), rotation -22.5°, scale 0.75, z_index=-1 (behind center)
+- RightHead: position (14,-6), rotation +22.5°, scale 0.75, z_index=-1 (behind center)
+- Both use karim_npc.png with same dark purple modulate — creates hydra silhouette of 3 fanned bodies
+- Parent modulate:a tween in ThreeHeadedKarimNPC._fade_and_leave() fades all 3 heads together
+
+**Headless:** 0 errors.
+
+**F5 verified (partial):** ESC closes quest log ✓, all 3 exterior hydra bodies ✓, body-by-body fade (after ends_with bug fix) ✓
+
+**Untested (F5):**
+- Full boss spawn cutscene end-to-end: fade→rumble→camera pan to boss→shake+scale-pop→camera return
+- Three-headed Karim flanking head appearance in-game
+
+---
+
+### Session 48 (2026-02-22) — v0.2.7 release
+
+**Version bump:** `0.2.6.5` → `0.2.7` in `core/Constants.gd` and `version.json`
+
+**Export:** headless Windows export — `build/AnimePlatformer.exe` (100MB) + `AnimePlatformer.pck` (17MB). No errors.
+
+**Butler command:** `butler push godot_port\build zyynx-hub/platformer:windows --userversion 0.2.7`
+
+**Discord:** rich-embed release notification sent (HTTP 204).
+
+---
+
+### Session 47 (2026-02-22) — Bug fixes + camera pan + @tool chain
+
+**Bug fixes:**
+- `HydraBodyNPC.gd:20` — `ends_with("/dialog")` → `== dialog_id`. Root cause: EventBus.cinematic_dialog_ended broadcasts to ALL connected NPC instances, so ends_with("/dialog") caused all 3 Hydra Bodies to fade simultaneously when any 1 was talked to.
+- `WanderingNPC.gd` + `BlueKarimNPC.gd` + `GreenKarimNPC.gd` + `RedKarimNPC.gd` + `BrownKarimNPC.gd` — added `@tool`. Full NPC inheritance chain now has @tool on every script. Debugger count: 44→43.
+
+**Camera pan feature:**
+- `EventBus.gd` — added `camera_pan_requested(target, pan_duration, hold_duration, return_duration)` signal
+- `GameScene.gd` — `_on_camera_pan()`: disables follow, tweens to target, holds, tweens back to player, re-enables follow. Uses `position_smoothing_enabled=false` during tween.
+- `JungleLevelController.gd` — `_trigger_boss_spawn()` updated: emits camera_pan_requested(900,0, 0.8, 1.8, 0.8), waits 0.8s for arrival, then triggers camera_shake + scale-pop
+
+**Quest log:** ESC (ui_cancel) now closes quest log in addition to Q toggle.
+
+**Hydra body layout:** All 3 Hydra Bodies are now exterior in JungleLevel.tscn (x:450, x:700, x:1200). JungleHouseInterior.tscn is now an empty room.
+
+**Three-headed Karim sprite:** LeftHead + RightHead Sprite2D nodes added as children in JungleLevel.tscn (z_index=-1, ±22.5° rotation, 0.75x scale, same dark purple) for 3-body boss silhouette.
+
+**Headless:** 0 errors.
+
+---
+
+### Session 44 (2026-02-22) — Hydra Karim Quest + Jungle Village
+
+**Full implementation of the Purple Karim's Debt questline and Jungle Village area.**
+
+**New files created (18):**
+- `data/QuestDefs.gd` — static quest registry (Red Karim's Problem + Purple Karim's Debt)
+- `ui/quest_log/QuestLogScene.tscn + QuestLogScene.gd` — quest log overlay (CanvasLayer 21, Q key, EventBus.quest_log_requested)
+- `npcs/PurpleKarimNPC.gd` — quest giver, auto-accept, Vibrator reward on completion
+- `npcs/HydraBodyNPC.gd` — @export state_key, speaks once, fades 1.2s, sets state key
+- `npcs/ThreeHeadedKarimNPC.gd` — appears after all bodies gone, fades 1.5s after encounter
+- `levels/level_jungle/JungleLevelController.gd` — @tool, green night overlay (0.35 min), quest-conditional NPC visibility
+- `levels/level_jungle/JungleLevel.tscn` — 1600px flat jungle, sky+night+vignette shaders, HydraBody2/3, ThreeHeadedKarim (hidden), PortalBack
+- `levels/level_jungle/interiors/JungleHouseInterior.tscn` — HydraBody1 inside (standing), exit door
+- `levels/level_town/dialogs/purple_karim/intro.tres` — 10 lines, one_shot, Dutch dialogue
+- `levels/level_town/dialogs/purple_karim/waiting.tres` — 2 lines, repeatable
+- `levels/level_town/dialogs/purple_karim/complete.tres` — 4 lines, one_shot
+- `levels/level_town/dialogs/purple_karim/done.tres` — 1 line, repeatable
+- `levels/level_jungle/dialogs/hydra_body_1/dialog.tres` — 1 line "…", one_shot, voice_pitch 0.3
+- `levels/level_jungle/dialogs/hydra_body_2/dialog.tres` — 1 line "…", one_shot
+- `levels/level_jungle/dialogs/hydra_body_3/dialog.tres` — 1 line "…", one_shot
+- `levels/level_jungle/dialogs/three_headed_karim/encounter.tres` — 6 lines Dutch, one_shot, voice_pitch 0.2
+
+**Modified files (8):**
+- `core/EventBus.gd` — added `quest_log_requested` signal
+- `project.godot` — added `quest_log` input action (Q key)
+- `data/LevelDefs.gd` — added `level_jungle` entry; updated `level_town` connections
+- `levels/level_town/TownLevel.tscn` — added PurpleKarim NPC (x=1400, purple modulate, wander 1200-1700) + JunglePortal (x=1950, green, destination=level_jungle); BoundsMax extended to x=2100
+- `ui/pause/PauseScene.tscn` — added QUEST LOG button; expanded VBox height; added Controls tab Q label
+- `ui/pause/PauseScene.gd` — wired quest_log_button → EventBus.quest_log_requested.emit()
+- `game/GameScene.tscn` — added QuestLogScene instance as permanent child
+- `docs/quest-registry.md` — added Purple Karim, Hydra Bodies, Three-Headed Karim NPCs, Purple Karim's Debt quest, 8 new dialog entries, 7 new state keys, updated dependency graph
+
+**Architecture notes:**
+- Quest Log: opens via Q key (quest_log action) or PauseScene QUEST LOG button. Tracks _was_paused to restore game tree pause state. Procedurally builds quest entry rows (acceptable exception).
+- JungleLevelController: reuses town_sky + night_overlay shaders with green tint (Color(0.02,0.10,0.04)). darkness clamped to 0.35 minimum for permanent dim atmosphere.
+- HydraBodyNPC: `state_key` export allows single script for all 3 bodies. Only `ends_with("/dialog")` triggers fade.
+- ThreeHeadedKarim visibility: always in scene (visible=false), JungleLevelController reacts to quest_state_changed and toggles visibility. No runtime spawning.
+- portal_scale is a float (not Vector2) — Portal.gd uses it for BASE_HALF_W/H multiplier.
+
+**Untested (needs F5):**
+- Full quest loop: Purple Karim intro → portal → all 3 bodies → Three-Headed → return → reward + quest log Completed
+- Q key opens quest log in-game
+- QUEST LOG button in pause menu opens same overlay
+- Jungle level loads with green atmosphere
+- JungleHouseInterior door enter/exit
+- Body fade animations
+- ThreeHeadedKarim conditional visibility
+
+---
+
+### Session 43 (2026-02-22) — Quest Registry
+
+**Comprehensive quest documentation for long-term maintainability.**
+
+**Created:**
+- `docs/quest-registry.md` — canonical source of truth: Location Map, NPC Registry (all 5 NPCs with script/placement/voice_pitch/dialog logic), Quest Registry (Red Karim's Complaint full step table), Events (Brown Karim vanish sequence), Shop Registry (3 items + notes on unimplemented effects), Dialog Registry (all 14 dialog IDs with conditions/one_shot/line count), Quest State Key Registry (all 4 keys), plain-text dependency graph, How-to-Add checklists
+
+**Updated:**
+- `docs/quest-flowchart.md` — added reference to quest-registry.md as backing data source
+- `docs/status.md` — this entry
+
+**Notes surfaced during audit:**
+- `blue_karim/bought.tres` and `blue_karim/no_money.tres` exist as files but are NOT wired in ShopPanel.gd (reserved, unused)
+- `town_key` shop item implies a ProgressionGate dependency that does not yet exist in TownLevel.tscn
+
+---
+
+### Session 42 (2026-02-22) — ShopPanel Implementation
+
+**Full shop UI replacing the placeholder.**
+
+**Changed:**
+- `data/ProgressData.gd` — added `coins: int`, `purchased_items: Array[String]`, save/load under `[shop]` section, `buy_item()`, `is_purchased()`, reset
+- `data/ItemDefs.gd` — added `SHOP: Array` with 3 items (extra_heart 80c, speed_charm 120c, town_key 60c)
+- `core/EventBus.gd` — added `coins_changed(new_amount: int)` signal
+- `core/DebugOverlay.gd` — added F10 handler: adds 100 coins to save file for testing
+- `project.godot` — added `debug_add_coins` input action (F10)
+- `ui/shop/ShopPanel.tscn` — rebuilt scene-first: 3 pre-built item slots (PanelContainer + HBox with name/desc VBox + cost label + buy button), coin balance header, StyleBoxFlat styles, 600×420 centered box
+- `ui/shop/ShopPanel.gd` — full implementation: populate from ItemDefs.SHOP, grey-out unaffordable, "Owned" state, 2-step confirm (first press = "OK?", second = execute), red flash on denied, `coins_changed` signal emit
+
+**Headless validation:** Clean, no errors.
+
+**Testing:** Press F10 (in-game) to add 100 coins, then talk to Blue Karim in town to open the shop.
 
 ### Session 7 (2026-02-19) — Dragon Fly-by Sync + Entrance Animation Polish
 
@@ -1147,9 +1325,125 @@ Level 1 ExitPortal (destination_level_id="level_2") → LevelDefs validates scen
 
 **Headless validation:** Clean parse, no errors.
 
+### Session 37 (2026-02-21) — Town Polish Sessions 1-5 (Day/Night, Parallax, Props, Streetlights, Birds)
+
+**Built full town atmosphere system across 5 sub-sessions.**
+
+See `C:\Users\Robin\.claude\plans\twinkly-purring-treasure.md` for the full 10-session plan.
+
+- Session 1: DayNightCycle autoload + town_sky.gdshader (gradient sky, sun/moon arcs, twinkling stars, FBM clouds)
+- Session 2: Parallax mountains + cloud layers (3 Node2D layers with manual parallax)
+- Session 3: 5 procedural prop types (Bench, Tree, Fence, FlowerPot, StreetSign), 16 instances placed
+- Session 4: Streetlights (SDF glow cone, blend_add) + NightOverlay (semi-transparent dark shader)
+- Session 5: BirdFlock V-formation system (day-only, 10-25s spawns)
+
+### Session 38 (2026-02-21) — Town Polish Bug Fixes
+
+**Fixed multiple visual bugs from Sessions 1-5 polish work.**
+
+- **Parallax2D invisible**: Converted FarMountains/NearMountains/CloudLayer from Parallax2D to Node2D (Parallax2D broken in SubViewport). Manual parallax via canvas_transform in TownController._process()
+- **Mountains scroll 1:1**: get_camera_2d() returns null in SubViewport. Fixed by deriving camera position from `vp.canvas_transform.affine_inverse() * screen_center`
+- **Camera too low**: BoundsMax.y 200→70 (shows ~70% sky), bird spawn altitude adjusted to (-150,-30)
+- **Sun moves with player**: Sky was a regular world-space ColorRect scrolling with camera. Tried SCREEN_UV (broken in SubViewport), CanvasLayer (broken editor preview). Final fix: camera-tracking ColorRect sized to viewport every frame
+- **Sun arc inverted**: UV.y=0 is top of screen. Flipped parabola: horizon(0.8) at dawn/dusk, peak(0.2) at noon
+- **Night too long**: Was 40% night / 30% day. Rebalanced to exact 50/50: DAWN_START=0.15, DAWN_END=0.25, DUSK_START=0.75, DUSK_END=0.85. Updated all 4 shader files.
+
+**Headless validation:** Clean parse, no errors.
+
+### Session 39 (2026-02-21) — Town Expansion (Session 6: More Houses)
+
+**Replaced hand-coded house exteriors with parametric House.tscn prop. Expanded town from 1200px to 2200px wide.**
+
+**New files (2):**
+- `levels/level_town/props/House.tscn` — @tool Node2D scene with GlowWindow child (CanvasItemMaterial blend_add)
+- `levels/level_town/props/House.gd` — parametric house: @export width/height/wall_color/roof_color/roof_style(triangle/flat/gambrel)/has_window/has_chimney/door_color. `_draw()` renders body, trim, roof, door, window with mullion, chimney. `set_brightness()` drives window glow at night (same interface as Streetlight).
+
+**Modified files (1):**
+- `levels/level_town/TownLevel.tscn` — major expansion:
+  - Removed House1Exterior/House2Exterior (hand-coded ColorRect groups)
+  - Added 6 House.tscn instances: House1 (brown, x=150), House2 (purple, x=450), House3 (yellow cottage, x=-100, chimney), House4 (dark red tall, x=750, flat roof), House5 (grey-blue wide, x=1100, gambrel, chimney), House6 (green-grey, x=1450)
+  - Bounds widened: BoundsMin (-200,-300)→(-400,-300), BoundsMax (1000,70)→(1800,70)
+  - Ground collision: 1200px→2200px, center shifted from (400,8)→(700,8)
+  - GroundVisual/GrassLine extended: -400 to 1800
+  - NightOverlay extended: -400 to 1800
+  - Parallax visual rects widened: -800 to 2200 (extra margin for camera travel)
+  - 3 new trees (x=1000, 1300, 1600), Tree1 moved to x=-250
+  - 2 new benches (x=950, 1250)
+  - 2 new flower pots (x=780, 1130)
+  - 2 new street signs (x=1050, 1400)
+  - 2 new streetlights (x=1100, 1400) — total 6
+  - Fences repositioned: left x=-350 (8 segments), right x=1700 (8 segments)
+  - BrownKarim wander range expanded: max_x 800→1200
+
+**Headless validation:** Clean parse, no errors.
+
+### Session 41 (2026-02-22) — Town Polish Session 9: Ground Polish
+
+**Added shader-based soil texture and animated grass tufts across the town ground.**
+
+**New files (3):**
+- `shaders/town_ground.gdshader` — canvas_item shader for GroundVisual ColorRect: 4×4 px block soil variation (dark/mid/light), occasional grey pebbles, dark root streaks in top 18px
+- `levels/level_town/props/GrassTuft.gd` — @tool Node2D: `@export blade_count/grass_color/blade_height/sway_phase`, `_draw()` renders triangular blades with dark fill + lighter midrib, `_process()` updates time and calls `queue_redraw()` (runtime-only via editor guard)
+- `levels/level_town/props/GrassTuft.tscn` — minimal Node2D scene with GrassTuft.gd script
+
+**Modified files (1):**
+- `levels/level_town/TownLevel.tscn` — added ext_resource for town_ground.gdshader + GrassTuft.tscn, added ShaderMaterial_ground sub_resource, applied shader to GroundVisual, added 15 GrassTuft instances scattered across town (x=-370 to x=1540) with varied blade_count (3-5), sway_phase (0-5.2), and colour variants (bright green, dark green, yellowed, standard)
+
+**Architecture:**
+- GrassTuft renders behind houses/trees/NPCs (added before House1 in scene tree order)
+- Blades draw upward from y=0 (ground level) — don't overlap GroundVisual (which is y=0 downward)
+- Staggered sway_phase ensures tufts sway out of sync for organic feel
+- Ground shader preserves base brown; adds noise patches, grey pebbles, root streaks near surface
+
+**Headless validation:** Clean parse, no errors.
+
+### Session 40 (2026-02-21) — Town Polish Session 7: Weather System
+
+**Added shader-based weather overlays (rain + snow) with smooth transitions and debug cycling.**
+
+**New files (6):**
+- `shaders/rain.gdshader` — pixel-art rain: 3 depth layers of falling streaks, hash-based columns, wind shear
+- `shaders/snow.gdshader` — pixel-art snow: 4 depth layers of drifting flakes, sine-wave horizontal sway
+- `shaders/rain_puddles.gdshader` — ground puddle accumulation: dark wet patches + reflective pools, noise-based distribution, accumulation uniform drives formation
+- `shaders/snow_ground.gdshader` — ground snow accumulation: white layer with noise-edged top line, sparkle highlights, accumulation uniform drives depth
+- `levels/level_town/ambient/WeatherController.tscn` — Node2D (z_index=99) with 4 child overlays: RainOverlay, SnowOverlay (camera-tracked), PuddleOverlay, SnowGroundOverlay (world-space at ground level)
+- `levels/level_town/ambient/WeatherController.gd` — @tool script: Weather enum (CLEAR/RAIN/SNOW), smooth 2s precipitation transitions, gradual ground accumulation (0.08/s build, 0.03/s drain), cloud darkening via sibling CloudLayer shader, camera tracking, debug API
+
+**Modified files (5):**
+- `core/EventBus.gd` — added `weather_changed(weather_type: int)` signal
+- `core/DebugOverlay.gd` — F6 cycles weather (finds WeatherController via group), weather state shown in F3 debug overlay
+- `shaders/town_clouds.gdshader` — added `weather_darken` uniform: storm clouds go grey-dark with higher opacity during rain/snow
+- `levels/level_town/TownLevel.tscn` — instanced WeatherController between NightOverlay and SpawnPoint
+- `project.godot` — added `debug_weather` input action (F6 key)
+
+**Architecture:**
+- Rain/snow overlays are camera-tracking ColorRects (same pattern as Sky/NightOverlay)
+- Ground overlays (puddles, snow) are world-space at y=0, fixed position (no camera tracking needed)
+- z_index=99 puts precipitation BELOW NightOverlay (z_index=100) — rain/snow get naturally dimmed at night
+- Ground overlays use z_index=1 to render above the brown ground
+- WeatherController is self-contained: camera tracking, state transitions, accumulation, cloud darkening
+- Smooth 2s fade transitions for precipitation via parallel tweens on intensity uniforms
+- Ground accumulation is gradual: ~12s to full puddles/snow, ~33s to fully drain
+- Cloud darkening driven by max(rain_intensity, snow_intensity*0.6) — rain makes darker storm clouds than snow
+- Both sky shaders work in pixel coordinates (426x240) for pixel-art crispness
+
+**Headless validation:** Clean parse, no errors.
+
 ## Next Session
 
-- Enemies and combat (test HUD health display)
-- Level 2 content: items, dialogs, gates, exit portal to Level 3
-- Gate visual polish — currently a colored block, may want tileset-matching visuals later
-- Town polish: actual shop buy/sell mechanics, more NPCs, building interiors decoration
+**Priority 1 — F5 full quest loop test (Purple Karim's Debt):**
+- Town → talk Purple Karim → quest Active in Quest Log
+- Enter jungle portal → talk all 3 Hydra Bodies (any order, including Body 1 in house)
+- All 3 gone → Three-Headed Karim appears → talk → fades → `three_headed_karim_paid = true`
+- Return to town via PortalBack → talk Purple Karim → complete dialog → Vibrator popup → Quest Log Completed
+- Q key + QUEST LOG button in pause both open overlay
+
+**Priority 2 — Jungle ground visual fix:**
+- Godot stripped `town_ground.gdshader` from JungleLevel.tscn (was unreferenced — GroundVisual had no `material = SubResource(...)`)
+- GroundVisual is currently plain solid color `Color(0.12, 0.18, 0.08)` — no procedural noise texture
+- Fix: add ShaderMaterial with town_ground.gdshader sub_resource AND apply it to GroundVisual node
+
+**Backlog:**
+- Ambient Audio: wind/crickets/rain procedural sounds
+- Level 2 content: items, dialogs, gates, exit portal
+- Enemies and combat

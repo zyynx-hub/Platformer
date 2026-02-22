@@ -4,7 +4,7 @@
 class_name Constants
 
 # ===== VERSION =====
-const APP_VERSION := "0.2.5"
+const APP_VERSION := "0.2.7"
 const ITCH_URL := "https://zyynx-hub.itch.io/platformer"
 const VERSION_CHECK_URL := "https://raw.githubusercontent.com/zyynx-hub/platformerv2/main/version.json"
 
@@ -87,6 +87,13 @@ const PORTAL_DISSOLVE_DURATION := 0.35
 const PORTAL_FLASH_IN := 0.1
 const PORTAL_FLASH_OUT := 0.2
 const PORTAL_MUSIC_DUCK_DB := -18.0
+
+# ===== DAY/NIGHT CYCLE =====
+const DAY_NIGHT_CYCLE_DURATION := 300.0  # seconds for one full day
+const DAWN_START := 0.15   # night -> dawn transition begins
+const DAWN_END := 0.25     # dawn -> day transition ends
+const DUSK_START := 0.75   # day -> dusk transition begins
+const DUSK_END := 0.85     # dusk -> night transition ends
 
 # ===== VIEWPORT =====
 const VIEWPORT_WIDTH = 1280

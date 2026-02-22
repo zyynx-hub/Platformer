@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Yo, alles goed maat?"
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Ja? Nou, met mij zeker niet…"
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Laatst nieuwe PC gekocht, maar betaal in termijnen, moet elke keer naar die gozer gaan in het dorp verder in het oerwoud."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Mijn kankerknie maat… Kan helemaal niet lopen of niks, zou je mijn geld kunnen brengen naar die gozer? Dalijk stuurt hij zijn maten om mijn PC te slopen."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Als je dit voor me doet, ik zweer ik zal je belonen."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Is wel een duister figuur trouwens… Ze noemen hem de Hydra Karim, omdat hij drie lichamen heeft of iets in die geest."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Praat met elk lichaam, dan komen ze bij elkaar, en daarna komt de driekoppige Karim."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Vage gozer… Maar goed, ik kreeg 40% korting."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Zelfs met de korting weet ik niet of dit het waard is geweest…"
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_10"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Achja… veel success. En alvast bedankt."
+voice_pitch = 0.95
+
+[resource]
+script = ExtResource("1_seq")
+description = "Purple Karim explains his debt and gives the quest"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10")])

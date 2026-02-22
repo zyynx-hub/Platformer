@@ -57,7 +57,15 @@ const ALL: Array[Dictionary] = [
 		"title": "Town",
 		"scene": "res://levels/level_town/TownLevel.tscn",
 		"star_pos": Vector2(0.1, 0.38),
-		"connections": ["level_1"],
+		"connections": ["level_1", "level_jungle"],
+		"unlock_requires": "",
+	},
+	{
+		"id": "level_jungle",
+		"title": "Jungle Village",
+		"scene": "res://levels/level_jungle/JungleLevel.tscn",
+		"star_pos": Vector2(0.05, 0.62),
+		"connections": ["level_town"],
 		"unlock_requires": "",
 	},
 ]

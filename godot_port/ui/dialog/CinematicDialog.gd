@@ -95,7 +95,7 @@ func _play_talk_blip(char_index: int) -> void:
 	if ch in " \t\n.,!?;:-\"'()[]{}":
 		return
 	var spread := (Constants.DIALOG_TALK_PITCH_MAX - Constants.DIALOG_TALK_PITCH_MIN) * 0.5
-	talk_sound.pitch_scale = _current_voice_pitch + randf_range(-spread, spread)
+	talk_sound.pitch_scale = maxf(_current_voice_pitch + randf_range(-spread, spread), 0.05)
 	talk_sound.play()
 
 func _on_line_finished() -> void:

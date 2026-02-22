@@ -93,6 +93,8 @@ func _ready() -> void:
 	EventBus.item_picked_up.connect(_on_item_acquired)
 	EventBus.portal_entered.connect(_on_portal_entered)
 	EventBus.door_entered.connect(_on_door_entered)
+	EventBus.camera_shake_requested.connect(_on_camera_shake)
+	EventBus.camera_pan_requested.connect(_on_camera_pan)
 
 	# Force NEAREST filtering on the SubViewportContainer upscale
 	$SubViewportContainer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -478,6 +480,44 @@ func _on_item_acquired(item_data: Dictionary) -> void:
 		_item_popup = null
 	)
 	add_child(_item_popup)
+
+func _on_camera_pan(target: Vector2, pan_duration: float, hold_duration: float, return_duration: float) -> void:
+	_camera_follow_enabled = false
+	camera.position_smoothing_enabled = false
+
+	# Pan to target
+	var to_tween := create_tween()
+	to_tween.set_ease(Tween.EASE_IN_OUT)
+	to_tween.set_trans(Tween.TRANS_SINE)
+	to_tween.tween_property(camera, "global_position", target, pan_duration)
+	await to_tween.finished
+
+	# Hold on target
+	await get_tree().create_timer(hold_duration).timeout
+
+	# Pan back to player
+	var back_tween := create_tween()
+	back_tween.set_ease(Tween.EASE_IN_OUT)
+	back_tween.set_trans(Tween.TRANS_SINE)
+	back_tween.tween_property(camera, "global_position", player_instance.global_position, return_duration)
+	await back_tween.finished
+
+	camera.position_smoothing_enabled = true
+	_camera_follow_enabled = true
+
+func _on_camera_shake(duration: float, intensity: float) -> void:
+	var start := Time.get_ticks_msec()
+	while true:
+		var elapsed := (Time.get_ticks_msec() - start) / 1000.0
+		if elapsed >= duration:
+			break
+		var t := 1.0 - (elapsed / duration)
+		camera.offset = Vector2(
+			randf_range(-intensity, intensity) * t,
+			randf_range(-intensity, intensity) * t
+		)
+		await get_tree().process_frame
+	camera.offset = Vector2.ZERO
 
 func _on_portal_entered(_destination_level_id: String) -> void:
 	_in_portal = true

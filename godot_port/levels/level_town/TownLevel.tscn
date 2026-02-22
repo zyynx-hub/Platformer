@@ -4,90 +4,412 @@
 [ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="3_door"]
 [ext_resource type="Script" uid="uid://bw6njoqtxjm4m" path="res://npcs/WanderingNPC.gd" id="4_wandering"]
 [ext_resource type="Script" uid="uid://bm4nahh8dgh1" path="res://npcs/BrownKarimNPC.gd" id="5_brown"]
+[ext_resource type="Shader" uid="uid://c0ltoc87d6p35" path="res://shaders/town_sky.gdshader" id="6_sky_shader"]
+[ext_resource type="Script" uid="uid://jnm8nphlnxev" path="res://levels/level_town/TownController.gd" id="7_controller"]
+[ext_resource type="Shader" uid="uid://ba53skxf4dv46" path="res://shaders/town_mountains.gdshader" id="8_mountain_shader"]
+[ext_resource type="Shader" uid="uid://c83xjgi6fi73u" path="res://shaders/town_clouds.gdshader" id="9_cloud_shader"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/Bench.tscn" id="10_bench"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/Tree.tscn" id="11_tree"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/Fence.tscn" id="12_fence"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/FlowerPot.tscn" id="13_flowerpot"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/StreetSign.tscn" id="14_sign"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/Streetlight.tscn" id="15_streetlight"]
+[ext_resource type="Shader" uid="uid://cb5l0628xxn2q" path="res://shaders/night_overlay.gdshader" id="16_night_shader"]
+[ext_resource type="Script" uid="uid://ba26i7ujwcc7o" path="res://levels/level_town/ambient/BirdFlock.gd" id="17_birdflock"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/House.tscn" id="18_house"]
+[ext_resource type="PackedScene" path="res://levels/level_town/ambient/WeatherController.tscn" id="19_weather"]
+[ext_resource type="Shader" uid="uid://duocdmsxaalqb" path="res://shaders/town_ground.gdshader" id="20_ground_shader"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/GrassTuft.tscn" id="21_grass"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="22_vignette_shader"]
+[ext_resource type="Script" uid="uid://ia7u0gcy35q8" path="res://npcs/PurpleKarimNPC.gd" id="23_purple"]
+[ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="24_portal"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("6_sky_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/star_density = 60.0
+shader_parameter/star_brightness = 0.9
+shader_parameter/cloud_speed = 0.02
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_far_mountains"]
+shader = ExtResource("8_mountain_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/base_height = 0.35
+shader_parameter/amplitude = 0.12
+shader_parameter/block_freq = 14.0
+shader_parameter/day_color = Color(0.259, 0.298, 0.502, 1)
+shader_parameter/night_color = Color(0.043, 0.035, 0.098, 1)
+shader_parameter/dawn_color = Color(0.361, 0.176, 0.282, 1)
+shader_parameter/dusk_color = Color(0.298, 0.118, 0.212, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_near_mountains"]
+shader = ExtResource("8_mountain_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/base_height = 0.25
+shader_parameter/amplitude = 0.1
+shader_parameter/block_freq = 22.0
+shader_parameter/day_color = Color(0.157, 0.196, 0.361, 1)
+shader_parameter/night_color = Color(0.027, 0.02, 0.063, 1)
+shader_parameter/dawn_color = Color(0.224, 0.102, 0.165, 1)
+shader_parameter/dusk_color = Color(0.192, 0.075, 0.137, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
+shader = ExtResource("9_cloud_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/drift_speed = 0.008
+shader_parameter/density = 0.35
+shader_parameter/softness = 0.15
+shader_parameter/weather_darken = 0.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
-size = Vector2(1200, 16)
+size = Vector2(2200, 16)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ground"]
+shader = ExtResource("20_ground_shader")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_night"]
+shader = ExtResource("16_night_shader")
+shader_parameter/darkness = 0.0
+shader_parameter/night_tint = Color(0.055, 0.043, 0.212, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("22_vignette_shader")
+shader_parameter/strength = 0.45
+shader_parameter/softness = 0.55
+shader_parameter/radius = 0.55
+shader_parameter/tint = Color(0.15, 0.05, 0.1, 1)
 
 [node name="TownLevel" type="Node2D" unique_id=1265136064]
+script = ExtResource("7_controller")
 
 [node name="Sky" type="ColorRect" parent="." unique_id=715311425]
-offset_left = -200.0
-offset_top = -300.0
-offset_right = 1000.0
-offset_bottom = 300.0
+unique_name_in_owner = true
+z_index = -100
+material = SubResource("ShaderMaterial_sky")
+offset_right = 1266.0
+offset_bottom = 623.0
 mouse_filter = 2
-color = Color(0.45, 0.65, 0.85, 1)
+color = Color(1, 1, 1, 0)
+
+[node name="FarMountains" type="Node2D" parent="." unique_id=1252602176]
+unique_name_in_owner = true
+position = Vector2(569.7, 0)
+
+[node name="Visual" type="ColorRect" parent="FarMountains" unique_id=1105211989]
+material = SubResource("ShaderMaterial_far_mountains")
+offset_left = -800.0
+offset_top = -200.0
+offset_right = 2200.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="NearMountains" type="Node2D" parent="." unique_id=245203538]
+unique_name_in_owner = true
+position = Vector2(474.75, 0)
+
+[node name="Visual" type="ColorRect" parent="NearMountains" unique_id=1291640228]
+material = SubResource("ShaderMaterial_near_mountains")
+offset_left = -800.0
+offset_top = -150.0
+offset_right = 2200.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="CloudLayer" type="Node2D" parent="." unique_id=1760188272]
+unique_name_in_owner = true
+position = Vector2(601.35, 0)
+
+[node name="Visual" type="ColorRect" parent="CloudLayer" unique_id=609154152]
+material = SubResource("ShaderMaterial_clouds")
+offset_left = -800.0
+offset_top = -280.0
+offset_right = 2200.0
+offset_bottom = -80.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="BirdFlock" type="Node2D" parent="." unique_id=448107848]
+script = ExtResource("17_birdflock")
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=1400052434]
 
 [node name="GroundShape" type="CollisionShape2D" parent="Ground" unique_id=1902532128]
-position = Vector2(400, 8)
+position = Vector2(700, 8)
 shape = SubResource("RectangleShape2D_ground")
 
 [node name="GroundVisual" type="ColorRect" parent="Ground" unique_id=533470420]
-offset_left = -200.0
-offset_right = 1000.0
+material = SubResource("ShaderMaterial_ground")
+offset_left = -400.0
+offset_right = 1800.0
 offset_bottom = 200.0
 mouse_filter = 2
-color = Color(0.25, 0.18, 0.12, 1)
+color = Color(0.216, 0.157, 0.078, 1)
 
 [node name="GrassLine" type="ColorRect" parent="Ground" unique_id=1833783901]
-offset_left = -200.0
+offset_left = -400.0
 offset_top = -2.0
-offset_right = 1000.0
+offset_right = 1800.0
 mouse_filter = 2
-color = Color(0.3, 0.5, 0.2, 1)
+color = Color(0.231, 0.51, 0.153, 1)
 
-[node name="House1Exterior" type="Node2D" parent="." unique_id=315153927]
+[node name="GrassTuft1" parent="." unique_id=303367625 instance=ExtResource("21_grass")]
+position = Vector2(-370, 0)
+blade_count = 3
+
+[node name="GrassTuft2" parent="." unique_id=503687514 instance=ExtResource("21_grass")]
+position = Vector2(-310, 0)
+sway_phase = 1.5
+
+[node name="GrassTuft3" parent="." unique_id=472662251 instance=ExtResource("21_grass")]
+position = Vector2(-200, 0)
+blade_count = 3
+grass_color = Color(0.333, 0.58, 0.196, 1)
+sway_phase = 0.8
+
+[node name="GrassTuft4" parent="." unique_id=1329722547 instance=ExtResource("21_grass")]
+position = Vector2(-70, 0)
+sway_phase = 2.3
+
+[node name="GrassTuft5" parent="." unique_id=868117691 instance=ExtResource("21_grass")]
+position = Vector2(30, 0)
+blade_count = 3
+sway_phase = 4.1
+
+[node name="GrassTuft6" parent="." unique_id=1480922027 instance=ExtResource("21_grass")]
+position = Vector2(75, 0)
+blade_count = 5
+sway_phase = 1.0
+
+[node name="GrassTuft7" parent="." unique_id=1025599995 instance=ExtResource("21_grass")]
+position = Vector2(210, 0)
+grass_color = Color(0.2, 0.431, 0.141, 1)
+sway_phase = 3.5
+
+[node name="GrassTuft8" parent="." unique_id=1720851116 instance=ExtResource("21_grass")]
+position = Vector2(330, 0)
+blade_count = 3
+sway_phase = 0.5
+
+[node name="GrassTuft9" parent="." unique_id=702989457 instance=ExtResource("21_grass")]
+position = Vector2(510, 0)
+sway_phase = 2.8
+
+[node name="GrassTuft10" parent="." unique_id=2111289921 instance=ExtResource("21_grass")]
+position = Vector2(600, 0)
+blade_count = 5
+grass_color = Color(0.435, 0.529, 0.176, 1)
+sway_phase = 5.2
+
+[node name="GrassTuft11" parent="." unique_id=2030256774 instance=ExtResource("21_grass")]
+position = Vector2(830, 0)
+blade_count = 3
+sway_phase = 1.8
+
+[node name="GrassTuft12" parent="." unique_id=422332915 instance=ExtResource("21_grass")]
+position = Vector2(1020, 0)
+sway_phase = 3.1
+
+[node name="GrassTuft13" parent="." unique_id=173720911 instance=ExtResource("21_grass")]
+position = Vector2(1180, 0)
+blade_count = 3
+sway_phase = 0.3
+
+[node name="GrassTuft14" parent="." unique_id=1843716242 instance=ExtResource("21_grass")]
+position = Vector2(1380, 0)
+grass_color = Color(0.271, 0.529, 0.161, 1)
+sway_phase = 4.6
+
+[node name="GrassTuft15" parent="." unique_id=445603381 instance=ExtResource("21_grass")]
+position = Vector2(1540, 0)
+blade_count = 5
+sway_phase = 2.0
+
+[node name="House1" parent="." unique_id=1847635517 instance=ExtResource("18_house")]
 position = Vector2(150, 0)
+wall_color = Color(0.6, 0.38, 0.22, 1)
+roof_color = Color(0.38, 0.188, 0.11, 1)
 
-[node name="Body" type="ColorRect" parent="House1Exterior" unique_id=412752591]
-offset_left = -24.0
-offset_top = -40.0
-offset_right = 24.0
-mouse_filter = 2
-color = Color(0.55, 0.35, 0.2, 1)
-
-[node name="Roof" type="Polygon2D" parent="House1Exterior" unique_id=1797675531]
-color = Color(0.4, 0.22, 0.12, 1)
-polygon = PackedVector2Array(-28, -40, 0, -56, 28, -40)
-
-[node name="DoorFrame" type="ColorRect" parent="House1Exterior" unique_id=336896810]
-offset_left = -5.0
-offset_top = -16.0
-offset_right = 5.0
-mouse_filter = 2
-color = Color(0.2, 0.12, 0.08, 1)
-
-[node name="House2Exterior" type="Node2D" parent="." unique_id=1567582952]
+[node name="House2" parent="." unique_id=916976126 instance=ExtResource("18_house")]
 position = Vector2(450, 0)
+house_width = 56.0
+house_height = 44.0
+wall_color = Color(0.42, 0.44, 0.58, 1)
+roof_color = Color(0.27, 0.29, 0.44, 1)
+door_color = Color(0.17, 0.165, 0.275, 1)
 
-[node name="Body" type="ColorRect" parent="House2Exterior" unique_id=379788778]
-offset_left = -28.0
-offset_top = -44.0
-offset_right = 28.0
+[node name="House3" parent="." unique_id=1477464752 instance=ExtResource("18_house")]
+position = Vector2(-100, 0)
+house_width = 36.0
+house_height = 30.0
+wall_color = Color(0.745, 0.635, 0.435, 1)
+roof_color = Color(0.478, 0.302, 0.161, 1)
+has_chimney = true
+
+[node name="House4" parent="." unique_id=1960784720 instance=ExtResource("18_house")]
+position = Vector2(750, 0)
+house_width = 40.0
+house_height = 52.0
+wall_color = Color(0.549, 0.18, 0.165, 1)
+roof_color = Color(0.353, 0.094, 0.09, 1)
+roof_style = 1
+
+[node name="House5" parent="." unique_id=1961226605 instance=ExtResource("18_house")]
+position = Vector2(1100, 0)
+house_width = 64.0
+house_height = 36.0
+wall_color = Color(0.392, 0.455, 0.6, 1)
+roof_color = Color(0.263, 0.314, 0.455, 1)
+roof_style = 2
+has_chimney = true
+
+[node name="House6" parent="." unique_id=1146338250 instance=ExtResource("18_house")]
+position = Vector2(1450, 0)
+house_width = 50.0
+house_height = 42.0
+wall_color = Color(0.38, 0.49, 0.38, 1)
+roof_color = Color(0.255, 0.353, 0.22, 1)
+
+[node name="Tree1" parent="." unique_id=1623790520 instance=ExtResource("11_tree")]
+position = Vector2(-250, 0)
+canopy_color = Color(0.157, 0.42, 0.18, 1)
+tree_scale = 1.2
+
+[node name="Tree2" parent="." unique_id=241414290 instance=ExtResource("11_tree")]
+position = Vector2(250, 0)
+canopy_color = Color(0.2, 0.502, 0.2, 1)
+
+[node name="Tree3" parent="." unique_id=32240271 instance=ExtResource("11_tree")]
+position = Vector2(550, 0)
+canopy_color = Color(0.133, 0.38, 0.153, 1)
+tree_scale = 0.9
+
+[node name="Tree4" parent="." unique_id=1115869534 instance=ExtResource("11_tree")]
+position = Vector2(850, 0)
+canopy_color = Color(0.18, 0.455, 0.231, 1)
+tree_scale = 1.1
+
+[node name="Tree5" parent="." unique_id=520157553 instance=ExtResource("11_tree")]
+position = Vector2(1000, 0)
+canopy_color = Color(0.141, 0.392, 0.2, 1)
+tree_scale = 0.85
+
+[node name="Tree6" parent="." unique_id=191200138 instance=ExtResource("11_tree")]
+position = Vector2(1300, 0)
+canopy_color = Color(0.22, 0.478, 0.165, 1)
+tree_scale = 1.15
+
+[node name="Tree7" parent="." unique_id=2125565163 instance=ExtResource("11_tree")]
+position = Vector2(1600, 0)
+canopy_color = Color(0.18, 0.435, 0.149, 1)
+
+[node name="Bench1" parent="." unique_id=1987267206 instance=ExtResource("10_bench")]
+position = Vector2(50, 0)
+
+[node name="Bench2" parent="." unique_id=2092992120 instance=ExtResource("10_bench")]
+position = Vector2(350, 0)
+
+[node name="Bench3" parent="." unique_id=487497309 instance=ExtResource("10_bench")]
+position = Vector2(620, 0)
+
+[node name="Bench4" parent="." unique_id=325201853 instance=ExtResource("10_bench")]
+position = Vector2(950, 0)
+
+[node name="Bench5" parent="." unique_id=1241075824 instance=ExtResource("10_bench")]
+position = Vector2(1250, 0)
+
+[node name="FenceLeft" parent="." unique_id=829063065 instance=ExtResource("12_fence")]
+position = Vector2(-350, 0)
+segment_count = 8
+
+[node name="FenceRight" parent="." unique_id=973755958 instance=ExtResource("12_fence")]
+position = Vector2(1700, 0)
+segment_count = 8
+
+[node name="FlowerPot1" parent="." unique_id=230794828 instance=ExtResource("13_flowerpot")]
+position = Vector2(120, 0)
+
+[node name="FlowerPot2" parent="." unique_id=1895837748 instance=ExtResource("13_flowerpot")]
+position = Vector2(180, 0)
+flower_color = Color(0.929, 0.726, 0.196, 1)
+
+[node name="FlowerPot3" parent="." unique_id=2029343000 instance=ExtResource("13_flowerpot")]
+position = Vector2(420, 0)
+flower_color = Color(0.431, 0.31, 0.894, 1)
+
+[node name="FlowerPot4" parent="." unique_id=528367865 instance=ExtResource("13_flowerpot")]
+position = Vector2(480, 0)
+flower_color = Color(0.878, 0.502, 0.69, 1)
+
+[node name="FlowerPot5" parent="." unique_id=1287798145 instance=ExtResource("13_flowerpot")]
+position = Vector2(780, 0)
+flower_color = Color(0.878, 0.4, 0.247, 1)
+
+[node name="FlowerPot6" parent="." unique_id=255410619 instance=ExtResource("13_flowerpot")]
+position = Vector2(1130, 0)
+flower_color = Color(0.69, 0.502, 0.894, 1)
+
+[node name="Sign1" parent="." unique_id=190513448 instance=ExtResource("14_sign")]
+position = Vector2(300, 0)
+
+[node name="Sign2" parent="." unique_id=1252378851 instance=ExtResource("14_sign")]
+position = Vector2(650, 0)
+sign_color = Color(0.302, 0.259, 0.42, 1)
+
+[node name="Sign3" parent="." unique_id=1612042620 instance=ExtResource("14_sign")]
+position = Vector2(1050, 0)
+
+[node name="Sign4" parent="." unique_id=1982599486 instance=ExtResource("14_sign")]
+position = Vector2(1400, 0)
+sign_color = Color(0.357, 0.298, 0.243, 1)
+
+[node name="Streetlight1" parent="." unique_id=40906919 instance=ExtResource("15_streetlight")]
+position = Vector2(50, 0)
+
+[node name="Streetlight2" parent="." unique_id=2138384668 instance=ExtResource("15_streetlight")]
+position = Vector2(300, 0)
+
+[node name="Streetlight3" parent="." unique_id=250246858 instance=ExtResource("15_streetlight")]
+position = Vector2(600, 0)
+
+[node name="Streetlight4" parent="." unique_id=717003771 instance=ExtResource("15_streetlight")]
+position = Vector2(850, 0)
+
+[node name="Streetlight5" parent="." unique_id=279145435 instance=ExtResource("15_streetlight")]
+position = Vector2(1188, -1)
+
+[node name="Streetlight6" parent="." unique_id=1295415036 instance=ExtResource("15_streetlight")]
+position = Vector2(1400, 0)
+
+[node name="NightOverlay" type="ColorRect" parent="." unique_id=1574608097]
+unique_name_in_owner = true
+z_index = 100
+material = SubResource("ShaderMaterial_night")
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 1800.0
+offset_bottom = 200.0
 mouse_filter = 2
-color = Color(0.45, 0.4, 0.5, 1)
+color = Color(1, 1, 1, 0)
 
-[node name="Roof" type="Polygon2D" parent="House2Exterior" unique_id=722800288]
-color = Color(0.32, 0.28, 0.38, 1)
-polygon = PackedVector2Array(-32, -44, 0, -62, 32, -44)
-
-[node name="DoorFrame" type="ColorRect" parent="House2Exterior" unique_id=1984453917]
-offset_left = -5.0
-offset_top = -16.0
-offset_right = 5.0
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=987654321]
+unique_name_in_owner = true
+z_index = 102
+material = SubResource("ShaderMaterial_vignette")
+offset_right = 1266.0
+offset_bottom = 623.0
 mouse_filter = 2
-color = Color(0.18, 0.15, 0.22, 1)
+color = Color(1, 1, 1, 0)
+
+[node name="WeatherController" parent="." unique_id=918181106 instance=ExtResource("19_weather")]
 
 [node name="SpawnPoint" type="Marker2D" parent="." unique_id=293394735]
 position = Vector2(302, -16)
 
 [node name="BoundsMin" type="Marker2D" parent="." unique_id=561756276]
-position = Vector2(-200, -300)
+position = Vector2(-400, -300)
 
 [node name="BoundsMax" type="Marker2D" parent="." unique_id=591373477]
-position = Vector2(1000, 200)
+position = Vector2(2100, 70)
 
 [node name="BlackKarim" parent="." unique_id=2034801997 instance=ExtResource("2_npc")]
 position = Vector2(300, 0)
@@ -105,7 +427,7 @@ modulate = Color(0.15, 0.15, 0.15, 1)
 position = Vector2(700, 0)
 script = ExtResource("5_brown")
 wander_min_x = 550.0
-wander_max_x = 800.0
+wander_max_x = 1200.0
 wander_speed = 20.0
 npc_name = "Brown Karim"
 dialog_id = "level_town/brown_karim/spooky"
@@ -121,5 +443,23 @@ destination_scene = "res://levels/level_town/interiors/House1Interior.tscn"
 position = Vector2(450, 0)
 destination_scene = "res://levels/level_town/interiors/House2Interior.tscn"
 
+[node name="PurpleKarim" parent="." unique_id=1591829417 instance=ExtResource("2_npc")]
+position = Vector2(1400, 0)
+script = ExtResource("23_purple")
+wander_min_x = 1200.0
+wander_max_x = 1700.0
+wander_speed = 20.0
+npc_name = "Purple Karim"
+dialog_id = "level_town/purple_karim/intro"
+
+[node name="Sprite" parent="PurpleKarim" index="0" unique_id=823545071]
+modulate = Color(0.5, 0.1, 0.8, 1)
+
+[node name="JunglePortal" parent="." unique_id=1013795943 instance=ExtResource("24_portal")]
+position = Vector2(1785, -30)
+destination_level_id = "level_jungle"
+portal_color = Color(0.1, 0.65, 0.2, 1)
+
 [editable path="BlackKarim"]
 [editable path="BrownKarim"]
+[editable path="PurpleKarim"]

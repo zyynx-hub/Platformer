@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Nu al terug? Zo, dat was snel."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Dus er zijn geen problemen van gekomen? Gelukkig maar…"
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Als ik nog een keer een opmerking over mijn kontje hoor, dan vlucht ik naar het buitenland."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Afijn, hier is je beloning, gebruik het met beleid, neef."
+voice_pitch = 0.95
+
+[resource]
+script = ExtResource("1_seq")
+description = "Purple Karim thanks player and gives reward"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4")])

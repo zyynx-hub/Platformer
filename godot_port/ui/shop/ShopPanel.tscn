@@ -1,18 +1,30 @@
-[gd_scene format=3]
+[gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://ui/shop/ShopPanel.gd" id="1_script"]
+[ext_resource type="Script" path="res://ui/shop/ShopPanel.gd" id="1_shop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.05, 0.15, 0.9)
+bg_color = Color(0.04, 0.04, 0.12, 0.95)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.3, 0.4, 0.8, 0.6)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+border_color = Color(0.25, 0.35, 0.7, 0.8)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
+bg_color = Color(0.08, 0.08, 0.2, 0.7)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.3, 0.6, 0.4)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 bg_color = Color(0.08, 0.08, 0.22, 0.8)
@@ -21,14 +33,14 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.3, 0.4, 0.8, 0.4)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
 bg_color = Color(0.12, 0.12, 0.3, 0.9)
@@ -37,99 +49,272 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.4, 0.6, 1.0, 0.8)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [node name="ShopPanel" type="CanvasLayer"]
-layer = 16
+layer = 17
 process_mode = 3
-script = ExtResource("1_script")
+script = ExtResource("1_shop")
 
-[node name="ShopRoot" type="Control" parent="."]
-layout_mode = 3
+[node name="DarkOverlay" type="ColorRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.65)
 
-[node name="DarkOverlay" type="ColorRect" parent="ShopRoot"]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="ShopBox" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -210.0
+offset_right = 300.0
+offset_bottom = 210.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
-color = Color(0, 0, 0, 0.5)
-
-[node name="ShopBox" type="PanelContainer" parent="ShopRoot"]
-layout_mode = 0
-offset_left = 340.0
-offset_top = 160.0
-offset_right = 940.0
-offset_bottom = 560.0
-mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="ShopRoot/ShopBox"]
+[node name="Margin" type="MarginContainer" parent="ShopBox"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="ShopRoot/ShopBox/MarginContainer"]
+[node name="VBox" type="VBoxContainer" parent="ShopBox/Margin"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
-[node name="TitleLabel" type="Label" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
+[node name="Header" type="HBoxContainer" parent="ShopBox/Margin/VBox"]
 layout_mode = 2
-mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="ShopBox/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.6, 0.75, 1, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "Karim's Shop"
-horizontal_alignment = 1
 
-[node name="Item0" type="Label" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
-theme_override_font_sizes/font_size = 18
-text = "Potion ........................ 50g"
-
-[node name="Item1" type="Label" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
-theme_override_font_sizes/font_size = 18
-text = "Magical Fruit ................. 120g"
-
-[node name="Item2" type="Label" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
-theme_override_font_sizes/font_size = 18
-text = "Lava Boots .................... 300g"
-
-[node name="StatusLabel" type="Label" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.5, 0.55, 0.7, 0.7)
-theme_override_font_sizes/font_size = 14
-text = "Items coming soon!"
-horizontal_alignment = 1
-
-[node name="CloseButton" type="Button" parent="ShopRoot/ShopBox/MarginContainer/VBox"]
+[node name="CoinLabel" type="Label" parent="ShopBox/Margin/VBox/Header"]
 unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 coins"
+horizontal_alignment = 2
+
+[node name="HSep1" type="HSeparator" parent="ShopBox/Margin/VBox"]
+layout_mode = 2
+
+[node name="ItemList" type="VBoxContainer" parent="ShopBox/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Slot0" type="PanelContainer" parent="ShopBox/Margin/VBox/ItemList"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="Slot0Margin" type="MarginContainer" parent="ShopBox/Margin/VBox/ItemList/Slot0"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Slot0Hbox" type="HBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Slot0Info" type="VBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin/Slot0Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Slot0Name" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin/Slot0Hbox/Slot0Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
+theme_override_font_sizes/font_size = 15
+text = "Item Name"
+
+[node name="Slot0Desc" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin/Slot0Hbox/Slot0Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Item description"
+
+[node name="Slot0Cost" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin/Slot0Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 14
+text = "0 coins"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Slot0Buy" type="Button" parent="ShopBox/Margin/VBox/ItemList/Slot0/Slot0Margin/Slot0Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+text = "Buy"
+
+[node name="Slot1" type="PanelContainer" parent="ShopBox/Margin/VBox/ItemList"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="Slot1Margin" type="MarginContainer" parent="ShopBox/Margin/VBox/ItemList/Slot1"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Slot1Hbox" type="HBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Slot1Info" type="VBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin/Slot1Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Slot1Name" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin/Slot1Hbox/Slot1Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
+theme_override_font_sizes/font_size = 15
+text = "Item Name"
+
+[node name="Slot1Desc" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin/Slot1Hbox/Slot1Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Item description"
+
+[node name="Slot1Cost" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin/Slot1Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 14
+text = "0 coins"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Slot1Buy" type="Button" parent="ShopBox/Margin/VBox/ItemList/Slot1/Slot1Margin/Slot1Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+text = "Buy"
+
+[node name="Slot2" type="PanelContainer" parent="ShopBox/Margin/VBox/ItemList"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="Slot2Margin" type="MarginContainer" parent="ShopBox/Margin/VBox/ItemList/Slot2"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Slot2Hbox" type="HBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Slot2Info" type="VBoxContainer" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin/Slot2Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Slot2Name" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin/Slot2Hbox/Slot2Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
+theme_override_font_sizes/font_size = 15
+text = "Item Name"
+
+[node name="Slot2Desc" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin/Slot2Hbox/Slot2Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Item description"
+
+[node name="Slot2Cost" type="Label" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin/Slot2Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 14
+text = "0 coins"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Slot2Buy" type="Button" parent="ShopBox/Margin/VBox/ItemList/Slot2/Slot2Margin/Slot2Hbox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+text = "Buy"
+
+[node name="HSep2" type="HSeparator" parent="ShopBox/Margin/VBox"]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="ShopBox/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)

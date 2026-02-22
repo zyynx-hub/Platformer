@@ -2,6 +2,7 @@
 # NPC with random wandering behavior on flat ground.
 # Set wander_min_x and wander_max_x in Inspector to bound movement.
 
+@tool
 extends "res://npcs/NPC.gd"
 
 @export var wander_min_x: float = 0.0

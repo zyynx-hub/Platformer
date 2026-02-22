@@ -2,6 +2,7 @@
 # Spooky NPC — says "...", then runs offscreen and vanishes permanently.
 # Extends WanderingNPC for idle wandering before interaction.
 
+@tool
 extends "res://npcs/WanderingNPC.gd"
 
 func _ready() -> void:

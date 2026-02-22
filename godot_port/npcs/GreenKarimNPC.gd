@@ -1,6 +1,7 @@
 # GreenKarimNPC.gd
 # Soldier in House 2. Conditional dialog based on quest state.
 
+@tool
 extends "res://npcs/NPC.gd"
 
 func _get_active_dialog_id() -> String:

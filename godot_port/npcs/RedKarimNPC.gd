@@ -1,6 +1,7 @@
 # RedKarimNPC.gd
 # Quest giver in House 2. Dialog -> choice panel -> quest progression.
 
+@tool
 extends "res://npcs/NPC.gd"
 
 var ChoicePanelScene = preload("res://ui/dialog/ChoicePanel.tscn")

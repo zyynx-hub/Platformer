@@ -29,6 +29,8 @@ Update `docs/status.md`:
 
 When you add, rename, or delete files in `godot_port/`, update CLAUDE.md's directory tree in the same turn.
 
+When you add or change any NPC, quest, dialog file, or quest state key, update `docs/quest-registry.md` in the same turn. See `.claude/rules/quest-registry.md` for the full checklist.
+
 Standalone health check (zero token cost — run in terminal, not in chat):
 ```bash
 python scripts/kb_health.py

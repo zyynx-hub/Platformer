@@ -1,0 +1,84 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://levels/level_town/ambient/WeatherController.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/rain.gdshader" id="2_rain_shader"]
+[ext_resource type="Shader" path="res://shaders/snow.gdshader" id="3_snow_shader"]
+[ext_resource type="Shader" path="res://shaders/rain_puddles.gdshader" id="4_puddle_shader"]
+[ext_resource type="Shader" path="res://shaders/snow_ground.gdshader" id="5_snow_ground_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rain"]
+shader = ExtResource("2_rain_shader")
+shader_parameter/intensity = 0.0
+shader_parameter/speed = 220.0
+shader_parameter/wind = 0.12
+shader_parameter/drop_len = 5.0
+shader_parameter/drop_tint = Vector3(0.7, 0.78, 0.9)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_snow"]
+shader = ExtResource("3_snow_shader")
+shader_parameter/intensity = 0.0
+shader_parameter/fall_speed = 35.0
+shader_parameter/drift = 12.0
+shader_parameter/flake_tint = Vector3(0.92, 0.94, 1.0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_puddles"]
+shader = ExtResource("4_puddle_shader")
+shader_parameter/accumulation = 0.0
+shader_parameter/wet_tint = Vector3(0.15, 0.1, 0.06)
+shader_parameter/puddle_tint = Vector3(0.25, 0.3, 0.4)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_snow_ground"]
+shader = ExtResource("5_snow_ground_shader")
+shader_parameter/accumulation = 0.0
+shader_parameter/snow_color = Vector3(0.9, 0.92, 0.98)
+shader_parameter/snow_shadow = Vector3(0.7, 0.75, 0.85)
+
+[node name="WeatherController" type="Node2D"]
+z_index = 99
+script = ExtResource("1_script")
+
+[node name="RainOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_rain")
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 1800.0
+offset_bottom = 200.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+visible = false
+
+[node name="SnowOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_snow")
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 1800.0
+offset_bottom = 200.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+visible = false
+
+[node name="PuddleOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+z_index = 1
+material = SubResource("ShaderMaterial_puddles")
+offset_left = -400.0
+offset_top = -2.0
+offset_right = 1800.0
+offset_bottom = 10.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+visible = false
+
+[node name="SnowGroundOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+z_index = 1
+material = SubResource("ShaderMaterial_snow_ground")
+offset_left = -400.0
+offset_top = -6.0
+offset_right = 1800.0
+offset_bottom = 0.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+visible = false

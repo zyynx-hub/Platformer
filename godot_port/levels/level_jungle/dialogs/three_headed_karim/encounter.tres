@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Spreek, maat."
+voice_pitch = 0.2
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Oh, je komt voor Purple Karim? Deze gozer is bijna te laat met zijn betaling…"
+voice_pitch = 0.2
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Ik steek hem lek, ik zoek hem op, penetreer zijn gladde kont en gooi zijn PC in de rivier."
+voice_pitch = 0.2
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Wat is dit? Jij wilt voor hem betalen?"
+voice_pitch = 0.2
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Dan heeft hij geluk. Noem het uitstel van executie, want het is en blijft een wanbetaler."
+voice_pitch = 0.2
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character_name = "Hydra Karim"
+text = "Vooruit, scheer je weg, kankerschorem. Laat karim weten dat zijn kontje voor mij altijd een ingang zal blijven."
+voice_pitch = 0.2
+
+[resource]
+script = ExtResource("1_seq")
+description = "Three-Headed Karim receives payment and threatens Purple Karim"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6")])

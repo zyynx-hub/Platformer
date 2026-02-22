@@ -36,6 +36,7 @@ signal settings_changed(settings: Dictionary)
 # ===== PROGRESS EVENTS =====
 signal stat_updated(stat_key: String, value: Variant)
 signal achievement_unlocked(achievement_id: String)
+signal coins_changed(new_amount: int)
 
 # ===== DIALOG EVENTS =====
 signal dialog_requested(dialog_id: String)
@@ -50,9 +51,20 @@ signal portal_entered(destination_level_id: String)
 
 # ===== QUEST EVENTS =====
 signal quest_state_changed(key: String, value: bool)
+signal quest_log_requested
+
+# ===== CAMERA EVENTS =====
+signal camera_shake_requested(duration: float, intensity: float)
+signal camera_pan_requested(target: Vector2, pan_duration: float, hold_duration: float, return_duration: float)
 
 # ===== DOOR EVENTS =====
 signal door_entered(destination_scene: String, is_exit_door: bool)
+
+# ===== DAY/NIGHT EVENTS =====
+signal time_of_day_changed(time: float)
+
+# ===== WEATHER EVENTS =====
+signal weather_changed(weather_type: int)
 
 # ===== UPDATE EVENTS =====
 signal update_available(version: String, url: String, message: String)

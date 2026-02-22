@@ -1,0 +1,189 @@
+[gd_scene format=3 uid="uid://ceayl5hf7hwm6"]
+
+[ext_resource type="PackedScene" uid="uid://bnvq1uurcis38" path="res://npcs/NPC.tscn" id="1_npc"]
+[ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="2_door"]
+[ext_resource type="Script" uid="uid://cx76wgxjkdyaj" path="res://levels/level_jungle/JungleLevelController.gd" id="3_controller"]
+[ext_resource type="Shader" uid="uid://c0ltoc87d6p35" path="res://shaders/town_sky.gdshader" id="4_sky_shader"]
+[ext_resource type="Shader" uid="uid://cb5l0628xxn2q" path="res://shaders/night_overlay.gdshader" id="5_night_shader"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="6_vignette_shader"]
+[ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="8_portal"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/House.tscn" id="9_house"]
+[ext_resource type="Script" uid="uid://t08axpsotk07" path="res://npcs/HydraBodyNPC.gd" id="11_hydra"]
+[ext_resource type="Script" uid="uid://dbwonj028mdlo" path="res://npcs/ThreeHeadedKarimNPC.gd" id="12_threeheaded"]
+[ext_resource type="Texture2D" uid="uid://c2ex083j4vhsg" path="res://assets/sprites/karim/karim_npc.png" id="13_karim"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("4_sky_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/star_density = 60.0
+shader_parameter/star_brightness = 0.9
+shader_parameter/cloud_speed = 0.02
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(1600, 16)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("6_vignette_shader")
+shader_parameter/strength = 0.55
+shader_parameter/softness = 0.5
+shader_parameter/radius = 0.5
+shader_parameter/tint = Color(0.02, 0.08, 0.02, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_night"]
+shader = ExtResource("5_night_shader")
+shader_parameter/darkness = 0.35
+shader_parameter/night_tint = Color(0.02, 0.1, 0.04, 1)
+
+[node name="JungleLevel" type="Node2D" unique_id=1492576535]
+script = ExtResource("3_controller")
+
+[node name="Sky" type="ColorRect" parent="." unique_id=101]
+unique_name_in_owner = true
+z_index = -100
+material = SubResource("ShaderMaterial_sky")
+offset_right = 1266.0
+offset_bottom = 623.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=560251929]
+
+[node name="GroundShape" type="CollisionShape2D" parent="Ground" unique_id=285662425]
+position = Vector2(600, 8)
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="GroundVisual" type="ColorRect" parent="Ground" unique_id=564628781]
+offset_left = -200.0
+offset_right = 1400.0
+offset_bottom = 200.0
+mouse_filter = 2
+color = Color(0.12, 0.18, 0.08, 1)
+
+[node name="GrassLine" type="ColorRect" parent="Ground" unique_id=825476299]
+offset_left = -200.0
+offset_top = -2.0
+offset_right = 1400.0
+mouse_filter = 2
+color = Color(0.18, 0.28, 0.1, 1)
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=103]
+unique_name_in_owner = true
+z_index = 102
+material = SubResource("ShaderMaterial_vignette")
+offset_right = 1266.0
+offset_bottom = 623.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="NightOverlay" type="ColorRect" parent="." unique_id=102]
+unique_name_in_owner = true
+z_index = 100
+material = SubResource("ShaderMaterial_night")
+offset_left = -400.0
+offset_top = -400.0
+offset_right = 2000.0
+offset_bottom = 400.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=624180640]
+position = Vector2(100, -16)
+
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=631469805]
+position = Vector2(-200, -300)
+
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=105146202]
+position = Vector2(1600, 70)
+
+[node name="PortalBack" parent="." unique_id=978390151 instance=ExtResource("8_portal")]
+position = Vector2(50, -24)
+destination_level_id = "level_town"
+portal_color = Color(0.9, 0.4, 0.1, 1)
+
+[node name="House1" parent="." unique_id=455512027 instance=ExtResource("9_house")]
+position = Vector2(350, 0)
+
+[node name="Door1" parent="." unique_id=1253035607 instance=ExtResource("2_door")]
+position = Vector2(350, 0)
+destination_scene = "res://levels/level_jungle/interiors/JungleHouseInterior.tscn"
+
+[node name="HydraBody1" parent="." unique_id=312456001 instance=ExtResource("1_npc")]
+position = Vector2(450, 0)
+script = ExtResource("11_hydra")
+state_key = "hydra_body_1_gone"
+wander_min_x = 380.0
+wander_max_x = 520.0
+wander_speed = 18.0
+npc_name = "???"
+dialog_id = "level_jungle/hydra_body_1/dialog"
+
+[node name="Sprite" parent="HydraBody1" index="0" unique_id=823545071]
+modulate = Color(0.4, 0.1, 0.6, 1)
+
+[node name="HydraBody2" parent="." unique_id=2053069766 instance=ExtResource("1_npc")]
+position = Vector2(700, 0)
+script = ExtResource("11_hydra")
+state_key = "hydra_body_2_gone"
+wander_min_x = 550.0
+wander_max_x = 950.0
+wander_speed = 18.0
+npc_name = "???"
+dialog_id = "level_jungle/hydra_body_2/dialog"
+
+[node name="Sprite" parent="HydraBody2" index="0" unique_id=823545071]
+modulate = Color(0.4, 0.1, 0.6, 1)
+
+[node name="HydraBody3" parent="." unique_id=1884449944 instance=ExtResource("1_npc")]
+position = Vector2(1200, 0)
+script = ExtResource("11_hydra")
+state_key = "hydra_body_3_gone"
+wander_min_x = 1000.0
+wander_max_x = 1400.0
+wander_speed = 18.0
+npc_name = "???"
+dialog_id = "level_jungle/hydra_body_3/dialog"
+
+[node name="Sprite" parent="HydraBody3" index="0" unique_id=823545071]
+modulate = Color(0.4, 0.1, 0.6, 1)
+
+[node name="ThreeHeadedKarim" parent="." unique_id=420897834 instance=ExtResource("1_npc")]
+unique_name_in_owner = true
+visible = false
+position = Vector2(900, 0)
+scale = Vector2(1.3, 1.3)
+script = ExtResource("12_threeheaded")
+wander_min_x = 650.0
+wander_max_x = 1150.0
+wander_speed = 22.0
+npc_name = "Hydra Karim"
+dialog_id = "level_jungle/three_headed_karim/encounter"
+
+[node name="Sprite" parent="ThreeHeadedKarim" index="0" unique_id=823545071]
+modulate = Color(0.3, 0.05, 0.5, 1)
+
+[node name="LeftHead" type="Sprite2D" parent="ThreeHeadedKarim"]
+z_index = -1
+show_behind_parent = true
+texture = ExtResource("13_karim")
+texture_filter = 1
+position = Vector2(-14, -6)
+rotation = -0.3927
+scale = Vector2(0.75, 0.75)
+offset = Vector2(0, -16)
+modulate = Color(0.3, 0.05, 0.5, 1)
+
+[node name="RightHead" type="Sprite2D" parent="ThreeHeadedKarim"]
+z_index = -1
+show_behind_parent = true
+texture = ExtResource("13_karim")
+texture_filter = 1
+position = Vector2(14, -6)
+rotation = 0.3927
+scale = Vector2(0.75, 0.75)
+offset = Vector2(0, -16)
+modulate = Color(0.3, 0.05, 0.5, 1)
+
+[editable path="HydraBody1"]
+[editable path="HydraBody2"]
+[editable path="HydraBody3"]
+[editable path="ThreeHeadedKarim"]

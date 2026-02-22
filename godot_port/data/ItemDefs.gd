@@ -23,6 +23,28 @@ const ALL := {
 	},
 }
 
+# Shop items sold by BlueKarimNPC (ordered by display priority)
+const SHOP: Array = [
+	{
+		"id": "extra_heart",
+		"name": "Extra Heart",
+		"desc": "+1 max HP permanently",
+		"cost": 80,
+	},
+	{
+		"id": "speed_charm",
+		"name": "Speed Charm",
+		"desc": "Move 10% faster",
+		"cost": 120,
+	},
+	{
+		"id": "town_key",
+		"name": "Town Key",
+		"desc": "Opens the east gate",
+		"cost": 60,
+	},
+]
+
 static func get_item(id: String) -> Dictionary:
 	if ALL.has(id):
 		return ALL[id]
