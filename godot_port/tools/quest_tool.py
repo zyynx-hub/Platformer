@@ -1350,20 +1350,24 @@ def _build_graph_data(quests: dict) -> dict:
                 "classes": "state-key " + subtype,
             })
 
+        # Collect which keys each NPC sets (for cycle-avoidance below)
+        npc_sets_keys: dict[str, set[str]] = {}
+        for npc_id, npc_data in q.get("npcs", {}).items():
+            keys_set = set()
+            for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
+                for a in iter_actions(actions):
+                    if a.get("action") == "set_key":
+                        keys_set.add(a["key"])
+            npc_sets_keys[npc_id] = keys_set
+
         # NPC nodes (inside quest box, duplicated per quest if shared)
         for npc_id, npc_data in q.get("npcs", {}).items():
             npc_node_id = qid + ":npc:" + npc_id
-            # Determine rank: NPC rank = min rank of keys it sets, minus 0.5
-            npc_rank = 0
-            for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
-                for a in iter_actions(actions):
-                    if a.get("action") == "set_key" and a["key"] in key_rank:
-                        npc_rank = max(npc_rank, key_rank[a["key"]])
             nodes.append({
                 "data": {
                     "id": npc_node_id, "label": npc_id, "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
-                    "quest": qid, "npc_id": npc_id, "rank": npc_rank,
+                    "quest": qid, "npc_id": npc_id,
                 },
                 "classes": "npc",
             })
@@ -1378,16 +1382,29 @@ def _build_graph_data(quests: dict) -> dict:
                             },
                         })
             # Edges: state key -> NPC (enables / condition)
+            # Skip if this NPC also SETS that same key (would create a cycle
+            # that confuses dagre's top-to-bottom ordering).
+            my_keys = npc_sets_keys.get(npc_id, set())
             for entry in npc_data.get("dialog_selection", []):
                 for req_key in entry.get("requires", {}):
-                    # Key might belong to a different quest — find correct node
+                    if req_key in my_keys:
+                        continue  # skip self-cycle
                     key_node = "key:" + req_key
                     edges.append({
                         "data": {
                             "source": key_node, "target": npc_node_id,
-                            "label": "enables", "etype": "condition",
+                            "label": "requires", "etype": "condition",
                         },
                     })
+            # Edges: appears_when (all_true keys -> NPC)
+            appears = npc_data.get("appears_when", {})
+            for req_key in appears.get("all_true", []):
+                edges.append({
+                    "data": {
+                        "source": "key:" + req_key, "target": npc_node_id,
+                        "label": "spawns", "etype": "appears",
+                    },
+                })
 
         # Reward node (inside quest box)
         reward = q.get("reward", {})
@@ -1815,6 +1832,7 @@ function renderGraph(app,sub){
       {selector:'edge[etype="condition"]',style:{'line-style':'dotted','line-color':'#64748b','width':1}},
       {selector:'edge[etype="unlocks"]',style:{'line-color':'#22c55e','target-arrow-color':'#22c55e','width':2}},
       {selector:'edge[etype="npc_link"]',style:{'line-style':'dotted','line-color':'#7c3aed','target-arrow-color':'#7c3aed','width':1}},
+      {selector:'edge[etype="appears"]',style:{'line-style':'dashed','line-color':'#a78bfa','target-arrow-color':'#a78bfa','width':2}},
       {selector:'.dimmed',style:{'opacity':0.15}},
       {selector:':selected',style:{'border-width':3,'border-color':'#3b82f6'}},
     ],
