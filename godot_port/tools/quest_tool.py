@@ -1309,17 +1309,11 @@ def _aggregate_npc_profiles(quests: dict) -> dict:
 def _build_graph_data(quests: dict) -> dict:
     """Pre-compute Cytoscape.js nodes and edges for the quest dependency graph.
 
-    Two strategies ensure correct top-to-bottom chronological ordering:
-
-    1. **Flow chain edges** between consecutive state keys (based on their
-       order in the JSON array) give dagre an explicit progression spine.
-
-    2. **NPC phase splitting** — NPCs that interact at multiple points in the
-       quest (e.g. purple_karim gives quest at start, receives payment at end)
-       are split into "start" and "return" nodes.  Only triggered when an NPC
-       has dialog_selection entries with ``requires`` keys it doesn't itself
-       set.  ``appears_when`` alone does NOT trigger a split (it's a spawn
-       condition, not a multi-phase interaction).
+    Ranking strategy: walk each quest's ``state_keys`` array (already in
+    chronological order) and assign explicit ``rank`` values to every node.
+    For each key (or parallel group): the NPC that sets it gets ``rank_counter``,
+    the key itself gets ``rank_counter + 1``.  The JS layout reads these ranks
+    directly — no edge-based topological sort needed.
     """
     nodes = []
     edges = []
@@ -1338,8 +1332,76 @@ def _build_graph_data(quests: dict) -> dict:
         })
 
         all_keys = q.get("state_keys", [])
+        npcs_data = q.get("npcs", {})
 
-        # State key nodes
+        # ---- Pre-compute: which NPC sets which key ----
+        npc_sets_key: dict[str, str] = {}   # key -> npc_id
+        for npc_id, npc_data in npcs_data.items():
+            for _dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
+                for a in iter_actions(actions):
+                    if a.get("action") == "set_key":
+                        npc_sets_key[a["key"]] = npc_id
+
+        # ---- Assign explicit ranks from state_keys order ----
+        # Walk state_keys: for each key (or parallel group), the NPC that
+        # sets it gets rank R, the key gets rank R+1.  Parallel group keys
+        # share the same rank pair.
+        node_rank: dict[str, int] = {}   # node_id -> rank
+        npc_node_ids: dict[str, str] = {}  # npc_id -> node_id (first occurrence)
+        rank_counter = 0
+        i = 0
+        while i < len(all_keys):
+            pg = all_keys[i].get("parallel_group", "")
+            if pg:
+                # Collect parallel group
+                group_keys = []
+                while i < len(all_keys) and all_keys[i].get("parallel_group", "") == pg:
+                    group_keys.append(all_keys[i]["key"])
+                    i += 1
+                # NPCs that set these keys get current rank
+                setter_npcs = set()
+                for gk in group_keys:
+                    setter = npc_sets_key.get(gk)
+                    if setter:
+                        setter_npcs.add(setter)
+                for npc_id in setter_npcs:
+                    nid = qid + ":npc:" + npc_id
+                    node_rank[nid] = rank_counter
+                    npc_node_ids.setdefault(npc_id, nid)
+                rank_counter += 1
+                # Keys get next rank
+                for gk in group_keys:
+                    node_rank["key:" + gk] = rank_counter
+                rank_counter += 1
+            else:
+                key = all_keys[i]["key"]
+                setter = npc_sets_key.get(key)
+                if setter:
+                    nid = qid + ":npc:" + setter
+                    # Only assign if not already placed (split NPCs get two ranks)
+                    if nid not in node_rank:
+                        node_rank[nid] = rank_counter
+                        npc_node_ids.setdefault(setter, nid)
+                    else:
+                        # This NPC appears again (return phase) — use a :return id
+                        ret_id = qid + ":npc:" + setter + ":return"
+                        node_rank[ret_id] = rank_counter
+                rank_counter += 1
+                node_rank["key:" + key] = rank_counter
+                rank_counter += 1
+                i += 1
+
+        # NPCs that don't set any key get rank 0
+        for npc_id in npcs_data:
+            nid = qid + ":npc:" + npc_id
+            if nid not in node_rank:
+                # Check if a :start or :return variant exists
+                has_variant = any(k.startswith(nid + ":") for k in node_rank)
+                if not has_variant:
+                    node_rank[nid] = 0
+                    npc_node_ids.setdefault(npc_id, nid)
+
+        # ---- Create state key nodes with rank ----
         for sk in all_keys:
             key = sk["key"]
             is_active = key == q.get("active_key")
@@ -1350,65 +1412,34 @@ def _build_graph_data(quests: dict) -> dict:
                     "id": "key:" + key, "label": key, "type": "state_key",
                     "parent": qid, "meaning": sk.get("meaning", ""),
                     "subtype": subtype, "parallel_group": sk.get("parallel_group", ""),
+                    "rank": node_rank.get("key:" + key, 0),
                 },
                 "classes": "state-key " + subtype,
             })
 
-        # Flow chain: invisible edges between consecutive state keys
-        # (respecting parallel_group — keys in the same group are siblings,
-        #  not sequential, so chain from the previous non-parallel key to all
-        #  members of the group, then from all members to the next key).
-        prev_keys = []  # list of key IDs at the previous rank
-        i = 0
-        while i < len(all_keys):
-            pg = all_keys[i].get("parallel_group", "")
+        # ---- Flow chain edges (for visual arrows, not for ranking) ----
+        prev_keys = []
+        fi = 0
+        while fi < len(all_keys):
+            pg = all_keys[fi].get("parallel_group", "")
             if pg:
-                # Collect all keys in this parallel group
                 group = []
-                while i < len(all_keys) and all_keys[i].get("parallel_group", "") == pg:
-                    group.append(all_keys[i]["key"])
-                    i += 1
-                # prev → each member of group
+                while fi < len(all_keys) and all_keys[fi].get("parallel_group", "") == pg:
+                    group.append(all_keys[fi]["key"])
+                    fi += 1
                 for pk in prev_keys:
                     for gk in group:
-                        edges.append({"data": {
-                            "source": "key:" + pk, "target": "key:" + gk,
-                            "label": "", "etype": "flow",
-                        }})
+                        edges.append({"data": {"source": "key:" + pk, "target": "key:" + gk, "label": "", "etype": "flow"}})
                 prev_keys = group
             else:
-                key = all_keys[i]["key"]
+                key = all_keys[fi]["key"]
                 for pk in prev_keys:
-                    edges.append({"data": {
-                        "source": "key:" + pk, "target": "key:" + key,
-                        "label": "", "etype": "flow",
-                    }})
+                    edges.append({"data": {"source": "key:" + pk, "target": "key:" + key, "label": "", "etype": "flow"}})
                 prev_keys = [key]
-                i += 1
+                fi += 1
 
-        # Build flow-predecessor map: for each key, which keys precede it
-        # in the flow chain.  Used below to anchor NPC nodes between keys.
-        flow_pred: dict[str, list[str]] = {}   # key -> [predecessor keys]
-        prev_keys2: list[str] = []
-        j = 0
-        while j < len(all_keys):
-            pg = all_keys[j].get("parallel_group", "")
-            if pg:
-                group2: list[str] = []
-                while j < len(all_keys) and all_keys[j].get("parallel_group", "") == pg:
-                    group2.append(all_keys[j]["key"])
-                    j += 1
-                for gk in group2:
-                    flow_pred[gk] = list(prev_keys2)
-                prev_keys2 = group2
-            else:
-                k2 = all_keys[j]["key"]
-                flow_pred[k2] = list(prev_keys2)
-                prev_keys2 = [k2]
-                j += 1
-
-        # --- NPC analysis ---
-        for npc_id, npc_data in q.get("npcs", {}).items():
+        # ---- NPC nodes + edges ----
+        for npc_id, npc_data in npcs_data.items():
             keys_set = {}
             for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
                 for a in iter_actions(actions):
@@ -1419,7 +1450,6 @@ def _build_graph_data(quests: dict) -> dict:
             for rk in npc_data.get("appears_when", {}).get("all_true", []):
                 appears_keys.add(rk)
 
-            # Only dialog_selection.requires counts for split (NOT appears_when)
             dialog_reads = set()
             for entry in npc_data.get("dialog_selection", []):
                 for req_key in entry.get("requires", {}):
@@ -1427,60 +1457,55 @@ def _build_graph_data(quests: dict) -> dict:
 
             dialog_reads_external = dialog_reads - set(keys_set.keys())
 
-            # Split only when NPC sets keys AND reads different keys via
-            # dialog_selection (meaning it has multi-phase interaction)
-            needs_split = len(keys_set) > 0 and len(dialog_reads_external) > 0
+            # Detect if NPC was assigned two ranks (start + return)
+            base_id = qid + ":npc:" + npc_id
+            ret_id = base_id + ":return"
+            has_return = ret_id in node_rank
 
-            if needs_split:
-                start_id = qid + ":npc:" + npc_id + ":start"
-                return_id = qid + ":npc:" + npc_id + ":return"
-                node_ids.update([start_id, return_id])
+            if has_return:
+                start_id = base_id
+                # Relabel as :start for clarity
+                start_rank = node_rank[start_id]
+                return_rank = node_rank[ret_id]
+                node_ids.update([start_id, ret_id])
 
                 nodes.append({"data": {
                     "id": start_id, "label": npc_id, "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
                     "quest": qid, "npc_id": npc_id, "phase": "start",
+                    "rank": start_rank,
                 }, "classes": "npc npc-start"})
 
                 nodes.append({"data": {
-                    "id": return_id, "label": npc_id + " (return)", "type": "npc",
+                    "id": ret_id, "label": npc_id + " (return)", "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
                     "quest": qid, "npc_id": npc_id, "phase": "return",
+                    "rank": return_rank,
                 }, "classes": "npc npc-return"})
 
-                # Classify keys into start vs return phase
-                return_phase_keys = set()
-                for entry in npc_data.get("dialog_selection", []):
-                    req = set(entry.get("requires", {}).keys())
-                    if req & dialog_reads_external:
-                        dialog = entry.get("dialog", "")
-                        for a in iter_actions(npc_data.get("on_dialog_end", {}).get(dialog, [])):
-                            if a.get("action") == "set_key":
-                                return_phase_keys.add(a["key"])
-                start_phase_keys = set(keys_set.keys()) - return_phase_keys
+                # Classify keys into start vs return phase by rank:
+                # keys at ranks just after start_rank are start phase,
+                # keys at ranks just after return_rank are return phase
+                for key in keys_set:
+                    key_rank = node_rank.get("key:" + key, 0)
+                    if key_rank > return_rank:
+                        edges.append({"data": {"source": ret_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
+                    else:
+                        edges.append({"data": {"source": start_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
 
-                for key in start_phase_keys:
-                    edges.append({"data": {"source": start_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
                 for rk in dialog_reads_external:
-                    edges.append({"data": {"source": "key:" + rk, "target": return_id, "label": "requires", "etype": "condition"}})
-                for key in return_phase_keys:
-                    edges.append({"data": {"source": return_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
-
-                # Anchor start node: flow predecessors of start-phase keys → start
-                anchor_preds: set[str] = set()
-                for key in start_phase_keys:
-                    for pk in flow_pred.get(key, []):
-                        anchor_preds.add(pk)
-                for pk in anchor_preds:
-                    edges.append({"data": {"source": "key:" + pk, "target": start_id, "label": "", "etype": "flow"}})
+                    edges.append({"data": {"source": "key:" + rk, "target": ret_id, "label": "requires", "etype": "condition"}})
 
             else:
-                npc_node_id = qid + ":npc:" + npc_id
+                npc_node_id = base_id
                 node_ids.add(npc_node_id)
+                npc_rank = node_rank.get(npc_node_id, 0)
+
                 nodes.append({"data": {
                     "id": npc_node_id, "label": npc_id, "type": "npc",
                     "role": npc_data.get("role", ""), "parent": qid,
                     "quest": qid, "npc_id": npc_id,
+                    "rank": npc_rank,
                 }, "classes": "npc"})
 
                 for key in keys_set:
@@ -1490,19 +1515,12 @@ def _build_graph_data(quests: dict) -> dict:
                 for rk in appears_keys:
                     edges.append({"data": {"source": "key:" + rk, "target": npc_node_id, "label": "spawns", "etype": "appears"}})
 
-                # Anchor NPC between flow keys: predecessors of keys it sets → NPC
-                npc_anchor_preds: set[str] = set()
-                for key in keys_set:
-                    for pk in flow_pred.get(key, []):
-                        npc_anchor_preds.add(pk)
-                for pk in npc_anchor_preds:
-                    edges.append({"data": {"source": "key:" + pk, "target": npc_node_id, "label": "", "etype": "flow"}})
-
         # Reward
         reward = q.get("reward", {})
         if reward.get("type") == "item":
             r_id = "reward:" + qid
-            nodes.append({"data": {"id": r_id, "label": reward["item_id"], "type": "reward", "parent": qid}, "classes": "reward"})
+            reward_rank = rank_counter
+            nodes.append({"data": {"id": r_id, "label": reward["item_id"], "type": "reward", "parent": qid, "rank": reward_rank}, "classes": "reward"})
             ck = q.get("complete_key")
             if ck:
                 edges.append({"data": {"source": "key:" + ck, "target": r_id, "label": "unlocks", "etype": "unlocks"}})
@@ -1930,61 +1948,33 @@ function renderGraph(app,sub){
     target.layout({name:'cose',animate:true,animationDuration:300,nodeRepulsion:function(){return 10000},idealEdgeLength:function(){return 90}}).run();
   }
   function runTopo(){
-    /* Topological-sort layout: compute longest-path rank from directed edges,
-       then assign deterministic Y (rank) and X (per-quest column) positions.
-       This guarantees correct chronological top-to-bottom ordering. */
+    /* Chronological layout: reads pre-computed 'rank' from node data
+       (assigned by Python from the state_keys array order).
+       Positions: Y = rank * rowHeight, X = per-quest column. */
     var childNodes=cy.nodes().filter(function(n){return !!n.data('parent')});
-    /* Build adjacency from child→child edges only */
-    var adj={};var indeg={};
-    childNodes.forEach(function(n){var id=n.id();adj[id]=[];indeg[id]=0});
-    cy.edges().forEach(function(e){
-      var s=e.data('source'),t=e.data('target');
-      if(s in adj&&t in adj){
-        adj[s].push(t);indeg[t]=indeg[t]+1;
-      }
-    });
-    /* Longest-path rank via topological sort (Kahn's with max propagation) */
-    var rank={};var queue=[];
-    var ids=Object.keys(indeg);
-    for(var i=0;i<ids.length;i++){if(indeg[ids[i]]===0){queue.push(ids[i]);rank[ids[i]]=0}}
-    var safety=0;
-    while(queue.length>0&&safety<10000){
-      safety++;
-      var cur=queue.shift();
-      var neighbors=adj[cur];
-      for(var j=0;j<neighbors.length;j++){
-        var nb=neighbors[j];
-        var newRank=rank[cur]+1;
-        if(rank[nb]===undefined||newRank>rank[nb])rank[nb]=newRank;
-        indeg[nb]--;
-        if(indeg[nb]===0)queue.push(nb);
-      }
-    }
-    /* Fallback for cycles or isolates */
-    childNodes.forEach(function(n){if(rank[n.id()]===undefined)rank[n.id()]=0});
-    /* Group children by parent quest */
+    /* Group by parent quest */
     var questChildren={};
     childNodes.forEach(function(n){
       var p=n.data('parent');
       if(!questChildren[p])questChildren[p]=[];
       questChildren[p].push(n);
     });
-    /* Sort children within each quest by rank, then by id for stability */
     var qkeys=Object.keys(questChildren);
+    /* Sort children by rank, then id for stability */
     for(var qi=0;qi<qkeys.length;qi++){
       questChildren[qkeys[qi]].sort(function(a,b){
-        var dr=rank[a.id()]-rank[b.id()];
-        return dr!==0?dr:(a.id()<b.id()?-1:1);
+        var ra=a.data('rank')||0,rb=b.data('rank')||0;
+        return ra!==rb?ra-rb:(a.id()<b.id()?-1:1);
       });
     }
-    /* Compute each quest's width (max nodes at any single rank * nodeSpacing) */
-    var nodeSpacing=170;var rowHeight=65;var questGap=100;var padding=80;
+    /* Compute quest column widths */
+    var nodeSpacing=170;var rowHeight=70;var questGap=120;var padding=80;
     var questWidths=[];
     for(var qi=0;qi<qkeys.length;qi++){
       var children=questChildren[qkeys[qi]];
       var rankCount={};
       for(var k=0;k<children.length;k++){
-        var r=rank[children[k].id()];
+        var r=children[k].data('rank')||0;
         rankCount[r]=(rankCount[r]||0)+1;
       }
       var maxAtRank=0;
@@ -1992,18 +1982,14 @@ function renderGraph(app,sub){
       for(var k=0;k<rkeys.length;k++){if(rankCount[rkeys[k]]>maxAtRank)maxAtRank=rankCount[rkeys[k]]}
       questWidths.push(Math.max(maxAtRank,1)*nodeSpacing);
     }
-    /* Assign positions: cumulative X offset per quest column */
+    /* Position nodes */
     var cumX=padding;
     cy.startBatch();
     for(var ci=0;ci<qkeys.length;ci++){
       var children=questChildren[qkeys[ci]];
-      var minRank=rank[children[0].id()];
-      for(var k=1;k<children.length;k++){
-        var rk=rank[children[k].id()];if(rk<minRank)minRank=rk;
-      }
       var rankSlot={};
       for(var k=0;k<children.length;k++){
-        var r=rank[children[k].id()]-minRank;
+        var r=children[k].data('rank')||0;
         if(rankSlot[r]===undefined)rankSlot[r]=0;
         var xOff=rankSlot[r]*nodeSpacing;
         rankSlot[r]++;
@@ -2013,7 +1999,7 @@ function renderGraph(app,sub){
     }
     cy.endBatch();
     cy.fit(null,40);
-    console.log('[Topo] Layout applied, '+childNodes.length+' nodes positioned');
+    console.log('[Topo] Layout applied, '+childNodes.length+' nodes, rank-based');
   }
   try{runTopo();console.log('[Graph] Using topo layout')}catch(e){console.error('[Graph] Topo failed:',e);try{runDagre()}catch(e2){runCose()}}
   /* Quest filter */
