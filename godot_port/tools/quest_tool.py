@@ -1307,17 +1307,35 @@ def _aggregate_npc_profiles(quests: dict) -> dict:
 
 
 def _build_graph_data(quests: dict) -> dict:
-    """Pre-compute Cytoscape.js nodes and edges for the quest dependency graph."""
+    """Pre-compute Cytoscape.js nodes and edges for the quest dependency graph.
+
+    Every node (NPC, state-key, reward) is parented to its quest container so
+    Cytoscape compound-node layout keeps everything inside the quest box.
+    NPCs that appear in multiple quests get duplicated (qid:npc_id) with
+    cross-quest edges between duplicates.
+    """
     nodes = []
     edges = []
-    seen_npcs = set()
+    # Track which quests each NPC appears in
+    npc_quests: dict[str, list[str]] = {}
+    for qid, q in quests.items():
+        for npc_id in q.get("npcs", {}):
+            npc_quests.setdefault(npc_id, []).append(qid)
 
     for qid, q in quests.items():
+        # Quest container node
         nodes.append({
             "data": {"id": qid, "label": q.get("name", qid), "type": q.get("type", "quest")},
             "classes": q.get("type", "quest"),
         })
-        for sk in q.get("state_keys", []):
+
+        # Compute chronological rank for state keys based on their order in
+        # the JSON array — first key = rank 0, etc.
+        all_keys = q.get("state_keys", [])
+        key_rank = {sk["key"]: i for i, sk in enumerate(all_keys)}
+
+        # State key nodes (inside quest box)
+        for sk in all_keys:
             key = sk["key"]
             is_active = key == q.get("active_key")
             is_complete = key == q.get("complete_key")
@@ -1327,20 +1345,29 @@ def _build_graph_data(quests: dict) -> dict:
                     "id": "key:" + key, "label": key, "type": "state_key",
                     "parent": qid, "meaning": sk.get("meaning", ""),
                     "subtype": subtype, "parallel_group": sk.get("parallel_group", ""),
+                    "rank": key_rank.get(key, 0),
                 },
                 "classes": "state-key " + subtype,
             })
+
+        # NPC nodes (inside quest box, duplicated per quest if shared)
         for npc_id, npc_data in q.get("npcs", {}).items():
-            npc_node_id = "npc:" + npc_id
-            if npc_id not in seen_npcs:
-                seen_npcs.add(npc_id)
-                nodes.append({
-                    "data": {
-                        "id": npc_node_id, "label": npc_id, "type": "npc",
-                        "role": npc_data.get("role", ""),
-                    },
-                    "classes": "npc",
-                })
+            npc_node_id = qid + ":npc:" + npc_id
+            # Determine rank: NPC rank = min rank of keys it sets, minus 0.5
+            npc_rank = 0
+            for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
+                for a in iter_actions(actions):
+                    if a.get("action") == "set_key" and a["key"] in key_rank:
+                        npc_rank = max(npc_rank, key_rank[a["key"]])
+            nodes.append({
+                "data": {
+                    "id": npc_node_id, "label": npc_id, "type": "npc",
+                    "role": npc_data.get("role", ""), "parent": qid,
+                    "quest": qid, "npc_id": npc_id, "rank": npc_rank,
+                },
+                "classes": "npc",
+            })
+            # Edges: NPC -> state key (sets)
             for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
                 for a in iter_actions(actions):
                     if a.get("action") == "set_key":
@@ -1350,19 +1377,28 @@ def _build_graph_data(quests: dict) -> dict:
                                 "label": "sets", "etype": "sets",
                             },
                         })
+            # Edges: state key -> NPC (enables / condition)
             for entry in npc_data.get("dialog_selection", []):
                 for req_key in entry.get("requires", {}):
+                    # Key might belong to a different quest — find correct node
+                    key_node = "key:" + req_key
                     edges.append({
                         "data": {
-                            "source": "key:" + req_key, "target": npc_node_id,
+                            "source": key_node, "target": npc_node_id,
                             "label": "enables", "etype": "condition",
                         },
                     })
+
+        # Reward node (inside quest box)
         reward = q.get("reward", {})
         if reward.get("type") == "item":
             r_id = "reward:" + qid
+            max_rank = len(all_keys)
             nodes.append({
-                "data": {"id": r_id, "label": reward["item_id"], "type": "reward", "parent": qid},
+                "data": {
+                    "id": r_id, "label": reward["item_id"], "type": "reward",
+                    "parent": qid, "rank": max_rank,
+                },
                 "classes": "reward",
             })
             ck = q.get("complete_key")
@@ -1371,6 +1407,7 @@ def _build_graph_data(quests: dict) -> dict:
                     "data": {"source": "key:" + ck, "target": r_id, "label": "unlocks", "etype": "unlocks"},
                 })
 
+    # Cross-quest prerequisite edges
     for qid, q in quests.items():
         for prereq_key in q.get("prerequisites", []):
             for other_id, other_q in quests.items():
@@ -1381,6 +1418,18 @@ def _build_graph_data(quests: dict) -> dict:
                             "label": "prerequisite", "etype": "prerequisite",
                         },
                     })
+
+    # Cross-quest NPC link edges (dotted, between duplicate NPC nodes)
+    for npc_id, quest_ids in npc_quests.items():
+        if len(quest_ids) > 1:
+            for i in range(len(quest_ids) - 1):
+                edges.append({
+                    "data": {
+                        "source": quest_ids[i] + ":npc:" + npc_id,
+                        "target": quest_ids[i + 1] + ":npc:" + npc_id,
+                        "label": "same NPC", "etype": "npc_link",
+                    },
+                })
 
     return {"nodes": nodes, "edges": edges}
 
@@ -1554,9 +1603,12 @@ body{background:var(--bg-0);color:var(--text-2);font-family:-apple-system,BlinkM
 .item-cost{color:var(--gold);font-size:12px;margin-top:4px}
 .ach-hidden{opacity:.5}
 #cy{width:100%;height:calc(100vh - 140px);min-height:400px;background:var(--bg-0);border:1px solid var(--border);border-radius:6px}
-.graph-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.graph-btn{background:var(--bg-2);border:1px solid var(--border);color:var(--text-2);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit}
+.graph-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.graph-btn{background:var(--bg-2);border:1px solid var(--border);color:var(--text-2);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
 .graph-btn:hover{background:var(--bg-3);color:var(--text-1)}
+.graph-btn.filter-btn{border-color:var(--border);color:var(--text-3)}
+.graph-btn.filter-btn.active{background:#1e3a5f;border-color:#3b82f6;color:#93c5fd}
+.graph-btn.filter-btn[data-quest="all"].active{background:var(--bg-3);border-color:var(--text-2);color:var(--text-1)}
 .graph-detail{position:fixed;right:0;top:52px;width:320px;height:calc(100vh - 52px);background:var(--bg-1);border-left:1px solid var(--border);padding:16px;overflow-y:auto;z-index:50;display:none}
 .graph-detail.open{display:block}
 .graph-detail h3{color:var(--text-1);font-size:14px;margin-bottom:8px}
@@ -1729,9 +1781,15 @@ function renderOverview(app){
 function renderGraph(app,sub){
   let h='<div class="view-title">Quest Dependency Graph</div>';
   h+='<div class="graph-controls">';
+  h+='<button class="graph-btn filter-btn active" id="graph-all" data-quest="all">All Quests</button>';
+  Object.values(D.quests).forEach(function(q){
+    const cls=q.type==='quest'?'badge-quest':'badge-event';
+    h+='<button class="graph-btn filter-btn" data-quest="'+esc(q.id)+'">'+esc(q.name)+'</button>';
+  });
+  h+='<span style="flex:1"></span>';
   h+='<button class="graph-btn" id="graph-fit">Fit to View</button>';
-  h+='<button class="graph-btn" id="graph-dagre">Hierarchical Layout</button>';
-  h+='<button class="graph-btn" id="graph-cose">Force Layout</button>';
+  h+='<button class="graph-btn" id="graph-dagre">Hierarchical</button>';
+  h+='<button class="graph-btn" id="graph-cose">Force</button>';
   h+='</div>';
   h+='<div id="cy"></div>';
   h+='<div class="graph-detail" id="graph-detail"><button class="graph-detail-close" onclick="document.getElementById(\'graph-detail\').classList.remove(\'open\')">&times;</button><div id="graph-detail-content"></div></div>';
@@ -1740,36 +1798,72 @@ function renderGraph(app,sub){
     document.getElementById('cy').innerHTML='<div style="padding:40px;text-align:center;color:var(--text-3)">Graph library not loaded. Connect to the internet to use the interactive graph.<br><br>CDN: cytoscape.js + dagre</div>';
     return;
   }
+  const allElements=D.graph.nodes.concat(D.graph.edges);
   const cy=cytoscape({
     container:document.getElementById('cy'),
-    elements:D.graph.nodes.concat(D.graph.edges),
+    elements:allElements,
     style:[
-      {selector:'.quest',style:{'background-color':'#1e3a5f','border-color':'#3b82f6','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#93c5fd','font-size':11,'padding':20,'shape':'round-rectangle'}},
-      {selector:'.event',style:{'background-color':'#3d2800','border-color':'#f59e0b','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#fde68a','font-size':11,'padding':20,'shape':'round-rectangle'}},
-      {selector:'.state-key',style:{'shape':'round-rectangle','background-color':'#1f2937','border-color':'#4b5563','border-width':1,'label':'data(label)','color':'#e2e8f0','font-size':9,'width':'label','height':26,'padding':8,'text-max-width':150,'text-valign':'center','text-halign':'center','text-wrap':'ellipsis'}},
-      {selector:'.active',style:{'border-color':'#f59e0b'}},
-      {selector:'.complete',style:{'border-color':'#22c55e'}},
-      {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':1,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':10,'text-valign':'center','text-halign':'center'}},
-      {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':9,'width':45,'height':45}},
-      {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#64748b','label':'data(label)','text-opacity':0.7}},
+      {selector:'.quest',style:{'background-color':'#1e3a5f','border-color':'#3b82f6','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#93c5fd','font-size':12,'padding':30,'shape':'round-rectangle','text-margin-y':-5}},
+      {selector:'.event',style:{'background-color':'#3d2800','border-color':'#f59e0b','border-width':2,'label':'data(label)','text-valign':'top','text-halign':'center','color':'#fde68a','font-size':12,'padding':30,'shape':'round-rectangle','text-margin-y':-5}},
+      {selector:'.state-key',style:{'shape':'round-rectangle','background-color':'#1f2937','border-color':'#4b5563','border-width':1,'label':'data(label)','color':'#e2e8f0','font-size':9,'width':'label','height':26,'padding':8,'text-max-width':160,'text-valign':'center','text-halign':'center','text-wrap':'ellipsis'}},
+      {selector:'.active',style:{'border-color':'#f59e0b','border-width':2}},
+      {selector:'.complete',style:{'border-color':'#22c55e','border-width':2}},
+      {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':2,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':12,'text-valign':'center','text-halign':'center'}},
+      {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':10,'width':50,'height':50,'text-valign':'center','text-halign':'center'}},
+      {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#94a3b8','label':'data(label)','text-opacity':0.8,'text-background-color':'#0f172a','text-background-opacity':0.7,'text-background-padding':2}},
       {selector:'edge[etype="prerequisite"]',style:{'line-style':'dashed','line-color':'#f59e0b','target-arrow-color':'#f59e0b','width':2}},
       {selector:'edge[etype="condition"]',style:{'line-style':'dotted','line-color':'#64748b','width':1}},
-      {selector:'edge[etype="unlocks"]',style:{'line-color':'#22c55e','target-arrow-color':'#22c55e'}},
+      {selector:'edge[etype="unlocks"]',style:{'line-color':'#22c55e','target-arrow-color':'#22c55e','width':2}},
+      {selector:'edge[etype="npc_link"]',style:{'line-style':'dotted','line-color':'#7c3aed','target-arrow-color':'#7c3aed','width':1}},
+      {selector:'.dimmed',style:{'opacity':0.15}},
       {selector:':selected',style:{'border-width':3,'border-color':'#3b82f6'}},
     ],
     layout:{name:'preset'},
     wheelSensitivity:0.3,
   });
-  function runDagre(){
-    if(typeof cytoscapeDagre!=='undefined'||cy.layout({name:'dagre'}).options){
-      cy.layout({name:'dagre',rankDir:'LR',nodeSep:25,rankSep:60,edgeSep:10,animate:true,animationDuration:300}).run();
-    }
+  function runDagre(eles){
+    const target=eles||cy.elements(':visible');
+    try{
+      target.layout({name:'dagre',rankDir:'TB',nodeSep:35,rankSep:50,edgeSep:15,animate:true,animationDuration:300}).run();
+    }catch(e){runCose(eles)}
   }
-  function runCose(){cy.layout({name:'cose',animate:true,animationDuration:300,nodeRepulsion:function(){return 8000},idealEdgeLength:function(){return 80}}).run()}
+  function runCose(eles){
+    const target=eles||cy.elements(':visible');
+    target.layout({name:'cose',animate:true,animationDuration:300,nodeRepulsion:function(){return 10000},idealEdgeLength:function(){return 90}}).run();
+  }
   try{runDagre()}catch(e){runCose()}
-  document.getElementById('graph-fit').onclick=function(){cy.fit(null,30)};
+  /* Quest filter */
+  let activeFilter='all';
+  document.querySelectorAll('.filter-btn').forEach(function(btn){
+    btn.onclick=function(){
+      const qid=btn.dataset.quest;
+      activeFilter=qid;
+      document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+      btn.classList.add('active');
+      if(qid==='all'){
+        cy.elements().removeClass('dimmed');
+        setTimeout(function(){try{runDagre()}catch(e){runCose()}},50);
+      }else{
+        /* Show selected quest + its children + connected edges; dim everything else */
+        const questNode=cy.getElementById(qid);
+        const children=questNode.children();
+        const connected=children.connectedEdges();
+        const crossEdges=cy.edges().filter(function(e){
+          return children.contains(cy.getElementById(e.data('source')))||children.contains(cy.getElementById(e.data('target')));
+        });
+        const highlight=questNode.union(children).union(crossEdges);
+        cy.elements().addClass('dimmed');
+        highlight.removeClass('dimmed');
+        setTimeout(function(){cy.fit(highlight,40)},100);
+      }
+    };
+  });
+  document.getElementById('graph-fit').onclick=function(){
+    if(activeFilter==='all')cy.fit(null,30);
+    else{var q=cy.getElementById(activeFilter);cy.fit(q.union(q.children()),40)}
+  };
   document.getElementById('graph-dagre').onclick=function(){try{runDagre()}catch(e){runCose()}};
-  document.getElementById('graph-cose').onclick=runCose;
+  document.getElementById('graph-cose').onclick=function(){runCose()};
   cy.on('tap','node',function(evt){
     const d=evt.target.data();
     const panel=document.getElementById('graph-detail');
@@ -1785,9 +1879,9 @@ function renderGraph(app,sub){
         if(sk.read_by.length)h+='<div class="row"><span class="row-label">Read by</span><span class="row-value">'+sk.read_by.map(function(n){return esc(n)}).join(', ')+'</span></div>';
       }
     }else if(d.type==='npc'){
-      const np=D.npc_profiles[d.label];
+      const np=D.npc_profiles[d.label]||D.npc_profiles[d.npc_id];
       if(np){
-        h+='<div class="row"><span class="row-label">Role</span><span class="row-value">'+esc(np.role)+'</span></div>';
+        h+='<div class="row"><span class="row-label">Role</span><span class="row-value">'+esc(d.role||np.role)+'</span></div>';
         if(np.voice_pitch!=null)h+='<div class="row"><span class="row-label">Voice</span><span class="row-value">'+np.voice_pitch+'</span></div>';
         h+='<div class="row"><span class="row-label">Quests</span><span class="row-value">'+np.quest_ids.map(function(q){return esc(q)}).join(', ')+'</span></div>';
         h+='<div class="row"><span class="row-label">Dialogs</span><span class="row-value">'+np.dialog_ids.length+'</span></div>';
