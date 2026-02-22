@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-02-22 (Session 48 — v0.2.7 release)
+Last updated: 2026-02-22 (Session 53 — Dashboard graph fix + NPC levels)
 
 ## Current Workstreams
 
@@ -37,7 +37,7 @@ Verified by F5 runtime testing:
 - Ceiling bonk (instant velocity cancel via apply_movement sync)
 - LDtk IntGrid tile collision (Cavernas tileset, 8px grid)
 - Camera follow (Camera2D in SubViewport, zoom=1, manual smooth+pixel snap via SubViewport at 426x240)
-- 7 autoloads registered: EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay
+- 9 autoloads registered: EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle → QuestManager
 - Audio bus layout: Master → Music, SFX, UI (default_bus_layout.tres)
 - Music playback: menu_bgm crossfades to level music on scene transition (0.8s fade), same-stream detection prevents restart
 - Per-level music: Level 1 plays level1_bgm.mp3, other levels fall back to same track. Music continues seamlessly across portal transitions when same stream.
@@ -85,6 +85,27 @@ Verified by F5 runtime testing:
 - Town house window glow: analytic radial gradient shader (window_glow.gdshader, blend_add, UV-centered, modulate.a = brightness from TownController)
 - ShopPanel: full buy/sell UI (Session 42). 3 item slots (Extra Heart 80c, Speed Charm 120c, Town Key 60c). Grey-out unaffordable, Owned state, 2-step confirm, red flash on denied. F10 debug adds 100 coins. ProgressData.coins + purchased_items persisted.
 
+## Next Session Priority
+
+### Session 51 — Quest graph cleanup (Session 3 of 3)
+
+**Goal:** Remove the old `QuestDefs.gd` system, wire `QuestLogScene` to use QuestManager, and write the how-to-add-a-quest guide.
+
+**Files to modify:**
+- `godot_port/ui/quest_log/QuestLogScene.gd` — replace `QuestDefs.ALL` with `QuestManager.get_all_quests()`. The returned dicts have the same `id`, `name`, `active_key`, `complete_key` fields — mostly a drop-in swap.
+- `godot_port/data/QuestDefs.gd` — delete (nothing else references it after QuestLogScene is updated)
+
+**Files to create:**
+- `docs/how-to-add-a-quest.md` — step-by-step guide: write JSON → validate → create .tres dialogs → place NPC → done
+
+**Also pending (can fold into Session 51):**
+- Refactor `HydraBodyNPC.gd` and `ThreeHeadedKarimNPC.gd` to use QuestManager (replace hardcoded `state_key` + `_fade_and_vanish` with `execute_dialog_end` + `_do_fade_and_remove`)
+- `BrownKarimNPC._do_fade_and_remove()` override: replace `_spooky_vanish()` name with `_do_fade_and_remove()` override so QuestManager can call it
+
+**purple_karim/accept and purple_karim/decline dialogs:** Created (Session 50). Dutch text, 2 lines each, voice_pitch 0.95. Accept is one_shot=true, decline is one_shot=false (repeatable).
+
+---
+
 ## Broken / Untested
 
 - **[gameplay]** Rocket boots thrust — gravity bypass + thrust=600 working. Values may still need tuning.
@@ -92,6 +113,7 @@ Verified by F5 runtime testing:
 - **[UI]** HUD fuel gauge — ColorRect drains inside item box. Color shifts at 50%/25%. Working with rocket boots.
 - **[menu]** Options/Extras particle effects are runtime-only (firefly particles appear at F5, not in editor)
 - **[distribution]** GitHub repo `zyynx-hub/platformerv2` only holds `version.json` — game source not tracked in git
+- **[dashboard]** ~~Quest graph chronological ordering~~ — FIXED Session 53. Python-computed ranks from state_keys array order. All quests display correct top-to-bottom flow. Remote NPCs show green border + level name.
 - **[gameplay]** Portal in Level 1 — shader visual, particles, E-key interaction, cinematic activation need F5 testing. Level 2 scene exists, transition testable.
 
 ## Not Started
@@ -106,6 +128,67 @@ Verified by F5 runtime testing:
 - Export / packaging (export preset exists — re-export via Project > Export when pushing updates)
 
 ## Session Log
+
+### Session 53 (2026-02-22) — Dashboard graph fix + NPC level indicators
+
+**Fixed the graph chronological ordering bug** that persisted since Session 52.
+
+**Password gate:**
+- Removed localStorage caching — password required on every page refresh
+- Fixed pre-commit hook path (was `$REPO_ROOT/.dashboard_password`, now `$REPO_ROOT/godot_port/.dashboard_password`)
+- Rewrote `.dashboard_password` from UTF-16 LE (with BOM) to plain ASCII
+
+**Graph ordering fix (multiple iterations):**
+1. Initial: JS-side Kahn's algorithm topological sort — partial fix, NPC nodes still at rank 0
+2. Added flow edges from predecessor keys to NPC nodes — partial fix, green_karim still misplaced
+3. **Final fix: Python-computed explicit ranks** from `state_keys` array order. Algorithm walks state_keys: for each key, the NPC that sets it gets `rank_counter`, the key gets `rank_counter + 1`. Parallel groups share same rank pair. Split NPCs get two ranks (second occurrence = return phase). Ranks embedded in node data, JS just reads `n.data('rank')`. Deterministic, correct for all quests.
+
+**NPC level indicators:**
+- Extract NPC level from default dialog ID (last entry in `dialog_selection`, first path segment)
+- If NPC level differs from quest `level` field → green border (`npc-remote` class) + "@ LevelName" label suffix
+- Remote NPCs visually distinct: `hydra_body_1/2/3 @ Jungle`, `three_headed_karim @ Jungle`
+- Return nodes always use quest level (player returns home)
+
+**Layout buttons:** Added "Chronological" (topo, default), kept "Hierarchical" (dagre) and "Force" (cose)
+
+**Files modified:** `godot_port/tools/quest_tool.py`, `docs/game-bible.html` (auto-regenerated)
+**Commits:** 7f474a4, a1c62e8, 782c81e, 895238d, 4272392, 9b24cf8
+
+---
+
+### Session 52 (2026-02-22) — Game Bible dashboard
+
+**New feature:** Interactive Game Bible dashboard (`docs/game-bible.html`) — auto-generated single-file HTML SPA for sharing game overview with friends.
+
+**quest_tool.py extended** (~1200 new lines):
+- GDScript parsers: `_parse_level_defs()`, `_parse_item_defs()`, `_parse_achievement_defs()`, `_parse_dialog_tres_files()`
+- Data aggregation: `_aggregate_npc_profiles()`, `_build_graph_data()`, `_collect_game_data()`
+- Dashboard generator: 6-tab SPA (Overview, Graph, Quests, NPCs, State Keys, World)
+- Interactive quest dependency graph (Cytoscape.js + dagre layout)
+- Global search across all views, deep linking, hash-based routing
+- `--dashboard --write` flag, `--password` flag (SHA-256 client-side gate), `--serve` flag (local dev server)
+
+**Automation:**
+- Git pre-commit hook (`.git/hooks/pre-commit`): auto-regenerates dashboard + storyline + flowchart when quest-related files are staged
+- GitHub Actions workflow (`.github/workflows/pages.yml`): deploys `docs/` to GitHub Pages on push
+- `.dashboard_password` file (gitignored) stores password for pre-commit hook
+
+**Deployment:**
+- Live at `https://zyynx-hub.github.io/Platformer/game-bible.html` (password-gated)
+- GitHub Pages source: GitHub Actions on `zyynx-hub/Platformer` repo (NOT platformerv2)
+
+**Graph improvements (multiple iterations):**
+- NPCs parented inside quest compound nodes
+- Quest filter buttons (isolate single quest view)
+- `appears_when` edges for spawn conditions
+- NPC phase splitting (start/return nodes for multi-phase NPCs like purple_karim)
+- Flow chain edges between consecutive state keys for chronological ordering
+- **BUG:** Graph ordering still not fully correct — dagre doesn't consistently respect flow hierarchy for Purple Karim's Debt quest
+
+**Files created:** `docs/game-bible.html`, `.github/workflows/pages.yml`, `.git/hooks/pre-commit`
+**Files modified:** `godot_port/tools/quest_tool.py`, `.gitignore`
+
+---
 
 ### Session 45 (2026-02-22) — Bug fixes + knowledge save
 
@@ -156,9 +239,93 @@ Verified by F5 runtime testing:
 
 **F5 verified (partial):** ESC closes quest log ✓, all 3 exterior hydra bodies ✓, body-by-body fade (after ends_with bug fix) ✓
 
-**Untested (F5):**
-- Full boss spawn cutscene end-to-end: fade→rumble→camera pan to boss→shake+scale-pop→camera return
+**F5 verified (Session 49 follow-up):**
+- Full boss spawn cutscene end-to-end: fade→rumble→camera pan→shake+scale-pop→camera return
 - Three-headed Karim flanking head appearance in-game
+
+---
+
+### Session 50 (2026-02-22) — QuestManager autoload
+
+**Quest graph Session 2 of 3.** Wired the JSON quest files into the runtime.
+
+**New file: `godot_port/core/QuestManager.gd`** — autoload (loads after DayNightCycle)
+- `_load_quests()` — reads all `data/quests/*.json` at startup via DirAccess + JSON.parse_string
+- `get_npc_dialog(npc_id)` — evaluates dialog_selection rules in order, checks ProgressData per `requires` condition
+- `execute_dialog_end(npc_id, dialog_id, npc_node)` — fires all on_dialog_end actions (set_key, item_popup, choice_panel, play_dialog, fade_and_remove)
+- `should_remove_npc(npc_id)` — checks if fade_and_remove NPC's set_key flag is already true (used in _ready() for persistence)
+- `get_all_quests() / is_quest_active() / is_quest_complete()` — for QuestLogScene (wired in Session 51)
+- Actions with `delay` use `create_timer().timeout.connect(cb, CONNECT_ONE_SHOT)` — no await needed
+- choice_panel branches route to `_run_actions(on_accept/on_decline)` via lambda
+
+**`godot_port/project.godot`** — added `QuestManager="*res://core/QuestManager.gd"` (9th autoload)
+
+**`godot_port/npcs/NPC.gd`** — added `_do_fade_and_remove(duration, slide_x)` default implementation. BrownKarimNPC can override for custom vanish.
+
+**Refactored to thin wrappers (2 lines each):**
+- `RedKarimNPC.gd` — was 51 lines, now 12
+- `GreenKarimNPC.gd` — was 20 lines, now 12
+- `PurpleKarimNPC.gd` — was 54 lines, now 12
+
+**Updated `quest_purple_karim.json`** — Purple Karim now uses choice_panel (not auto-accept), matching user's updated PurpleKarimNPC.gd. Choice prompt: "Wil je zijn schuld betalen?" / ["Ja, ik doe het", "Nee, geen tijd"].
+
+**Note:** `purple_karim/accept` and `purple_karim/decline` .tres dialog files were created in Session 50 (Dutch text, 2 lines each).
+
+**Headless:** 0 errors.
+
+**HydraBodyNPC, ThreeHeadedKarimNPC, BrownKarimNPC not yet refactored** — still use hardcoded logic. Deferred to Session 51.
+
+---
+
+### Session 50.5 (2026-02-22) — Opus quality audit
+
+**Full audit of Sessions 49-50 (Sonnet) changes.** Read all 16 modified files, 3 new quest JSONs, QuestManager.gd, quest_tool.py, 2 dialog .tres files.
+
+**Verdict:** No bugs found. Code is functionally correct. QuestManager architecture is solid.
+
+**Stale docs fixed:**
+- `docs/status.md:40` — "7 autoloads" → "9 autoloads" (DayNightCycle + QuestManager)
+- `docs/status.md:105` — purple_karim accept/decline .tres files now marked as created
+- `docs/quest-registry.md:93` — "auto-accept" → "ChoicePanel accept/decline"
+- `docs/quest-registry.md:245` — "Auto-accept: Yes" → "Accept: ChoicePanel"
+- `MEMORY.md:141` — Purple Karim flow updated from "auto-accept" to choice panel description
+
+**New: `quest_tool.py --story` subcommand**
+- Auto-generates `docs/storyline.md` from quest JSONs
+- Narrative step-by-step flow, dialog reference tables, state key summaries
+- Replaces manually-maintained quest flow sections that kept drifting from JSON
+- `quest-registry.md` updated to reference `storyline.md` for quest logic, keeping only world atlas data (positions, scenes, shop)
+
+**Headless:** 0 errors. **quest_tool.py --validate:** 0 errors.
+
+---
+
+### Session 49 (2026-02-22) — Quest graph architecture
+
+**Context:** Planning for 100+ quests. Current system has quest logic scattered across NPC scripts, QuestDefs.gd, and manually-maintained docs. This session establishes the declarative data layer.
+
+**New: declarative quest data format**
+- `godot_port/data/quests/quest_red_karim.json` — full quest graph: dialog selection rules, on-dialog-end actions, state keys, reward
+- `godot_port/data/quests/quest_purple_karim.json` — multi-level quest with parallel steps (`parallel_group` field for hydra bodies)
+- `godot_port/data/quests/event_brown_karim.json` — non-quest tracked event (`type: "event"`)
+
+**Schema highlights:**
+- `dialog_selection[]` — ordered condition→dialog rules (first match wins), mirrors existing NPC `_get_active_dialog_id()` logic
+- `on_dialog_end{}` — actions keyed by dialog ID: `set_key`, `choice_panel` (with `on_accept`/`on_decline` branches), `item_popup`, `play_dialog`, `fade_and_remove`
+- `appears_when` — NPC visibility conditions (`all_true`, `all_false` arrays)
+- `parallel_group` on state_keys — marks steps that can be done in any order (used by Mermaid generator to fan-out/join)
+- `prerequisites[]` — cross-quest dependency via `complete_key` references
+
+**New: `godot_port/tools/quest_tool.py`**
+- `--validate` — structural checks: required fields, dialog ID format, undeclared keys in conditions/actions, invalid prerequisites
+- `--graph [--write]` — auto-generates Mermaid flowchart (parallel paths, choice labels, reward nodes). `--write` overwrites `docs/quest-flowchart.md`
+- `--npc <id>` — prints dialog selection + on_dialog_end actions for any NPC across all quests
+- `--quest <id>` — prints full quest summary (NPCs, state keys, reward)
+- `--list` — shows all quests/events with their state key lists
+
+**`docs/quest-flowchart.md`** — now auto-generated by quest_tool.py. No longer maintained by hand.
+
+**NPC scripts unchanged** — session 1 establishes data layer only. Session 2 will add `QuestManager` autoload and refactor NPC scripts to read from JSON.
 
 ---
 
