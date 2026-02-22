@@ -1705,7 +1705,7 @@ function renderOverview(app){
   h+='<div class="stat-card" onclick="navigate(\'quests\')"><div class="stat-value">'+m.event_count+'</div><div class="stat-label">Events</div></div>';
   h+='<div class="stat-card" onclick="navigate(\'npcs\')"><div class="stat-value">'+m.npc_count+'</div><div class="stat-label">NPCs</div></div>';
   h+='<div class="stat-card" onclick="navigate(\'keys\')"><div class="stat-value">'+m.state_key_count+'</div><div class="stat-label">State Keys</div></div>';
-  h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.dialog_count+'</div><div class="stat-label">Dialogs</div></div>';
+  h+='<div class="stat-card" onclick="navigate(\'quests\')"><div class="stat-value">'+m.dialog_count+'</div><div class="stat-label">Dialogs</div></div>';
   h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.level_count+'</div><div class="stat-label">Levels</div></div>';
   h+='<div class="stat-card" onclick="navigate(\'world\')"><div class="stat-value">'+m.achievement_count+'</div><div class="stat-label">Achievements</div></div>';
   const shopTotal=D.items.shop.reduce(function(s,i){return s+(i.cost||0)},0);
