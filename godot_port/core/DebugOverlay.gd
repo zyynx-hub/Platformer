@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var _bg: Panel = %Panel
 @onready var _label: Label = %Label
 var _active: bool = false
+var _update_acc: float = 0.0
 
 func _ready() -> void:
 	visible = false
@@ -59,9 +60,13 @@ func _input(event: InputEvent) -> void:
 		if not _active:
 			visible = false
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _active:
 		return
+	_update_acc += delta
+	if _update_acc < 0.1:
+		return
+	_update_acc = 0.0
 
 	var player = get_tree().get_first_node_in_group("player")
 	var time_line := ""

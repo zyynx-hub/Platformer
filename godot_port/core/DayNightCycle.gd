@@ -7,6 +7,7 @@ extends Node
 var time_of_day: float = 0.35  # start at mid-morning
 var cycle_duration: float = Constants.DAY_NIGHT_CYCLE_DURATION
 var _paused: bool = false
+var _last_emitted: float = -1.0  # throttle: only emit when time changes >= 0.001
 
 func _process(delta: float) -> void:
 	if _paused:
@@ -14,7 +15,10 @@ func _process(delta: float) -> void:
 	time_of_day += delta / cycle_duration
 	if time_of_day >= 1.0:
 		time_of_day -= 1.0
-	EventBus.time_of_day_changed.emit(time_of_day)
+	# Emit at most ~3-4 times per second (threshold = 0.001 of a 5-min cycle)
+	if absf(time_of_day - _last_emitted) >= 0.001:
+		_last_emitted = time_of_day
+		EventBus.time_of_day_changed.emit(time_of_day)
 
 func set_paused(paused: bool) -> void:
 	_paused = paused

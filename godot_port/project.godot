@@ -29,6 +29,7 @@ SceneTransition="*res://core/SceneTransition.gd"
 DragonFlyby="*res://core/DragonFlyby.gd"
 DebugOverlay="*res://core/DebugOverlay.tscn"
 DayNightCycle="*res://core/DayNightCycle.gd"
+QuestManager="*res://core/QuestManager.gd"
 
 [display]
 

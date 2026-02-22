@@ -17,10 +17,16 @@ const JUNGLE_DARKNESS_MAX := 0.7
 const JUNGLE_NIGHT_TINT := Color(0.02, 0.10, 0.04, 1.0)
 
 var _boss_spawning: bool = false
+# Cached once in _ready() — viewport size and zoom are fixed at runtime
+var _visible_size: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
 	_apply_jungle_atmosphere()
+	var vp := get_viewport()
+	if vp:
+		var inv_scale := Vector2(1.0, 1.0) / vp.canvas_transform.get_scale()
+		_visible_size = Vector2(vp.size) * inv_scale
 	if Engine.is_editor_hint():
 		return
 	EventBus.time_of_day_changed.connect(_on_time_of_day)
@@ -33,21 +39,17 @@ func _process(_delta: float) -> void:
 	var vp := get_viewport()
 	if not vp:
 		return
-	var ct := vp.canvas_transform
-	var screen_center := Vector2(vp.size) * 0.5
-	var cam_world := ct.affine_inverse() * screen_center
-	var inv_scale := Vector2(1.0, 1.0) / ct.get_scale()
-	var visible_size := Vector2(vp.size) * inv_scale
+	var cam_world := vp.canvas_transform.affine_inverse() * (Vector2(vp.size) * 0.5)
 	if _sky:
-		_sky.offset_left   = cam_world.x - visible_size.x * 0.5
-		_sky.offset_top    = cam_world.y - visible_size.y * 0.5
-		_sky.offset_right  = cam_world.x + visible_size.x * 0.5
-		_sky.offset_bottom = cam_world.y + visible_size.y * 0.5
+		_sky.offset_left   = cam_world.x - _visible_size.x * 0.5
+		_sky.offset_top    = cam_world.y - _visible_size.y * 0.5
+		_sky.offset_right  = cam_world.x + _visible_size.x * 0.5
+		_sky.offset_bottom = cam_world.y + _visible_size.y * 0.5
 	if _vignette:
-		_vignette.offset_left   = cam_world.x - visible_size.x * 0.5
-		_vignette.offset_top    = cam_world.y - visible_size.y * 0.5
-		_vignette.offset_right  = cam_world.x + visible_size.x * 0.5
-		_vignette.offset_bottom = cam_world.y + visible_size.y * 0.5
+		_vignette.offset_left   = cam_world.x - _visible_size.x * 0.5
+		_vignette.offset_top    = cam_world.y - _visible_size.y * 0.5
+		_vignette.offset_right  = cam_world.x + _visible_size.x * 0.5
+		_vignette.offset_bottom = cam_world.y + _visible_size.y * 0.5
 
 
 func _apply_jungle_atmosphere() -> void:

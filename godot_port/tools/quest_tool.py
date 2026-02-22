@@ -1319,6 +1319,10 @@ def _build_graph_data(quests: dict) -> dict:
     edges = []
     node_ids = set()
 
+    def _level_tag(lvl: str) -> str:
+        """'level_jungle' → 'Jungle', 'level_town' → 'Town'"""
+        return lvl.replace("level_", "").replace("_", " ").title()
+
     npc_quests: dict[str, list[str]] = {}
     for qid, q in quests.items():
         for npc_id in q.get("npcs", {}):
@@ -1440,6 +1444,7 @@ def _build_graph_data(quests: dict) -> dict:
 
         # ---- NPC nodes + edges ----
         quest_level = q.get("level", "")
+        quest_npc_levels: list[tuple] = []  # (rank, node_id, level) for travel detection
         for npc_id, npc_data in npcs_data.items():
             keys_set = {}
             for dialog_id, actions in npc_data.get("on_dialog_end", {}).items():
@@ -1473,20 +1478,14 @@ def _build_graph_data(quests: dict) -> dict:
             ret_id = base_id + ":return"
             has_return = ret_id in node_rank
 
-            # Pretty level name for label
-            def _level_tag(lvl: str) -> str:
-                return lvl.replace("level_", "").replace("_", " ").title()
-
             if has_return:
                 start_id = base_id
                 start_rank = node_rank[start_id]
                 return_rank = node_rank[ret_id]
                 node_ids.update([start_id, ret_id])
 
-                start_label = npc_id
-                if is_remote:
-                    start_label += "\n@ " + _level_tag(npc_level)
-                return_label = npc_id + " (return)"
+                start_label = npc_id + "\n@ " + _level_tag(npc_level)
+                return_label = npc_id + " (return)\n@ " + _level_tag(quest_level)
 
                 start_cls = "npc npc-start"
                 ret_cls = "npc npc-return"
@@ -1508,6 +1507,9 @@ def _build_graph_data(quests: dict) -> dict:
                     "rank": return_rank, "npc_level": quest_level,
                 }, "classes": ret_cls})
 
+                quest_npc_levels.append((start_rank, start_id, npc_level))
+                quest_npc_levels.append((return_rank, ret_id, quest_level))
+
                 # Classify keys into start vs return phase by rank:
                 # keys at ranks just after start_rank are start phase,
                 # keys at ranks just after return_rank are return phase
@@ -1526,10 +1528,9 @@ def _build_graph_data(quests: dict) -> dict:
                 node_ids.add(npc_node_id)
                 npc_rank = node_rank.get(npc_node_id, 0)
 
-                npc_label = npc_id
+                npc_label = npc_id + "\n@ " + _level_tag(npc_level)
                 npc_cls = "npc"
                 if is_remote:
-                    npc_label += "\n@ " + _level_tag(npc_level)
                     npc_cls += " npc-remote"
 
                 nodes.append({"data": {
@@ -1539,12 +1540,47 @@ def _build_graph_data(quests: dict) -> dict:
                     "rank": npc_rank, "npc_level": npc_level,
                 }, "classes": npc_cls})
 
+                quest_npc_levels.append((npc_rank, npc_node_id, npc_level))
+
                 for key in keys_set:
                     edges.append({"data": {"source": npc_node_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
                 for rk in (dialog_reads - set(keys_set.keys())):
                     edges.append({"data": {"source": "key:" + rk, "target": npc_node_id, "label": "requires", "etype": "condition"}})
                 for rk in appears_keys:
                     edges.append({"data": {"source": "key:" + rk, "target": npc_node_id, "label": "spawns", "etype": "appears"}})
+
+        # ---- Travel indicator nodes between level transitions ----
+        if len(quest_npc_levels) > 1:
+            quest_npc_levels.sort(key=lambda x: (x[0], x[1]))
+            # Group NPC nodes by rank
+            rank_groups: list[list[tuple]] = []
+            for item in quest_npc_levels:
+                if not rank_groups or item[0] != rank_groups[-1][0][0]:
+                    rank_groups.append([item])
+                else:
+                    rank_groups[-1].append(item)
+            # Detect level changes between consecutive rank groups
+            travel_counter = 0
+            for gi in range(1, len(rank_groups)):
+                prev_g = rank_groups[gi - 1]
+                curr_g = rank_groups[gi]
+                prev_lvl = prev_g[0][2]
+                curr_lvl = curr_g[0][2]
+                if prev_lvl != curr_lvl:
+                    travel_counter += 1
+                    tid = qid + ":travel:" + str(travel_counter)
+                    mid_rank = (prev_g[0][0] + curr_g[0][0]) / 2.0
+                    nodes.append({
+                        "data": {
+                            "id": tid, "label": ">> " + _level_tag(curr_lvl),
+                            "type": "travel", "parent": qid, "rank": mid_rank,
+                        },
+                        "classes": "travel",
+                    })
+                    # Edge from last NPC at old level → travel node
+                    edges.append({"data": {"source": prev_g[-1][1], "target": tid, "label": "", "etype": "travel"}})
+                    # Edge from travel node → first NPC at new level
+                    edges.append({"data": {"source": tid, "target": curr_g[0][1], "label": "", "etype": "travel"}})
 
         # Reward
         reward = q.get("reward", {})
@@ -1955,6 +1991,7 @@ function renderGraph(app,sub){
       {selector:'.npc',style:{'shape':'ellipse','background-color':'#4c1d95','border-color':'#c4b5fd','border-width':2,'label':'data(label)','color':'#f5f3ff','font-size':10,'width':'label','height':40,'padding':12,'text-valign':'center','text-halign':'center','text-wrap':'wrap'}},
       {selector:'.npc-return',style:{'border-style':'dashed','border-color':'#a78bfa'}},
       {selector:'.npc-remote',style:{'background-color':'#14532d','border-color':'#4ade80','border-width':3}},
+      {selector:'.travel',style:{'shape':'round-rectangle','background-color':'#0c4a6e','border-color':'#22d3ee','border-width':2,'border-style':'dashed','label':'data(label)','color':'#67e8f9','font-size':9,'width':'label','height':26,'padding':8,'text-valign':'center','text-halign':'center'}},
       {selector:'.reward',style:{'shape':'diamond','background-color':'#92400e','border-color':'#fbbf24','border-width':2,'label':'data(label)','color':'#fbbf24','font-size':10,'width':50,'height':50,'text-valign':'center','text-halign':'center'}},
       {selector:'edge',style:{'curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#4b5563','target-arrow-color':'#4b5563','width':1.5,'font-size':7,'color':'#94a3b8','label':'data(label)','text-opacity':0.8,'text-background-color':'#0f172a','text-background-opacity':0.7,'text-background-padding':2}},
       {selector:'edge[etype="prerequisite"]',style:{'line-style':'dashed','line-color':'#f59e0b','target-arrow-color':'#f59e0b','width':2}},
@@ -1962,6 +1999,7 @@ function renderGraph(app,sub){
       {selector:'edge[etype="unlocks"]',style:{'line-color':'#22c55e','target-arrow-color':'#22c55e','width':2}},
       {selector:'edge[etype="npc_link"]',style:{'line-style':'dotted','line-color':'#7c3aed','target-arrow-color':'#7c3aed','width':1}},
       {selector:'edge[etype="appears"]',style:{'line-style':'dashed','line-color':'#a78bfa','target-arrow-color':'#a78bfa','width':2}},
+      {selector:'edge[etype="travel"]',style:{'line-style':'dashed','line-color':'#22d3ee','target-arrow-color':'#22d3ee','width':2}},
       {selector:'edge[etype="flow"]',style:{'line-color':'#334155','target-arrow-color':'#334155','width':1,'line-style':'dotted','opacity':0.4}},
       {selector:'.dimmed',style:{'opacity':0.15}},
       {selector:':selected',style:{'border-width':3,'border-color':'#3b82f6'}},

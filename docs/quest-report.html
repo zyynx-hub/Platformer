@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quest Registry &mdash; AnimePlatformer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111827; color: #d1d5db; font-family: 'Courier New', monospace; font-size: 13px; }
+header { background: #1f2937; padding: 14px 24px; border-bottom: 1px solid #374151; }
+header h1 { color: #f9fafb; font-size: 1.05em; letter-spacing: 0.04em; }
+header p { color: #9ca3af; font-size: 0.78em; margin-top: 3px; }
+header code { color: #a5b4fc; }
+#search-bar { padding: 10px 24px; background: #1f2937; border-bottom: 1px solid #374151; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#search { background: #111827; border: 1px solid #374151; color: #d1d5db; padding: 6px 10px; font-family: inherit; font-size: 0.88em; width: 320px; }
+#search:focus { outline: 1px solid #3b82f6; }
+.stats { color: #9ca3af; font-size: 0.78em; }
+#quest-list { padding: 14px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 10px; align-items: start; }
+.card { background: #1f2937; border: 1px solid #374151; border-radius: 3px; overflow: hidden; }
+.card.type-quest { border-left: 3px solid #3b82f6; }
+.card.type-event { border-left: 3px solid #f59e0b; }
+.card-header { padding: 9px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; user-select: none; gap: 8px; }
+.card-header:hover { background: #374151; }
+.card-title { flex: 1; min-width: 0; }
+.card-name { color: #f9fafb; font-size: 0.88em; }
+.card-id { color: #6b7280; font-size: 0.7em; margin-top: 2px; font-style: italic; }
+.card-badges { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.badge { font-size: 0.67em; padding: 2px 5px; border-radius: 2px; white-space: nowrap; }
+.badge-quest { background: #1d4ed8; color: #bfdbfe; }
+.badge-event { background: #92400e; color: #fde68a; }
+.badge-prereq { background: #374151; color: #9ca3af; }
+.chevron { color: #6b7280; font-size: 0.72em; line-height: 1; transition: transform 0.15s; display: inline-block; }
+.card.open .chevron { transform: rotate(90deg); }
+.card-body { display: none; padding: 0 12px 10px; border-top: 1px solid #374151; }
+.card.open .card-body { display: block; }
+.section { margin-top: 10px; }
+.section-title { color: #6b7280; font-size: 0.68em; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #2d3748; }
+.row { display: flex; gap: 8px; margin-bottom: 3px; align-items: baseline; }
+.row-label { color: #6b7280; min-width: 72px; font-size: 0.8em; flex-shrink: 0; }
+.row-value { color: #d1d5db; font-size: 0.8em; }
+.key-chip { display: inline-block; background: #111827; border: 1px solid #374151; padding: 1px 5px; font-size: 0.7em; color: #93c5fd; margin: 1px 2px 1px 0; border-radius: 2px; }
+.key-chip.complete { color: #86efac; border-color: #166534; }
+.key-chip.active { color: #fbbf24; border-color: #92400e; }
+.muted { color: #6b7280; }
+.reward-item { color: #fbbf24; font-size: 0.82em; }
+.npc-block { margin-bottom: 8px; padding: 6px 8px; background: #111827; border: 1px solid #2d3748; border-radius: 2px; }
+.npc-header { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+.npc-id { color: #c4b5fd; font-size: 0.82em; font-weight: bold; }
+.npc-role { color: #9ca3af; font-size: 0.75em; }
+.sub-title { color: #6b7280; font-size: 0.68em; text-transform: uppercase; letter-spacing: 0.05em; margin: 5px 0 3px; }
+.sel-row { font-size: 0.78em; margin-bottom: 2px; }
+.sel-cond { color: #6b7280; }
+.on-end-block { margin-bottom: 5px; }
+.on-end-trigger { font-size: 0.75em; color: #9ca3af; margin-bottom: 2px; }
+.action { font-size: 0.78em; margin-bottom: 1px; }
+.act-kw { color: #f472b6; }
+.act-dialog { color: #a5b4fc; }
+.act-item { color: #fbbf24; }
+.act-meta { color: #9ca3af; }
+.act-branch { margin-left: 8px; }
+.act-branch-label { color: #6b7280; }
+.sk-row { margin-bottom: 6px; }
+.sk-meaning { color: #9ca3af; font-size: 0.77em; padding-left: 8px; margin-top: 2px; }
+.sk-setby { color: #6b7280; font-size: 0.72em; padding-left: 8px; }
+.no-results { padding: 60px 24px; color: #6b7280; text-align: center; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Quest Registry &mdash; AnimePlatformer</h1>
+  <p>Auto-generated 2026-02-22 &mdash; <code>tools/quest_tool.py --html --write</code>. Source of truth: <code>godot_port/data/quests/*.json</code></p>
+</header>
+<div id="search-bar">
+  <input type="text" id="search" placeholder="Filter by name, ID, NPC, key..." oninput="filterCards()" autofocus />
+  <span class="stats" id="stats">3 loaded</span>
+</div>
+<div id="quest-list">
+<div class="card type-quest" data-search="quest_purple_karim purple karim&#x27;s debt level_town quest_purple_karim_active quest_purple_karim_complete quest_purple_karim_active player accepted purple karim&#x27;s debt delivery quest hydra_body_1_gone hydra body 1 has been dismissed and removed hydra_body_2_gone hydra body 2 has been dismissed and removed hydra_body_3_gone hydra body 3 has been dismissed and removed three_headed_karim_paid payment delivered to hydra karim; player should return to purple karim quest_purple_karim_complete quest fully resolved, vibrator reward given purple_karim giver hydra_body_1 target hydra_body_2 target hydra_body_3 target three_headed_karim boss vibrator">
+  <div class="card-header" onclick="toggleCard(this)">
+    <div class="card-title">
+      <div class="card-name">Purple Karim&#x27;s Debt</div>
+      <div class="card-id">quest_purple_karim</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-quest">quest</span><span class="chevron">&#9654;</span></div>
+  </div>
+  <div class="card-body">
+    <div class="section">
+      <div class="row"><span class="row-label">level</span><span class="row-value">level_town</span></div>
+      <div class="row"><span class="row-label">also</span><span class="row-value">level_jungle</span></div>
+      <div class="row"><span class="row-label">reward</span><span class="row-value"><span class="reward-item">Vibrator</span></span></div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Quest Keys</div>
+        <div><span class="row-label">active</span><span class="key-chip active">quest_purple_karim_active</span></div><div><span class="row-label">complete</span><span class="key-chip complete">quest_purple_karim_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">NPCs (5)</div>
+        <div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">purple_karim</span>
+              <span class="npc-role">giver</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/done</span></div><div class="sel-row"><span class="sel-cond">[three_headed_karim_paid=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_active=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/purple_karim/intro</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/purple_karim/intro</span>:</div>
+              <div class="action"><span class="act-kw">choice_panel</span> <span class="act-meta">&ldquo;Wil je zijn schuld betalen?&rdquo;</span> <span class="act-meta">delay 0.5s</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[0] Ja, ik doe het</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">set_key</span> <span class="key-chip">quest_purple_karim_active</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/purple_karim/accept</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[1] Nee, geen tijd</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/purple_karim/decline</span></div>
+            </div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/purple_karim/complete</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_purple_karim_complete</span></div><div class="action"><span class="act-kw">item_popup</span> <span class="act-item">Vibrator</span> <span class="act-meta">delay 0.5s</span></div>
+            </div>
+          </div><div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">hydra_body_1</span>
+              <span class="npc-role">target</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_jungle/hydra_body_1/dialog</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/hydra_body_1/dialog</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">hydra_body_1_gone</span></div><div class="action"><span class="act-kw">fade_and_remove</span> <span class="act-meta">1.2s</span></div>
+            </div>
+          </div><div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">hydra_body_2</span>
+              <span class="npc-role">target</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_jungle/hydra_body_2/dialog</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/hydra_body_2/dialog</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">hydra_body_2_gone</span></div><div class="action"><span class="act-kw">fade_and_remove</span> <span class="act-meta">1.2s</span></div>
+            </div>
+          </div><div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">hydra_body_3</span>
+              <span class="npc-role">target</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_jungle/hydra_body_3/dialog</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/hydra_body_3/dialog</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">hydra_body_3_gone</span></div><div class="action"><span class="act-kw">fade_and_remove</span> <span class="act-meta">1.2s</span></div>
+            </div>
+          </div><div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">three_headed_karim</span>
+              <span class="npc-role">boss</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_jungle/three_headed_karim/encounter</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/three_headed_karim/encounter</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">three_headed_karim_paid</span></div><div class="action"><span class="act-kw">fade_and_remove</span> <span class="act-meta">1.5s</span></div>
+            </div>
+          </div>
+      </div>
+    <div class="section">
+        <div class="section-title">State Keys (6)</div>
+        <div class="sk-row">
+            <div><span class="key-chip">quest_purple_karim_active</span></div>
+            <div class="sk-meaning">Player accepted Purple Karim&#x27;s debt delivery quest</div>
+            <div class="sk-setby">purple_karim — accept choice after level_town/purple_karim/intro</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">hydra_body_1_gone</span> <span class="muted">[parallel: hydra_bodies]</span></div>
+            <div class="sk-meaning">Hydra Body 1 has been dismissed and removed</div>
+            <div class="sk-setby">hydra_body_1 — after level_jungle/hydra_body_1/dialog ends + fade</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">hydra_body_2_gone</span> <span class="muted">[parallel: hydra_bodies]</span></div>
+            <div class="sk-meaning">Hydra Body 2 has been dismissed and removed</div>
+            <div class="sk-setby">hydra_body_2 — after level_jungle/hydra_body_2/dialog ends + fade</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">hydra_body_3_gone</span> <span class="muted">[parallel: hydra_bodies]</span></div>
+            <div class="sk-meaning">Hydra Body 3 has been dismissed and removed</div>
+            <div class="sk-setby">hydra_body_3 — after level_jungle/hydra_body_3/dialog ends + fade</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">three_headed_karim_paid</span></div>
+            <div class="sk-meaning">Payment delivered to Hydra Karim; player should return to Purple Karim</div>
+            <div class="sk-setby">three_headed_karim — after level_jungle/three_headed_karim/encounter ends + fade</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">quest_purple_karim_complete</span></div>
+            <div class="sk-meaning">Quest fully resolved, Vibrator reward given</div>
+            <div class="sk-setby">purple_karim — after level_town/purple_karim/complete</div>
+          </div>
+      </div>
+  </div>
+</div>
+<div class="card type-quest" data-search="quest_red_karim red karim&#x27;s problem level_town quest_red_karim_accepted quest_red_karim_complete quest_red_karim_accepted player agreed to help red karim silence green karim quest_green_karim_confronted player has spoken to green karim about the complaint quest_red_karim_complete quest fully resolved, dildo reward given red_karim giver green_karim target dildo">
+  <div class="card-header" onclick="toggleCard(this)">
+    <div class="card-title">
+      <div class="card-name">Red Karim&#x27;s Problem</div>
+      <div class="card-id">quest_red_karim</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-quest">quest</span><span class="chevron">&#9654;</span></div>
+  </div>
+  <div class="card-body">
+    <div class="section">
+      <div class="row"><span class="row-label">level</span><span class="row-value">level_town</span></div>
+      
+      <div class="row"><span class="row-label">reward</span><span class="row-value"><span class="reward-item">Dildo</span></span></div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Quest Keys</div>
+        <div><span class="row-label">active</span><span class="key-chip active">quest_red_karim_accepted</span></div><div><span class="row-label">complete</span><span class="key-chip complete">quest_red_karim_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">NPCs (2)</div>
+        <div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">red_karim</span>
+              <span class="npc-role">giver</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/done</span></div><div class="sel-row"><span class="sel-cond">[quest_green_karim_confronted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/red_karim/intro</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/red_karim/intro</span>:</div>
+              <div class="action"><span class="act-kw">choice_panel</span> <span class="act-meta">&ldquo;Will you help Red Karim?&rdquo;</span> <span class="act-meta">delay 0.5s</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[0] Accept the quest</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">set_key</span> <span class="key-chip">quest_red_karim_accepted</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/red_karim/accept</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[1] Decline</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/red_karim/decline</span></div>
+            </div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/red_karim/complete</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_red_karim_complete</span></div><div class="action"><span class="act-kw">item_popup</span> <span class="act-item">Dildo</span> <span class="act-meta">delay 0.5s</span></div>
+            </div>
+          </div><div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">green_karim</span>
+              <span class="npc-role">target</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/green_karim/reformed</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True, quest_green_karim_confronted=False]</span> &rarr; <span class="act-dialog">level_town/green_karim/confronted</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/green_karim/default</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/green_karim/confronted</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_green_karim_confronted</span></div>
+            </div>
+          </div>
+      </div>
+    <div class="section">
+        <div class="section-title">State Keys (3)</div>
+        <div class="sk-row">
+            <div><span class="key-chip">quest_red_karim_accepted</span></div>
+            <div class="sk-meaning">Player agreed to help Red Karim silence Green Karim</div>
+            <div class="sk-setby">red_karim — accept choice after level_town/red_karim/intro</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">quest_green_karim_confronted</span></div>
+            <div class="sk-meaning">Player has spoken to Green Karim about the complaint</div>
+            <div class="sk-setby">green_karim — after level_town/green_karim/confronted ends</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">quest_red_karim_complete</span></div>
+            <div class="sk-meaning">Quest fully resolved, Dildo reward given</div>
+            <div class="sk-setby">red_karim — after level_town/red_karim/complete ends</div>
+          </div>
+      </div>
+  </div>
+</div>
+<div class="card type-event" data-search="event_brown_karim brown karim vanishes level_town brown_karim_vanished brown karim has permanently left the world brown_karim event">
+  <div class="card-header" onclick="toggleCard(this)">
+    <div class="card-title">
+      <div class="card-name">Brown Karim Vanishes</div>
+      <div class="card-id">event_brown_karim</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-event">event</span><span class="chevron">&#9654;</span></div>
+  </div>
+  <div class="card-body">
+    <div class="section">
+      <div class="row"><span class="row-label">level</span><span class="row-value">level_town</span></div>
+      
+      <div class="row"><span class="row-label">reward</span><span class="row-value"><span class="muted">none</span></span></div>
+    </div>
+    
+    
+    <div class="section">
+        <div class="section-title">NPCs (1)</div>
+        <div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">brown_karim</span>
+              <span class="npc-role">event</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/brown_karim/spooky</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_town/brown_karim/spooky</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">brown_karim_vanished</span></div><div class="action"><span class="act-kw">fade_and_remove</span> <span class="act-meta">1.5s, slide_x=200</span></div>
+            </div>
+          </div>
+      </div>
+    <div class="section">
+        <div class="section-title">State Keys (1)</div>
+        <div class="sk-row">
+            <div><span class="key-chip">brown_karim_vanished</span></div>
+            <div class="sk-meaning">Brown Karim has permanently left the world</div>
+            <div class="sk-setby">brown_karim — after level_town/brown_karim/spooky ends</div>
+          </div>
+      </div>
+  </div>
+</div>
+</div>
+<div class="no-results" id="no-results">No results match your filter.</div>
+<script>
+function filterCards() {
+  var q = document.getElementById('search').value.toLowerCase();
+  var cards = document.querySelectorAll('#quest-list .card');
+  var total = cards.length;
+  var shown = 0;
+  cards.forEach(function(c) {
+    var match = !q || (c.dataset.search || '').indexOf(q) !== -1;
+    c.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  document.getElementById('stats').textContent = shown + ' of ' + total + ' shown';
+  document.getElementById('no-results').style.display = shown === 0 ? '' : 'none';
+}
+function toggleCard(header) {
+  header.parentElement.classList.toggle('open');
+}
+</script>
+</body>
+</html>

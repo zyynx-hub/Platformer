@@ -1,0 +1,145 @@
+{
+  "id": "quest_purple_karim",
+  "type": "quest",
+  "name": "Purple Karim's Debt",
+  "description": "Purple Karim couldn't pay off his PC debt because of his busted knee. Miffy delivered the payment to the terrifying three-headed Hydra Karim deep in the jungle village, narrowly avoiding threats of violence. Purple Karim was relieved and grateful.",
+  "level": "level_town",
+  "secondary_levels": ["level_jungle"],
+  "prerequisites": [],
+  "active_key": "quest_purple_karim_active",
+  "complete_key": "quest_purple_karim_complete",
+  "reward": {
+    "type": "item",
+    "item_id": "Vibrator"
+  },
+  "npcs": {
+    "purple_karim": {
+      "voice_pitch": 0.95,
+      "role": "giver",
+      "dialog_selection": [
+        { "requires": {"quest_purple_karim_complete": true}, "dialog": "level_town/purple_karim/done" },
+        { "requires": {"three_headed_karim_paid": true},     "dialog": "level_town/purple_karim/complete" },
+        { "requires": {"quest_purple_karim_active": true},   "dialog": "level_town/purple_karim/waiting" },
+        {                                                     "dialog": "level_town/purple_karim/intro" }
+      ],
+      "on_dialog_end": {
+        "level_town/purple_karim/intro": [
+          {
+            "action": "choice_panel",
+            "prompt": "Wil je zijn schuld betalen?",
+            "choices": ["Ja, ik doe het", "Nee, geen tijd"],
+            "delay": 0.5,
+            "on_accept": [
+              { "action": "set_key",    "key": "quest_purple_karim_active" },
+              { "action": "play_dialog","dialog": "level_town/purple_karim/accept" }
+            ],
+            "on_decline": [
+              { "action": "play_dialog","dialog": "level_town/purple_karim/decline" }
+            ]
+          }
+        ],
+        "level_town/purple_karim/complete": [
+          { "action": "set_key",    "key": "quest_purple_karim_complete" },
+          { "action": "item_popup", "item_id": "Vibrator", "delay": 0.5 }
+        ]
+      }
+    },
+    "hydra_body_1": {
+      "voice_pitch": 0.3,
+      "role": "target",
+      "dialog_selection": [
+        { "dialog": "level_jungle/hydra_body_1/dialog" }
+      ],
+      "on_dialog_end": {
+        "level_jungle/hydra_body_1/dialog": [
+          { "action": "set_key",        "key": "hydra_body_1_gone" },
+          { "action": "fade_and_remove","duration": 1.2 }
+        ]
+      }
+    },
+    "hydra_body_2": {
+      "voice_pitch": 0.3,
+      "role": "target",
+      "dialog_selection": [
+        { "dialog": "level_jungle/hydra_body_2/dialog" }
+      ],
+      "on_dialog_end": {
+        "level_jungle/hydra_body_2/dialog": [
+          { "action": "set_key",        "key": "hydra_body_2_gone" },
+          { "action": "fade_and_remove","duration": 1.2 }
+        ]
+      }
+    },
+    "hydra_body_3": {
+      "voice_pitch": 0.3,
+      "role": "target",
+      "dialog_selection": [
+        { "dialog": "level_jungle/hydra_body_3/dialog" }
+      ],
+      "on_dialog_end": {
+        "level_jungle/hydra_body_3/dialog": [
+          { "action": "set_key",        "key": "hydra_body_3_gone" },
+          { "action": "fade_and_remove","duration": 1.2 }
+        ]
+      }
+    },
+    "three_headed_karim": {
+      "voice_pitch": 0.2,
+      "role": "boss",
+      "appears_when": {
+        "all_true":  ["hydra_body_1_gone", "hydra_body_2_gone", "hydra_body_3_gone"],
+        "all_false": ["three_headed_karim_paid"]
+      },
+      "dialog_selection": [
+        { "dialog": "level_jungle/three_headed_karim/encounter" }
+      ],
+      "on_dialog_end": {
+        "level_jungle/three_headed_karim/encounter": [
+          { "action": "set_key",        "key": "three_headed_karim_paid" },
+          { "action": "fade_and_remove","duration": 1.5 }
+        ]
+      }
+    }
+  },
+  "state_keys": [
+    {
+      "key": "quest_purple_karim_active",
+      "set_by": "purple_karim — accept choice after level_town/purple_karim/intro",
+      "read_by": ["purple_karim"],
+      "meaning": "Player accepted Purple Karim's debt delivery quest"
+    },
+    {
+      "key": "hydra_body_1_gone",
+      "set_by": "hydra_body_1 — after level_jungle/hydra_body_1/dialog ends + fade",
+      "read_by": ["JungleLevelController", "HydraBodyNPC._ready"],
+      "meaning": "Hydra Body 1 has been dismissed and removed",
+      "parallel_group": "hydra_bodies"
+    },
+    {
+      "key": "hydra_body_2_gone",
+      "set_by": "hydra_body_2 — after level_jungle/hydra_body_2/dialog ends + fade",
+      "read_by": ["JungleLevelController", "HydraBodyNPC._ready"],
+      "meaning": "Hydra Body 2 has been dismissed and removed",
+      "parallel_group": "hydra_bodies"
+    },
+    {
+      "key": "hydra_body_3_gone",
+      "set_by": "hydra_body_3 — after level_jungle/hydra_body_3/dialog ends + fade",
+      "read_by": ["JungleLevelController", "HydraBodyNPC._ready"],
+      "meaning": "Hydra Body 3 has been dismissed and removed",
+      "parallel_group": "hydra_bodies"
+    },
+    {
+      "key": "three_headed_karim_paid",
+      "set_by": "three_headed_karim — after level_jungle/three_headed_karim/encounter ends + fade",
+      "read_by": ["purple_karim", "JungleLevelController", "ThreeHeadedKarimNPC._ready"],
+      "meaning": "Payment delivered to Hydra Karim; player should return to Purple Karim"
+    },
+    {
+      "key": "quest_purple_karim_complete",
+      "set_by": "purple_karim — after level_town/purple_karim/complete",
+      "read_by": ["purple_karim"],
+      "meaning": "Quest fully resolved, Vibrator reward given"
+    }
+  ]
+}

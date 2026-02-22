@@ -68,7 +68,9 @@ func _process(delta: float) -> void:
 			_ambient_particle_timer = randf_range(0.15, 0.35)
 			_spawn_ambient_particle()
 
-	queue_redraw()
+	# Only redraw when the E-key prompt is visible — no cost when player is far away
+	if _player_in_range:
+		queue_redraw()
 
 # ===== Proximity detection =====
 
@@ -79,6 +81,7 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		_player_in_range = false
+		queue_redraw()  # clear the E-key prompt immediately
 
 # ===== E-key prompt =====
 

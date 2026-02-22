@@ -9,6 +9,8 @@ extends CanvasLayer
 @onready var _quest_list: VBoxContainer = %QuestList
 
 var _was_paused: bool = false
+var _status_labels: Array[Label] = []  # cached per-quest status labels for refresh
+var _built: bool = false
 
 
 func _ready() -> void:
@@ -47,11 +49,32 @@ func _close() -> void:
 
 
 func _build_entries() -> void:
-	for child in _quest_list.get_children():
-		child.queue_free()
+	if _built:
+		_refresh_status()
+		return
+	_built = true
 	var pd := ProgressData.new()
 	for quest in QuestDefs.ALL:
 		_add_quest_entry(quest, pd)
+
+
+func _refresh_status() -> void:
+	var pd := ProgressData.new()
+	for i in QuestDefs.ALL.size():
+		if i >= _status_labels.size():
+			break
+		var quest := QuestDefs.ALL[i]
+		var is_complete := pd.get_quest(quest["complete_key"])
+		var is_active   := pd.get_quest(quest["active_key"])
+		if is_complete:
+			_status_labels[i].text = "COMPLETED"
+			_status_labels[i].add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		elif is_active:
+			_status_labels[i].text = "ACTIVE"
+			_status_labels[i].add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+		else:
+			_status_labels[i].text = "INACTIVE"
+			_status_labels[i].add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
 
 
 func _add_quest_entry(quest: Dictionary, pd: ProgressData) -> void:
@@ -93,6 +116,7 @@ func _add_quest_entry(quest: Dictionary, pd: ProgressData) -> void:
 	status_label.add_theme_color_override("font_color", status_color)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(status_label)
+	_status_labels.append(status_label)
 
 	# Reward line
 	var reward_label := Label.new()

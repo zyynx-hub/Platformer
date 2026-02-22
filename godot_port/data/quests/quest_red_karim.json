@@ -1,0 +1,81 @@
+{
+  "id": "quest_red_karim",
+  "type": "quest",
+  "name": "Red Karim's Problem",
+  "description": "Green Karim needed to shut his mouth according to Red Karim. Miffy resolved this conflict by putting his foot down hard.",
+  "level": "level_town",
+  "prerequisites": [],
+  "active_key": "quest_red_karim_accepted",
+  "complete_key": "quest_red_karim_complete",
+  "reward": {
+    "type": "item",
+    "item_id": "Dildo"
+  },
+  "npcs": {
+    "red_karim": {
+      "voice_pitch": 0.9,
+      "role": "giver",
+      "dialog_selection": [
+        { "requires": {"quest_red_karim_complete": true},        "dialog": "level_town/red_karim/done" },
+        { "requires": {"quest_green_karim_confronted": true},    "dialog": "level_town/red_karim/complete" },
+        { "requires": {"quest_red_karim_accepted": true},        "dialog": "level_town/red_karim/waiting" },
+        {                                                         "dialog": "level_town/red_karim/intro" }
+      ],
+      "on_dialog_end": {
+        "level_town/red_karim/intro": [
+          {
+            "action": "choice_panel",
+            "prompt": "Will you help Red Karim?",
+            "choices": ["Accept the quest", "Decline"],
+            "delay": 0.5,
+            "on_accept": [
+              { "action": "set_key",    "key": "quest_red_karim_accepted" },
+              { "action": "play_dialog","dialog": "level_town/red_karim/accept" }
+            ],
+            "on_decline": [
+              { "action": "play_dialog","dialog": "level_town/red_karim/decline" }
+            ]
+          }
+        ],
+        "level_town/red_karim/complete": [
+          { "action": "set_key",    "key": "quest_red_karim_complete" },
+          { "action": "item_popup", "item_id": "Dildo", "delay": 0.5 }
+        ]
+      }
+    },
+    "green_karim": {
+      "voice_pitch": 0.8,
+      "role": "target",
+      "dialog_selection": [
+        { "requires": {"quest_red_karim_complete": true},                                             "dialog": "level_town/green_karim/reformed" },
+        { "requires": {"quest_red_karim_accepted": true, "quest_green_karim_confronted": false},      "dialog": "level_town/green_karim/confronted" },
+        {                                                                                              "dialog": "level_town/green_karim/default" }
+      ],
+      "on_dialog_end": {
+        "level_town/green_karim/confronted": [
+          { "action": "set_key", "key": "quest_green_karim_confronted" }
+        ]
+      }
+    }
+  },
+  "state_keys": [
+    {
+      "key": "quest_red_karim_accepted",
+      "set_by": "red_karim — accept choice after level_town/red_karim/intro",
+      "read_by": ["red_karim", "green_karim"],
+      "meaning": "Player agreed to help Red Karim silence Green Karim"
+    },
+    {
+      "key": "quest_green_karim_confronted",
+      "set_by": "green_karim — after level_town/green_karim/confronted ends",
+      "read_by": ["red_karim", "green_karim"],
+      "meaning": "Player has spoken to Green Karim about the complaint"
+    },
+    {
+      "key": "quest_red_karim_complete",
+      "set_by": "red_karim — after level_town/red_karim/complete ends",
+      "read_by": ["red_karim", "green_karim"],
+      "meaning": "Quest fully resolved, Dildo reward given"
+    }
+  ]
+}

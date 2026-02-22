@@ -30,11 +30,25 @@ var _rain_accumulation: float = 0.0
 var _snow_accumulation: float = 0.0
 var _tween: Tween = null
 
+# Cached references — avoids repeated tree traversal every frame
+var _cloud_visual: CanvasItem = null
+# Last-pushed values — skip set_shader_parameter when change is negligible
+var _last_rain_accum: float = -1.0
+var _last_snow_accum: float = -1.0
+var _last_cloud_darken: float = -1.0
+
+var _visible_size: Vector2 = Vector2.ZERO
+
 func _ready() -> void:
+	var vp := get_viewport()
+	if vp:
+		var inv_scale := Vector2(1.0, 1.0) / vp.canvas_transform.get_scale()
+		_visible_size = Vector2(vp.size) * inv_scale
 	_sync_overlays()
 	if Engine.is_editor_hint():
 		return
 	add_to_group("weather_controller")
+	_cloud_visual = _find_cloud_visual()
 
 func _process(delta: float) -> void:
 	if not Engine.is_editor_hint():
@@ -44,16 +58,12 @@ func _process(delta: float) -> void:
 	var vp := get_viewport()
 	if not vp:
 		return
-	var ct := vp.canvas_transform
-	var screen_center := Vector2(vp.size) * 0.5
-	var cam_world := ct.affine_inverse() * screen_center
-	var inv_scale := Vector2(1.0, 1.0) / ct.get_scale()
-	var visible_size := Vector2(vp.size) * inv_scale
+	var cam_world := vp.canvas_transform.affine_inverse() * (Vector2(vp.size) * 0.5)
 
-	var left := cam_world.x - visible_size.x * 0.5
-	var top := cam_world.y - visible_size.y * 0.5
-	var right := cam_world.x + visible_size.x * 0.5
-	var bottom := cam_world.y + visible_size.y * 0.5
+	var left := cam_world.x - _visible_size.x * 0.5
+	var top := cam_world.y - _visible_size.y * 0.5
+	var right := cam_world.x + _visible_size.x * 0.5
+	var bottom := cam_world.y + _visible_size.y * 0.5
 
 	if _rain_overlay:
 		_rain_overlay.offset_left = left
@@ -100,21 +110,23 @@ func _update_accumulation(delta: float) -> void:
 	else:
 		_snow_accumulation = maxf(_snow_accumulation - _DRAIN_RATE * delta, 0.0)
 
-	# Push accumulation to ground shaders
+	# Push accumulation to ground shaders — only when value changed meaningfully
 	if _puddle_overlay:
 		_puddle_overlay.visible = _rain_accumulation > 0.001
-		if _puddle_overlay.material:
+		if _puddle_overlay.material and absf(_rain_accumulation - _last_rain_accum) > 0.005:
 			(_puddle_overlay.material as ShaderMaterial).set_shader_parameter("accumulation", _rain_accumulation)
+			_last_rain_accum = _rain_accumulation
 	if _snow_ground:
 		_snow_ground.visible = _snow_accumulation > 0.001
-		if _snow_ground.material:
+		if _snow_ground.material and absf(_snow_accumulation - _last_snow_accum) > 0.005:
 			(_snow_ground.material as ShaderMaterial).set_shader_parameter("accumulation", _snow_accumulation)
+			_last_snow_accum = _snow_accumulation
 
-	# Push cloud darkening to sibling cloud layer shader
+	# Push cloud darkening — use cached reference, skip if unchanged
 	var cloud_darken := maxf(_rain_intensity, _snow_intensity * 0.6)
-	var cloud_visual = _find_cloud_visual()
-	if cloud_visual and cloud_visual.material:
-		(cloud_visual.material as ShaderMaterial).set_shader_parameter("weather_darken", cloud_darken)
+	if _cloud_visual and _cloud_visual.material and absf(cloud_darken - _last_cloud_darken) > 0.005:
+		(_cloud_visual.material as ShaderMaterial).set_shader_parameter("weather_darken", cloud_darken)
+		_last_cloud_darken = cloud_darken
 
 func _find_cloud_visual() -> CanvasItem:
 	var parent := get_parent()

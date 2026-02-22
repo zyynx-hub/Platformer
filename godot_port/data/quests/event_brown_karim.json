@@ -1,0 +1,31 @@
+{
+  "id": "event_brown_karim",
+  "type": "event",
+  "name": "Brown Karim Vanishes",
+  "description": "Brown Karim delivers one cryptic line and permanently disappears from the world.",
+  "level": "level_town",
+  "prerequisites": [],
+  "npcs": {
+    "brown_karim": {
+      "voice_pitch": 0.4,
+      "role": "event",
+      "dialog_selection": [
+        { "dialog": "level_town/brown_karim/spooky" }
+      ],
+      "on_dialog_end": {
+        "level_town/brown_karim/spooky": [
+          { "action": "set_key",        "key": "brown_karim_vanished" },
+          { "action": "fade_and_remove","duration": 1.5, "slide_x": 200 }
+        ]
+      }
+    }
+  },
+  "state_keys": [
+    {
+      "key": "brown_karim_vanished",
+      "set_by": "brown_karim — after level_town/brown_karim/spooky ends",
+      "read_by": ["BrownKarimNPC._ready"],
+      "meaning": "Brown Karim has permanently left the world"
+    }
+  ]
+}

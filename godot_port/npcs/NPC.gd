@@ -114,3 +114,14 @@ func _get_player() -> Node2D:
 func _on_dialog_ended(_ended_dialog_id: String) -> void:
 	_interacting = false
 	_interact_cooldown = 0.5
+
+
+## Default fade-and-remove used by QuestManager's fade_and_remove action.
+## Subclasses (BrownKarimNPC) override this for custom vanish behavior.
+func _do_fade_and_remove(duration: float, slide_x: float = 0.0) -> void:
+	var tween := create_tween()
+	tween.set_ease(Tween.EASE_IN)
+	if slide_x != 0.0:
+		tween.parallel().tween_property(self, "position:x", position.x + slide_x, duration).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(self, "modulate:a", 0.0, duration)
+	tween.tween_callback(queue_free)

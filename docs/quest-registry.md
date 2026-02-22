@@ -1,9 +1,19 @@
 # Quest & NPC Registry
 
+> **Note (Session 49+):** Quest logic lives in `godot_port/data/quests/*.json`.
+> For new quests: write the JSON file first, then update this registry to match.
+>
+> Auto-generated docs (regenerate from JSON, do not edit by hand):
+> - `docs/storyline.md` — narrative step-by-step flow: `python tools/quest_tool.py --story --write`
+> - `docs/quest-flowchart.md` — Mermaid state graph: `python tools/quest_tool.py --graph --write`
+> - `docs/quest-report.html` — interactive HTML report: `python tools/quest_tool.py --html --write`
+> - Validation: `python tools/quest_tool.py --validate`
+>
+> This file (quest-registry.md) is the **world atlas**: NPC positions, scene placements, shop items, visual properties.
+> For quest flow and dialog logic, see `docs/storyline.md` (auto-generated).
+
 Canonical source of truth for all quests, NPCs, dialog conditions, and state keys.
 **Always update this file when adding new NPCs, quests, or dialog.**
-
-To regenerate the Mermaid flowchart, use the data here to update `docs/quest-flowchart.md`.
 
 ---
 
@@ -87,7 +97,7 @@ Flat ground, 1600px wide. Permanent green night overlay (humidity/dim atmosphere
 | Scene placement | TownLevel.tscn, Town Street |
 | Wander bounds | x: 1200–1700 |
 | voice_pitch | 0.95 |
-| Role | Quest giver — initiates Purple Karim's Debt (auto-accept) |
+| Role | Quest giver — initiates Purple Karim's Debt (ChoicePanel accept/decline) |
 | Modulate | Color(0.5, 0.1, 0.8, 1) — purple tint |
 
 **Dialog selection logic (PurpleKarimNPC._get_active_dialog_id):**
@@ -99,7 +109,9 @@ default                               → level_town/purple_karim/intro      (qu
 ```
 
 **On dialog end:**
-- `purple_karim/intro` ends → auto-sets `quest_purple_karim_active = true` (no choice panel)
+- `purple_karim/intro` ends → 0.5s delay → ChoicePanel("Wil je zijn schuld betalen?", ["Ja, ik doe het", "Nee, geen tijd"])
+  - Accept (0): sets `quest_purple_karim_active = true` + plays `purple_karim/accept`
+  - Decline (1): plays `purple_karim/decline` (quest not set; intro plays again next visit)
 - `purple_karim/complete` ends → sets `quest_purple_karim_complete = true` + 0.5s delay → ItemAcquiredPopup("Vibrator")
 
 ---
@@ -237,14 +249,16 @@ If player declines at step 2b: Red Karim plays `red_karim/decline`, then on next
 **Task**: Deliver payment to Three-Headed Karim in the Jungle Village (talk to all 3 Hydra Bodies, then talk to Three-Headed Karim)
 **Reward**: Item popup — "Vibrator" (no sprite, `null` passed to ItemAcquiredPopup.setup())
 **Repeatable**: No — one-time resolution
-**Auto-accept**: Yes — no ChoicePanel, quest starts automatically after intro dialog
+**Accept**: ChoicePanel — "Wil je zijn schuld betalen?" (accept/decline)
 
 #### Step-by-Step Flow
 
 | Step | Actor | Location | Precondition | Player Action | System Action | State Changed |
 |------|-------|----------|--------------|---------------|---------------|---------------|
 | 1 | Purple Karim | Town Street | `quest_purple_karim_active == false` | Talk to Purple Karim | Plays `purple_karim/intro` (10 lines) | — |
-| 1b | — | — | After intro ends | — | Sets flag automatically (auto-accept) | `quest_purple_karim_active = true` |
+| 1b | — | — | After intro ends | — | ChoicePanel shown ("Wil je zijn schuld betalen?") | — |
+| 1c (accept) | — | — | Player chooses "Ja, ik doe het" | — | Sets flag + plays `purple_karim/accept` (2 lines) | `quest_purple_karim_active = true` |
+| 1c (decline) | — | — | Player chooses "Nee, geen tijd" | — | Plays `purple_karim/decline` (2 lines); intro plays again next visit | — |
 | 2 | Purple Karim | Town Street | `quest_purple_karim_active == true` AND payment not yet done | Talk to Purple Karim again | Plays `purple_karim/waiting` (2 lines, repeatable) | — |
 | 3a | Hydra Body 1 | Jungle House Interior | `hydra_body_1_gone == false` | Talk to Body 1 | "…" dialog → body fades (1.2s) → queue_free() | `hydra_body_1_gone = true` |
 | 3b | Hydra Body 2 | Jungle Exterior | `hydra_body_2_gone == false` | Talk to Body 2 | "…" dialog → body fades (1.2s) → queue_free() | `hydra_body_2_gone = true` |
@@ -326,6 +340,8 @@ All are DialogSequence resources with DialogLine sub-resources.
 | `level_town/red_karim/done` | `dialogs/red_karim/done.tres` | false | `quest_red_karim_complete == true` | 0.9 | 1 |
 
 | `level_town/purple_karim/intro` | `dialogs/purple_karim/intro.tres` | true | Quest not accepted | 0.95 | 10 |
+| `level_town/purple_karim/accept` | `dialogs/purple_karim/accept.tres` | true | Player accepts via ChoicePanel | 0.95 | 2 |
+| `level_town/purple_karim/decline` | `dialogs/purple_karim/decline.tres` | false | Player declines via ChoicePanel | 0.95 | 2 |
 | `level_town/purple_karim/waiting` | `dialogs/purple_karim/waiting.tres` | false | `quest_purple_karim_active AND NOT three_headed_karim_paid` | 0.95 | 2 |
 | `level_town/purple_karim/complete` | `dialogs/purple_karim/complete.tres` | true | `three_headed_karim_paid AND NOT quest_purple_karim_complete` | 0.95 | 4 |
 | `level_town/purple_karim/done` | `dialogs/purple_karim/done.tres` | false | `quest_purple_karim_complete == true` | 0.95 | 1 |
@@ -350,7 +366,7 @@ All read via `ProgressData.get_quest(key)`, all set via `ProgressData.set_quest(
 | `quest_green_karim_confronted` | bool | false | GreenKarimNPC — `green_karim/confronted` dialog ends | RedKarimNPC._get_active_dialog_id(), GreenKarimNPC._get_active_dialog_id() | Player has spoken to Green Karim about the complaint |
 | `quest_red_karim_complete` | bool | false | RedKarimNPC — `red_karim/complete` dialog ends | RedKarimNPC._get_active_dialog_id(), GreenKarimNPC._get_active_dialog_id() | Quest fully resolved, Dildo reward given |
 | `brown_karim_vanished` | bool | false | BrownKarimNPC._spooky_vanish() | BrownKarimNPC._ready() | Brown Karim has permanently left the world |
-| `quest_purple_karim_active` | bool | false | PurpleKarimNPC — `purple_karim/intro` dialog ends (auto-accept) | PurpleKarimNPC._get_active_dialog_id(), QuestLogScene | Player accepted Purple Karim's debt delivery quest |
+| `quest_purple_karim_active` | bool | false | PurpleKarimNPC — ChoicePanel accept after `purple_karim/intro` ends | PurpleKarimNPC._get_active_dialog_id(), QuestLogScene | Player accepted Purple Karim's debt delivery quest |
 | `hydra_body_1_gone` | bool | false | HydraBodyNPC (body 1) — after `hydra_body_1/dialog` ends | JungleLevelController._update_npc_visibility(), HydraBodyNPC._ready() | Hydra Body 1 has faded and been removed |
 | `hydra_body_2_gone` | bool | false | HydraBodyNPC (body 2) — after `hydra_body_2/dialog` ends | JungleLevelController._update_npc_visibility(), HydraBodyNPC._ready() | Hydra Body 2 has faded and been removed |
 | `hydra_body_3_gone` | bool | false | HydraBodyNPC (body 3) — after `hydra_body_3/dialog` ends | JungleLevelController._update_npc_visibility(), HydraBodyNPC._ready() | Hydra Body 3 has faded and been removed |
@@ -415,8 +431,9 @@ ENTER TOWN
         │
         └── Talk to GREEN KARIM (default, no quest active)  →  flavor/rant dialog (repeatable)
   │
-  ├── Talk to PURPLE KARIM  →  intro dialog (auto-accept)
-  │     └── quest_purple_karim_active = true
+  ├── Talk to PURPLE KARIM  →  intro dialog  →  ChoicePanel("Wil je zijn schuld betalen?")
+  │     ├── [Accept]  →  accept dialog  →  quest_purple_karim_active = true
+  │     └── [Decline] →  decline dialog (repeatable; intro plays again next visit)
   │           │
   │           ├── PURPLE KARIM now plays: waiting (repeatable)
   │           │

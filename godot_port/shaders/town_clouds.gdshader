@@ -24,7 +24,7 @@ float gradient_noise(vec2 p) {
 
 float fbm(vec2 p) {
 	float v = 0.0; float a = 0.5;
-	for (int i = 0; i < 4; i++) { v += a * gradient_noise(p); p *= 2.0; a *= 0.5; }
+	for (int i = 0; i < 3; i++) { v += a * gradient_noise(p); p *= 2.0; a *= 0.5; }
 	return v;
 }
 
