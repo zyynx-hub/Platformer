@@ -1386,6 +1386,27 @@ def _build_graph_data(quests: dict) -> dict:
                 prev_keys = [key]
                 i += 1
 
+        # Build flow-predecessor map: for each key, which keys precede it
+        # in the flow chain.  Used below to anchor NPC nodes between keys.
+        flow_pred: dict[str, list[str]] = {}   # key -> [predecessor keys]
+        prev_keys2: list[str] = []
+        j = 0
+        while j < len(all_keys):
+            pg = all_keys[j].get("parallel_group", "")
+            if pg:
+                group2: list[str] = []
+                while j < len(all_keys) and all_keys[j].get("parallel_group", "") == pg:
+                    group2.append(all_keys[j]["key"])
+                    j += 1
+                for gk in group2:
+                    flow_pred[gk] = list(prev_keys2)
+                prev_keys2 = group2
+            else:
+                k2 = all_keys[j]["key"]
+                flow_pred[k2] = list(prev_keys2)
+                prev_keys2 = [k2]
+                j += 1
+
         # --- NPC analysis ---
         for npc_id, npc_data in q.get("npcs", {}).items():
             keys_set = {}
@@ -1445,6 +1466,14 @@ def _build_graph_data(quests: dict) -> dict:
                 for key in return_phase_keys:
                     edges.append({"data": {"source": return_id, "target": "key:" + key, "label": "sets", "etype": "sets"}})
 
+                # Anchor start node: flow predecessors of start-phase keys → start
+                anchor_preds: set[str] = set()
+                for key in start_phase_keys:
+                    for pk in flow_pred.get(key, []):
+                        anchor_preds.add(pk)
+                for pk in anchor_preds:
+                    edges.append({"data": {"source": "key:" + pk, "target": start_id, "label": "", "etype": "flow"}})
+
             else:
                 npc_node_id = qid + ":npc:" + npc_id
                 node_ids.add(npc_node_id)
@@ -1460,6 +1489,14 @@ def _build_graph_data(quests: dict) -> dict:
                     edges.append({"data": {"source": "key:" + rk, "target": npc_node_id, "label": "requires", "etype": "condition"}})
                 for rk in appears_keys:
                     edges.append({"data": {"source": "key:" + rk, "target": npc_node_id, "label": "spawns", "etype": "appears"}})
+
+                # Anchor NPC between flow keys: predecessors of keys it sets → NPC
+                npc_anchor_preds: set[str] = set()
+                for key in keys_set:
+                    for pk in flow_pred.get(key, []):
+                        npc_anchor_preds.add(pk)
+                for pk in npc_anchor_preds:
+                    edges.append({"data": {"source": "key:" + pk, "target": npc_node_id, "label": "", "etype": "flow"}})
 
         # Reward
         reward = q.get("reward", {})
