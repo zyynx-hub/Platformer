@@ -1845,6 +1845,7 @@ function renderGraph(app,sub){
   });
   h+='<span style="flex:1"></span>';
   h+='<button class="graph-btn" id="graph-fit">Fit to View</button>';
+  h+='<button class="graph-btn" id="graph-topo">Chronological</button>';
   h+='<button class="graph-btn" id="graph-dagre">Hierarchical</button>';
   h+='<button class="graph-btn" id="graph-cose">Force</button>';
   h+='</div>';
@@ -1891,7 +1892,78 @@ function renderGraph(app,sub){
     const target=eles||cy.elements(':visible');
     target.layout({name:'cose',animate:true,animationDuration:300,nodeRepulsion:function(){return 10000},idealEdgeLength:function(){return 90}}).run();
   }
-  try{runDagre()}catch(e){runCose()}
+  function runTopo(){
+    /* Topological-sort layout: compute longest-path rank from directed edges,
+       then assign deterministic Y (rank) and X (per-quest column) positions.
+       This guarantees correct chronological top-to-bottom ordering. */
+    var childNodes=cy.nodes().filter(function(n){return !!n.data('parent')});
+    /* Build adjacency from child→child edges only */
+    var adj={};var indeg={};
+    childNodes.forEach(function(n){var id=n.id();adj[id]=[];indeg[id]=0});
+    cy.edges().forEach(function(e){
+      var s=e.data('source'),t=e.data('target');
+      if(s in adj&&t in adj){
+        adj[s].push(t);indeg[t]=indeg[t]+1;
+      }
+    });
+    /* Longest-path rank via topological sort (Kahn's with max propagation) */
+    var rank={};var queue=[];
+    var ids=Object.keys(indeg);
+    for(var i=0;i<ids.length;i++){if(indeg[ids[i]]===0){queue.push(ids[i]);rank[ids[i]]=0}}
+    var safety=0;
+    while(queue.length>0&&safety<10000){
+      safety++;
+      var cur=queue.shift();
+      var neighbors=adj[cur];
+      for(var j=0;j<neighbors.length;j++){
+        var nb=neighbors[j];
+        var newRank=rank[cur]+1;
+        if(rank[nb]===undefined||newRank>rank[nb])rank[nb]=newRank;
+        indeg[nb]--;
+        if(indeg[nb]===0)queue.push(nb);
+      }
+    }
+    /* Fallback for cycles or isolates */
+    childNodes.forEach(function(n){if(rank[n.id()]===undefined)rank[n.id()]=0});
+    /* Group children by parent quest */
+    var questChildren={};
+    childNodes.forEach(function(n){
+      var p=n.data('parent');
+      if(!questChildren[p])questChildren[p]=[];
+      questChildren[p].push(n);
+    });
+    /* Sort children within each quest by rank, then by id for stability */
+    var qkeys=Object.keys(questChildren);
+    for(var qi=0;qi<qkeys.length;qi++){
+      questChildren[qkeys[qi]].sort(function(a,b){
+        var dr=rank[a.id()]-rank[b.id()];
+        return dr!==0?dr:(a.id()<b.id()?-1:1);
+      });
+    }
+    /* Assign positions: quests side-by-side, children stacked vertically */
+    var colWidth=400;var rowHeight=65;var padding=80;
+    cy.startBatch();
+    for(var ci=0;ci<qkeys.length;ci++){
+      var children=questChildren[qkeys[ci]];
+      var minRank=rank[children[0].id()];
+      for(var k=1;k<children.length;k++){
+        var rk=rank[children[k].id()];if(rk<minRank)minRank=rk;
+      }
+      /* Track how many nodes placed at each rank for horizontal spread */
+      var rankSlot={};
+      for(var k=0;k<children.length;k++){
+        var r=rank[children[k].id()]-minRank;
+        if(rankSlot[r]===undefined)rankSlot[r]=0;
+        var xOff=rankSlot[r]*160;
+        rankSlot[r]++;
+        children[k].position({x:ci*colWidth+padding+xOff,y:r*rowHeight+padding});
+      }
+    }
+    cy.endBatch();
+    cy.fit(null,40);
+    console.log('[Topo] Layout applied, '+childNodes.length+' nodes positioned');
+  }
+  try{runTopo();console.log('[Graph] Using topo layout')}catch(e){console.error('[Graph] Topo failed:',e);try{runDagre()}catch(e2){runCose()}}
   /* Quest filter */
   let activeFilter='all';
   document.querySelectorAll('.filter-btn').forEach(function(btn){
@@ -1902,7 +1974,7 @@ function renderGraph(app,sub){
       btn.classList.add('active');
       if(qid==='all'){
         cy.elements().removeClass('dimmed');
-        setTimeout(function(){try{runDagre()}catch(e){runCose()}},50);
+        setTimeout(function(){try{runTopo()}catch(e){try{runDagre()}catch(e2){runCose()}}},50);
       }else{
         /* Show selected quest + its children + connected edges; dim everything else */
         const questNode=cy.getElementById(qid);
@@ -1922,6 +1994,7 @@ function renderGraph(app,sub){
     if(activeFilter==='all')cy.fit(null,30);
     else{var q=cy.getElementById(activeFilter);cy.fit(q.union(q.children()),40)}
   };
+  document.getElementById('graph-topo').onclick=function(){try{runTopo()}catch(e){try{runDagre()}catch(e2){runCose()}}};
   document.getElementById('graph-dagre').onclick=function(){try{runDagre()}catch(e){runCose()}};
   document.getElementById('graph-cose').onclick=function(){runCose()};
   cy.on('tap','node',function(evt){
@@ -2244,14 +2317,11 @@ async function hashPw(pw){
 async function checkGate(){
   const hash=window.PW_HASH;
   if(!hash){document.getElementById('main-app').style.display='';return}
-  const stored=localStorage.getItem('gamebible_auth');
-  if(stored===hash){document.getElementById('main-app').style.display='';return}
   document.getElementById('gate').style.display='flex';
   document.getElementById('gate-btn').onclick=async function(){
     const input=document.getElementById('gate-input').value;
     const h=await hashPw(input);
     if(h===hash){
-      localStorage.setItem('gamebible_auth',hash);
       document.getElementById('gate').style.display='none';
       document.getElementById('main-app').style.display='';
     }else{
