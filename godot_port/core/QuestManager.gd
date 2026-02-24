@@ -186,7 +186,14 @@ func _run_action(action: Dictionary, npc_node: Node) -> void:
 
 func _show_item_popup(item_id: String, npc_node: Node) -> void:
 	var popup = _ItemPopup.instantiate()
-	popup.setup(item_id, null)
+	var item_def := ItemDefs.get_item(item_id)
+	var icon: Texture2D = null
+	var display_name := item_id
+	if not item_def.is_empty():
+		display_name = item_def.get("name", item_id)
+		if item_def.has("icon_path"):
+			icon = load(item_def["icon_path"])
+	popup.setup(display_name, icon)
 	npc_node.get_tree().current_scene.add_child(popup)
 
 

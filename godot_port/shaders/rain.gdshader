@@ -40,8 +40,11 @@ void fragment() {
 		float gap_mult = 2.5 + hash(col * 17.3 + fl * 5.1) * 4.5;
 		float cycle = ldrop + ldrop * gap_mult;
 
-		float fy  = mod(p.y, cycle);
-		float row = floor(p.y / cycle);
+		// Per-column vertical stagger — prevents horizontal banding across columns
+		float y_stagger = hash(col * 91.7 + fl * 13.3) * cycle;
+
+		float fy  = mod(p.y + y_stagger, cycle);
+		float row = floor((p.y + y_stagger) / cycle);
 
 		// x offset varies per (col, row) pair — no more vertical streak lines
 		float x_rand = hash2(vec2(col + row * 0.37, fl * 31.0 + row * 0.71));

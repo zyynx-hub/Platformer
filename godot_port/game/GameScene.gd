@@ -52,12 +52,20 @@ var _original_camera_zoom := Vector2.ONE
 var _boss_camera_active: bool = false
 var _saved_camera_limits: Dictionary = {}
 
+# Currently loaded level scene path (updated on door transitions for save-resume)
+var _current_level_scene: String = ""
+
+# Autosave timer (periodic save so Alt+F4 / crash doesn't lose progress)
+var _autosave_timer: float = 0.0
+const AUTOSAVE_INTERVAL := 5.0
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not _respawning and not _in_cinematic and not _in_portal:
 		_toggle_pause()
 
 func _ready() -> void:
 	# Load the selected level into the container
+	_current_level_scene = GameData.selected_level_scene
 	var level_res = load(GameData.selected_level_scene)
 	if level_res:
 		var level_instance = level_res.instantiate()
@@ -76,8 +84,11 @@ func _ready() -> void:
 	player_instance = PlayerScene.instantiate()
 	game_viewport.add_child(player_instance)
 
-	# Determine spawn position: portal arrival or default SpawnPoint
-	if GameData.arrived_via_portal:
+	# Determine spawn position: resume > portal > SpawnPoint
+	if GameData.resumed_position != Vector2.ZERO:
+		player_instance.global_position = GameData.resumed_position
+		GameData.resumed_position = Vector2.ZERO
+	elif GameData.arrived_via_portal:
 		var portal_pos := _find_return_portal(GameData.portal_source_level)
 		if portal_pos != Vector2.ZERO:
 			player_instance.global_position = portal_pos
@@ -134,6 +145,12 @@ func _physics_process(delta: float) -> void:
 	if not player_instance or not camera:
 		return
 
+	# Periodic autosave (resume state only — lightweight)
+	_autosave_timer += delta
+	if _autosave_timer >= AUTOSAVE_INTERVAL:
+		_autosave_timer = 0.0
+		_save_resume_state()
+
 	# Kill plane: die if player falls below level bounds
 	_respawn_immunity = maxf(0.0, _respawn_immunity - delta)
 	if not _respawning and not _in_portal and _respawn_immunity <= 0.0 and _level_bounds.size != Vector2.ZERO:
@@ -189,7 +206,21 @@ func _quit_to_menu() -> void:
 	if _pause_overlay:
 		_pause_overlay.queue_free()
 		_pause_overlay = null
+	_save_resume_state()
 	SceneTransition.transition_to("res://ui/menus/LevelSelectScene.tscn")
+
+
+func _save_resume_state() -> void:
+	if SaveManager.active_slot < 0:
+		return
+	var pd := ProgressData.new()
+	pd.last_level_id = GameData.selected_level_id
+	pd.last_level_scene = _current_level_scene
+	if player_instance and is_instance_valid(player_instance):
+		pd.last_player_x = player_instance.global_position.x
+		pd.last_player_y = player_instance.global_position.y
+	pd.save_progress()
+	SaveManager.update_current_slot_meta()
 
 # --- Initial spawn materialize ---
 
@@ -490,6 +521,7 @@ func _find_return_portal(source_level_id: String) -> Vector2:
 func _on_level_complete() -> void:
 	var progress := ProgressData.new()
 	progress.complete_level(GameData.selected_level_id)
+	SaveManager.update_current_slot_meta()
 	SceneTransition.transition_to("res://ui/menus/LevelSelectScene.tscn")
 
 # --- Item acquisition popup ---
@@ -658,6 +690,7 @@ func _on_door_entered(destination_scene: String, is_exit_door: bool) -> void:
 		return
 	var level_instance = new_level_res.instantiate()
 	level_container.add_child(level_instance)
+	_current_level_scene = destination_scene
 
 	# Reposition player
 	if is_exit_door and GameData.town_player_position != Vector2.ZERO:

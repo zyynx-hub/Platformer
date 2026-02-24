@@ -1,8 +1,16 @@
 [gd_scene format=3 uid="uid://dio2n16nlj1ui"]
 
 [ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
-[ext_resource type="PackedScene" path="res://npcs/NPC.tscn" id="2_npc"]
-[ext_resource type="Script" path="res://npcs/BlueKarimNPC.gd" id="3_blue"]
+[ext_resource type="PackedScene" uid="uid://bnvq1uurcis38" path="res://npcs/NPC.tscn" id="2_npc"]
+[ext_resource type="Script" uid="uid://yd2c31h4gfjt" path="res://npcs/BlueKarimNPC.gd" id="3_blue"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="4_vignette"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("4_vignette")
+shader_parameter/strength = 0.65
+shader_parameter/softness = 0.6
+shader_parameter/radius = 0.45
+shader_parameter/tint = Color(0.15, 0.08, 0.02, 1)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(400, 16)
@@ -26,6 +34,101 @@ offset_bottom = 300.0
 mouse_filter = 2
 color = Color(0.35, 0.25, 0.18, 1)
 
+[node name="WallPanelLeft" type="ColorRect" parent="." unique_id=1415580132]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = -108.0
+mouse_filter = 2
+color = Color(0.42, 0.32, 0.22, 1)
+
+[node name="WallPanelRight" type="ColorRect" parent="." unique_id=1606751289]
+offset_left = 268.0
+offset_top = -112.0
+offset_right = 284.0
+mouse_filter = 2
+color = Color(0.42, 0.32, 0.22, 1)
+
+[node name="CeilingPanel" type="ColorRect" parent="." unique_id=255511449]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = 284.0
+offset_bottom = -100.0
+mouse_filter = 2
+color = Color(0.32, 0.22, 0.16, 1)
+
+[node name="Baseboard" type="ColorRect" parent="." unique_id=1627640404]
+offset_left = -124.0
+offset_top = -2.0
+offset_right = 284.0
+mouse_filter = 2
+color = Color(0.28, 0.2, 0.14, 1)
+
+[node name="WindowFrame" type="ColorRect" parent="." unique_id=249122366]
+offset_left = 150.0
+offset_top = -88.0
+offset_right = 186.0
+offset_bottom = -56.0
+mouse_filter = 2
+color = Color(0.3, 0.22, 0.15, 1)
+
+[node name="WindowPane" type="ColorRect" parent="." unique_id=1892428530]
+offset_left = 153.0
+offset_top = -85.0
+offset_right = 183.0
+offset_bottom = -59.0
+mouse_filter = 2
+color = Color(0.65, 0.72, 0.85, 1)
+
+[node name="WindowLight" type="ColorRect" parent="." unique_id=1091069849]
+z_index = 1
+offset_left = 140.0
+offset_top = -56.0
+offset_right = 196.0
+mouse_filter = 2
+color = Color(1, 0.9, 0.6, 0.05)
+
+[node name="ShelfBack" type="ColorRect" parent="." unique_id=128523321]
+offset_left = -108.0
+offset_top = -75.0
+offset_right = -92.0
+offset_bottom = -2.0
+mouse_filter = 2
+color = Color(0.38, 0.28, 0.18, 1)
+
+[node name="ShelfBoard1" type="ColorRect" parent="." unique_id=1311713114]
+offset_left = -110.0
+offset_top = -75.0
+offset_right = -90.0
+offset_bottom = -73.0
+mouse_filter = 2
+color = Color(0.32, 0.24, 0.16, 1)
+
+[node name="ShelfBoard2" type="ColorRect" parent="." unique_id=1022262661]
+offset_left = -110.0
+offset_top = -50.0
+offset_right = -90.0
+offset_bottom = -48.0
+mouse_filter = 2
+color = Color(0.32, 0.24, 0.16, 1)
+
+[node name="ShelfBoard3" type="ColorRect" parent="." unique_id=148678609]
+offset_left = -110.0
+offset_top = -25.0
+offset_right = -90.0
+offset_bottom = -23.0
+mouse_filter = 2
+color = Color(0.32, 0.24, 0.16, 1)
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=954325311]
+z_index = 50
+material = SubResource("ShaderMaterial_vignette")
+offset_left = -140.0
+offset_top = -170.0
+offset_right = 300.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
 [node name="Floor" type="StaticBody2D" parent="." unique_id=1686343639]
 
 [node name="FloorShape" type="CollisionShape2D" parent="Floor" unique_id=988240929]
@@ -41,29 +144,33 @@ position = Vector2(-20, -120)
 [node name="BoundsMax" type="Marker2D" parent="." unique_id=49490736]
 position = Vector2(180, 30)
 
-[node name="BlueKarim" parent="." instance=ExtResource("2_npc")]
-position = Vector2(120, 0)
+[node name="BlueKarim" parent="." unique_id=1140503938 instance=ExtResource("2_npc")]
+position = Vector2(169, -4)
 script = ExtResource("3_blue")
 npc_name = "Blue Karim"
 dialog_id = "level_town/blue_karim/greet"
 
-[node name="Sprite" parent="BlueKarim" index="0"]
-modulate = Color(0.3, 0.5, 1.0, 1)
+[node name="Sprite" parent="BlueKarim" index="0" unique_id=823545071]
+modulate = Color(0.3, 0.5, 1, 1)
+position = Vector2(0, 2)
+
+[node name="CollisionShape" parent="BlueKarim" index="1" unique_id=1398850240]
+position = Vector2(0, -14)
 
 [node name="ExitDoor" parent="." unique_id=212705834 instance=ExtResource("1_door")]
 position = Vector2(10, 0)
 destination_scene = "res://levels/level_town/TownLevel.tscn"
 is_exit_door = true
 
-[node name="WallLeft" type="StaticBody2D" parent="."]
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1459394423]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft" unique_id=1304509757]
 position = Vector2(-120, -100)
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="WallRight" type="StaticBody2D" parent="."]
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=1119166202]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight" unique_id=1739928937]
 position = Vector2(280, -100)
 shape = SubResource("RectangleShape2D_wall")
 

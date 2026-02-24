@@ -5,7 +5,7 @@
 class_name ProgressData
 extends RefCounted
 
-const SAVE_PATH := "user://progress.cfg"
+static var SAVE_PATH := "user://progress.cfg"
 
 # Stats
 var total_play_time: float = 0.0
@@ -36,6 +36,12 @@ var equipped_item: String = ""
 # Shop
 var coins: int = 0
 var purchased_items: Array[String] = []
+
+# Resume state (where the player left off)
+var last_level_id: String = ""
+var last_level_scene: String = ""
+var last_player_x: float = 0.0
+var last_player_y: float = 0.0
 
 func _init() -> void:
 	_init_achievements()
@@ -69,6 +75,10 @@ func load_progress() -> void:
 	equipped_item = cfg.get_value("equipment", "equipped_item", "")
 	coins = cfg.get_value("shop", "coins", 0)
 	purchased_items = cfg.get_value("shop", "purchased_items", [] as Array[String])
+	last_level_id = cfg.get_value("resume", "level_id", "")
+	last_level_scene = cfg.get_value("resume", "level_scene", "")
+	last_player_x = cfg.get_value("resume", "player_x", 0.0)
+	last_player_y = cfg.get_value("resume", "player_y", 0.0)
 
 func save_progress() -> void:
 	var cfg := ConfigFile.new()
@@ -88,6 +98,10 @@ func save_progress() -> void:
 	cfg.set_value("equipment", "equipped_item", equipped_item)
 	cfg.set_value("shop", "coins", coins)
 	cfg.set_value("shop", "purchased_items", purchased_items)
+	cfg.set_value("resume", "level_id", last_level_id)
+	cfg.set_value("resume", "level_scene", last_level_scene)
+	cfg.set_value("resume", "player_x", last_player_x)
+	cfg.set_value("resume", "player_y", last_player_y)
 	cfg.save(SAVE_PATH)
 
 func unlock_achievement(id: String) -> bool:
@@ -166,4 +180,8 @@ func reset_all_progress() -> void:
 	equipped_item = ""
 	coins = 0
 	purchased_items.clear()
+	last_level_id = ""
+	last_level_scene = ""
+	last_player_x = 0.0
+	last_player_y = 0.0
 	save_progress()

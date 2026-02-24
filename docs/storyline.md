@@ -8,7 +8,7 @@ Do not edit by hand.
 
 ## Purple Karim's Debt
 
-**Level**: `level_town` + `level_jungle` | **Reward**: Vibrator
+**Level**: `level_town` + `level_jungle` | **Reward**: vibrator
 **NPCs**: **purple_karim** (giver), **hydra_body_1** (target), **hydra_body_2** (target), **hydra_body_3** (target), **three_headed_karim** (boss)
 
 > Purple Karim couldn't pay off his PC debt because of his busted knee. Miffy delivered the payment to the terrifying three-headed Hydra Karim deep in the jungle village, narrowly avoiding threats of violence. Purple Karim was relieved and grateful.
@@ -27,9 +27,9 @@ Do not edit by hand.
    - fades out (1.5s)
    - sets `three_headed_karim_paid`
 4. Talk to **purple_karim** -> `level_town/purple_karim/complete`
-   - item popup: **Vibrator** (0.5s delay)
+   - item popup: **vibrator** (0.5s delay)
    - sets `quest_purple_karim_complete`
-5. Reward: **Vibrator**
+5. Reward: **vibrator**
 
 ### All Dialogs
 
@@ -37,7 +37,7 @@ Do not edit by hand.
 |-----------|-----|-----------|---------------------|
 | `level_town/purple_karim/post_exodia` | purple_karim | quest_exodia_complete=True | - |
 | `level_town/purple_karim/done` | purple_karim | quest_purple_karim_complete=True | - |
-| `level_town/purple_karim/complete` | purple_karim | three_headed_karim_paid=True | sets `quest_purple_karim_complete`; item popup: **Vibrator** (0.5s delay) |
+| `level_town/purple_karim/complete` | purple_karim | three_headed_karim_paid=True | sets `quest_purple_karim_complete`; item popup: **vibrator** (0.5s delay) |
 | `level_town/purple_karim/waiting` | purple_karim | quest_purple_karim_active=True | - |
 | `level_town/purple_karim/intro` | purple_karim | default | choice panel: "Wil je zijn schuld betalen?" |
 | `level_jungle/hydra_body_1/dialog` | hydra_body_1 | default | sets `hydra_body_1_gone`; fades out (1.2s) |
@@ -60,7 +60,7 @@ Do not edit by hand.
 
 ## Red Karim's Problem
 
-**Level**: `level_town` | **Reward**: Dildo
+**Level**: `level_town` | **Reward**: dildo
 **NPCs**: **red_karim** (giver), **green_karim** (target)
 
 > Green Karim needed to shut his mouth according to Red Karim. Miffy resolved this conflict by putting his foot down hard.
@@ -74,9 +74,9 @@ Do not edit by hand.
 2. Talk to **green_karim** -> `level_town/green_karim/confronted`
    - sets `quest_green_karim_confronted`
 3. Talk to **red_karim** -> `level_town/red_karim/complete`
-   - item popup: **Dildo** (0.5s delay)
+   - item popup: **dildo** (0.5s delay)
    - sets `quest_red_karim_complete`
-4. Reward: **Dildo**
+4. Reward: **dildo**
 
 ### All Dialogs
 
@@ -84,7 +84,7 @@ Do not edit by hand.
 |-----------|-----|-----------|---------------------|
 | `level_town/red_karim/post_exodia` | red_karim | quest_exodia_complete=True | - |
 | `level_town/red_karim/done` | red_karim | quest_red_karim_complete=True | - |
-| `level_town/red_karim/complete` | red_karim | quest_green_karim_confronted=True | sets `quest_red_karim_complete`; item popup: **Dildo** (0.5s delay) |
+| `level_town/red_karim/complete` | red_karim | quest_green_karim_confronted=True | sets `quest_red_karim_complete`; item popup: **dildo** (0.5s delay) |
 | `level_town/red_karim/waiting` | red_karim | quest_red_karim_accepted=True | - |
 | `level_town/red_karim/intro` | red_karim | default | choice panel: "Will you help Red Karim?" |
 | `level_town/green_karim/post_exodia` | green_karim | quest_exodia_complete=True | - |
@@ -105,7 +105,7 @@ Do not edit by hand.
 
 ## De Butt Plug Quest
 
-**Level**: `level_jungle` + `level_1` | **Reward**: Butt Plug
+**Level**: `level_jungle` + `level_1` | **Reward**: buttplug
 **Requires**: Red Karim's Problem
 **NPCs**: **orange_karim** (giver)
 
@@ -116,9 +116,9 @@ Do not edit by hand.
 1. Talk to **orange_karim** -> `level_jungle/orange_karim/intro`
    - sets `quest_orange_karim_active`
 2. Talk to **orange_karim** -> `level_jungle/orange_karim/complete`
-   - item popup: **Butt Plug** (0.5s delay)
+   - item popup: **buttplug** (0.5s delay)
    - sets `quest_orange_karim_complete`
-3. Reward: **Butt Plug**
+3. Reward: **buttplug**
 
 ### All Dialogs
 

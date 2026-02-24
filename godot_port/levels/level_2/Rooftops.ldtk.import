@@ -1,0 +1,37 @@
+[remap]
+
+importer="ldtk.import"
+type="PackedScene"
+uid="uid://dma6bxvd0ql2m"
+path="res://.godot/imported/Rooftops.ldtk-823deb99157460fed245a3aea30c236f.scn"
+
+[deps]
+
+files=["res://levels/level_2/tilesets/tileset_32px.res", "res://levels/level_2/levels/Level_0.scn", "res://levels/level_2/levels/Level_1.scn", "res://.godot/imported/Rooftops.ldtk-823deb99157460fed245a3aea30c236f.scn"]
+
+source_file="res://levels/level_2/Rooftops.ldtk"
+dest_files=["res://.godot/imported/Rooftops.ldtk-823deb99157460fed245a3aea30c236f.scn", "res://levels/level_2/tilesets/tileset_32px.res", "res://levels/level_2/levels/Level_0.scn", "res://levels/level_2/levels/Level_1.scn", "res://.godot/imported/Rooftops.ldtk-823deb99157460fed245a3aea30c236f.scn"]
+
+[params]
+
+World=""
+group_world_layers=false
+Level=""
+pack_levels=true
+Layer=""
+layers_always_visible=false
+Tileset=""
+tileset_custom_data=false
+integer_grid_tilesets=true
+atlas_texture_type=0
+Entity=""
+resolve_entityrefs=true
+use_entity_placeholders=false
+Post Import=""
+tileset_post_import="res://levels/shared/tileset_add_collision.gd"
+entities_post_import=""
+level_post_import=""
+world_post_import=""
+Debug=""
+force_tileset_reimport=false
+verbose_output=false

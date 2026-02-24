@@ -80,6 +80,9 @@ shader_parameter/softness = 0.55
 shader_parameter/radius = 0.55
 shader_parameter/tint = Color(0.15, 0.05, 0.1, 1)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(16, 400)
+
 [node name="TownLevel" type="Node2D" unique_id=1265136064]
 script = ExtResource("7_controller")
 
@@ -87,10 +90,8 @@ script = ExtResource("7_controller")
 unique_name_in_owner = true
 z_index = -100
 material = SubResource("ShaderMaterial_sky")
-offset_left = 659.0
-offset_top = 311.5
-offset_right = 659.0
-offset_bottom = 311.5
+offset_right = 1318.0
+offset_bottom = 623.0
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
@@ -398,23 +399,21 @@ color = Color(1, 1, 1, 0)
 unique_name_in_owner = true
 z_index = 102
 material = SubResource("ShaderMaterial_vignette")
-offset_left = 659.0
-offset_top = 311.5
-offset_right = 659.0
-offset_bottom = 311.5
+offset_right = 1318.0
+offset_bottom = 623.0
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="WeatherController" parent="." unique_id=918181106 instance=ExtResource("19_weather")]
 
 [node name="SpawnPoint" type="Marker2D" parent="." unique_id=293394735]
-position = Vector2(302, -16)
+position = Vector2(950, -11)
 
 [node name="BoundsMin" type="Marker2D" parent="." unique_id=561756276]
 position = Vector2(-400, -300)
 
 [node name="BoundsMax" type="Marker2D" parent="." unique_id=591373477]
-position = Vector2(2100, 70)
+position = Vector2(1800, 70)
 
 [node name="BlackKarim" parent="." unique_id=2034801997 instance=ExtResource("2_npc")]
 position = Vector2(300, 0)
@@ -448,18 +447,14 @@ destination_scene = "res://levels/level_town/interiors/House1Interior.tscn"
 position = Vector2(450, 0)
 destination_scene = "res://levels/level_town/interiors/House2Interior.tscn"
 
-[node name="Church" parent="." instance=ExtResource("25_church")]
+[node name="Church" parent="." unique_id=1414210591 instance=ExtResource("25_church")]
 position = Vector2(950, 0)
-wall_color = Color(0.58, 0.55, 0.50, 1)
-roof_color = Color(0.35, 0.28, 0.22, 1)
-door_color = Color(0.25, 0.15, 0.08, 1)
-stained_glass_color = Color(0.45, 0.30, 0.65, 1)
 
-[node name="DoorChurch" parent="." instance=ExtResource("3_door")]
+[node name="DoorChurch" parent="." unique_id=800389462 instance=ExtResource("3_door")]
 position = Vector2(950, 0)
 destination_scene = "res://levels/level_town/interiors/ChurchInterior.tscn"
 
-[node name="ChurchPortal" parent="." instance=ExtResource("24_portal")]
+[node name="ChurchPortal" parent="." unique_id=470821890 instance=ExtResource("24_portal")]
 visible = false
 position = Vector2(950, -24)
 monitoring = false
@@ -482,6 +477,18 @@ modulate = Color(0.5, 0.1, 0.8, 1)
 position = Vector2(1785, -30)
 destination_level_id = "level_jungle"
 portal_color = Color(0.1, 0.65, 0.2, 1)
+
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1257143568]
+
+[node name="WallLeftShape" type="CollisionShape2D" parent="WallLeft" unique_id=711344567]
+position = Vector2(-408, -100)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=1972920386]
+
+[node name="WallRightShape" type="CollisionShape2D" parent="WallRight" unique_id=550266007]
+position = Vector2(1808, -100)
+shape = SubResource("RectangleShape2D_wall")
 
 [editable path="BlackKarim"]
 [editable path="BrownKarim"]

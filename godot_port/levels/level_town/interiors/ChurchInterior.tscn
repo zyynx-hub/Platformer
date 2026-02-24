@@ -1,7 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://o4hb8sho70in"]
 
 [ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
-[ext_resource type="PackedScene" path="res://portals/Portal.tscn" id="2_portal"]
+[ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="2_portal"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="3_vignette"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("3_vignette")
+shader_parameter/strength = 0.7
+shader_parameter/softness = 0.55
+shader_parameter/radius = 0.4
+shader_parameter/tint = Color(0.12, 0.05, 0.18, 1)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(500, 16)
@@ -9,55 +17,133 @@ size = Vector2(500, 16)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
 size = Vector2(8, 200)
 
-[node name="ChurchInterior" type="Node2D"]
+[node name="ChurchInterior" type="Node2D" unique_id=692873030]
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1400372532]
 offset_left = -300.0
 offset_top = -300.0
-offset_right = 500.0
+offset_right = 600.0
 mouse_filter = 2
 color = Color(0.38, 0.35, 0.42, 1)
 
-[node name="FloorVisual" type="ColorRect" parent="."]
+[node name="FloorVisual" type="ColorRect" parent="." unique_id=478502710]
 offset_left = -300.0
-offset_right = 500.0
+offset_right = 600.0
 offset_bottom = 300.0
 mouse_filter = 2
 color = Color(0.28, 0.22, 0.18, 1)
 
-[node name="Floor" type="StaticBody2D" parent="."]
+[node name="WallPanelLeft" type="ColorRect" parent="." unique_id=628155734]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = -108.0
+mouse_filter = 2
+color = Color(0.28, 0.26, 0.34, 1)
 
-[node name="FloorShape" type="CollisionShape2D" parent="Floor"]
+[node name="WallPanelRight" type="ColorRect" parent="." unique_id=2105170610]
+offset_left = 358.0
+offset_top = -112.0
+offset_right = 374.0
+mouse_filter = 2
+color = Color(0.28, 0.26, 0.34, 1)
+
+[node name="CeilingPanel" type="ColorRect" parent="." unique_id=1960463441]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = 374.0
+offset_bottom = -100.0
+mouse_filter = 2
+color = Color(0.22, 0.18, 0.24, 1)
+
+[node name="Baseboard" type="ColorRect" parent="." unique_id=182546686]
+offset_left = -124.0
+offset_top = -2.0
+offset_right = 374.0
+mouse_filter = 2
+color = Color(0.22, 0.18, 0.14, 1)
+
+[node name="StainedGlassFrame" type="ColorRect" parent="." unique_id=171118441]
+offset_left = 270.0
+offset_top = -92.0
+offset_right = 314.0
+offset_bottom = -52.0
+mouse_filter = 2
+color = Color(0.22, 0.18, 0.24, 1)
+
+[node name="StainedGlassPane" type="ColorRect" parent="." unique_id=1832414227]
+offset_left = 274.0
+offset_top = -88.0
+offset_right = 310.0
+offset_bottom = -56.0
+mouse_filter = 2
+color = Color(0.55, 0.3, 0.7, 1)
+
+[node name="StainedGlassLight" type="ColorRect" parent="." unique_id=279616696]
+z_index = 1
+offset_left = 258.0
+offset_top = -52.0
+offset_right = 326.0
+mouse_filter = 2
+color = Color(0.6, 0.4, 0.9, 0.04)
+
+[node name="AltarBase" type="ColorRect" parent="." unique_id=954646267]
+offset_left = 180.0
+offset_top = -8.0
+offset_right = 260.0
+mouse_filter = 2
+color = Color(0.35, 0.3, 0.28, 1)
+
+[node name="AltarTop" type="ColorRect" parent="." unique_id=2064827556]
+offset_left = 176.0
+offset_top = -10.0
+offset_right = 264.0
+offset_bottom = -8.0
+mouse_filter = 2
+color = Color(0.4, 0.35, 0.32, 1)
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=1953320964]
+z_index = 50
+material = SubResource("ShaderMaterial_vignette")
+offset_left = -100.0
+offset_top = -170.0
+offset_right = 340.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=884397480]
+
+[node name="FloorShape" type="CollisionShape2D" parent="Floor" unique_id=967905089]
 position = Vector2(120, 8)
 shape = SubResource("RectangleShape2D_floor")
 
-[node name="SpawnPoint" type="Marker2D" parent="."]
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=1919254139]
 position = Vector2(11, -13)
 
-[node name="BoundsMin" type="Marker2D" parent="."]
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=130948937]
 position = Vector2(-20, -120)
 
-[node name="BoundsMax" type="Marker2D" parent="."]
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=764234952]
 position = Vector2(260, 30)
 
-[node name="ExitDoor" parent="." instance=ExtResource("1_door")]
+[node name="ExitDoor" parent="." unique_id=1306283738 instance=ExtResource("1_door")]
 position = Vector2(10, 0)
 destination_scene = "res://levels/level_town/TownLevel.tscn"
 is_exit_door = true
 
-[node name="HeavenPortal" parent="." instance=ExtResource("2_portal")]
-position = Vector2(220, -30)
+[node name="HeavenPortal" parent="." unique_id=1183601987 instance=ExtResource("2_portal")]
+position = Vector2(218, -44)
 destination_level_id = "level_mystical"
 portal_color = Color(0.6, 0.4, 0.9, 1)
 
-[node name="WallLeft" type="StaticBody2D" parent="."]
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1247392175]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft" unique_id=810593421]
 position = Vector2(-120, -100)
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="WallRight" type="StaticBody2D" parent="."]
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=281669944]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight" unique_id=441116303]
 position = Vector2(370, -100)
 shape = SubResource("RectangleShape2D_wall")

@@ -13,3 +13,6 @@ var town_player_position: Vector2 = Vector2.ZERO
 # Portal arrival state (spawn at destination portal instead of SpawnPoint)
 var arrived_via_portal: bool = false
 var portal_source_level: String = ""
+
+# Resume state (Continue from main menu — spawn at saved position)
+var resumed_position: Vector2 = Vector2.ZERO

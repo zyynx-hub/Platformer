@@ -10,7 +10,7 @@
   "complete_key": "quest_purple_karim_complete",
   "reward": {
     "type": "item",
-    "item_id": "Vibrator"
+    "item_id": "vibrator"
   },
   "npcs": {
     "purple_karim": {
@@ -41,7 +41,7 @@
         ],
         "level_town/purple_karim/complete": [
           { "action": "set_key",    "key": "quest_purple_karim_complete" },
-          { "action": "item_popup", "item_id": "Vibrator", "delay": 0.5 }
+          { "action": "item_popup", "item_id": "vibrator", "delay": 0.5 }
         ]
       }
     },

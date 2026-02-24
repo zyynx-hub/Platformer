@@ -17,6 +17,9 @@ const DEFAULTS := {
 		"fullscreen": false,
 		"vsync": true,
 	},
+	"telemetry": {
+		"enabled": true,
+	},
 }
 
 func _ready() -> void:

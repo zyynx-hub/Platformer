@@ -12,7 +12,8 @@
 ## Scene Flow
 
 ```
-Boot → MenuScene → LevelSelectScene → GameScene (level + Player)
+Boot → MenuScene → CONTINUE → GameScene (resume at saved position)
+                 → NEW GAME → SaveSlotScene → LevelSelectScene → GameScene
                  → OptionsScene → MenuScene
                  → ExtrasScene  → MenuScene
 ```
@@ -21,7 +22,7 @@ Boot → MenuScene → LevelSelectScene → GameScene (level + Player)
 
 ```
 godot_port/
-├── core/            # 9 autoloads + VersionChecker (10 scripts + 1 scene)
+├── core/            # 11 autoloads + VersionChecker (13 scripts + 1 scene)
 ├── data/            # Definitions: Dialog, Item, Level, Quest, Achievement, Progress + quests/*.json
 ├── player/          # Player.tscn/.gd, sprites/ (12 sheets), states/ (StateMachine + 9 states)
 ├── enemies/         # Enemy.tscn base + states/ (EnemyStateMachine + 5 states), slime/ (Slime.tscn), exodia/ (ExodiaKarim boss + BossStateMachine + 7 states)
@@ -40,7 +41,7 @@ godot_port/
 ├── game/            # GameScene.tscn/.gd (SubViewport 426x240, level loader)
 ├── ui/
 │   ├── boot/        # Boot.tscn (entry point, main scene)
-│   ├── menus/       # Menu, LevelSelect, Options, Extras + NightSkyTheme.tres + SubMenuTheme.gd
+│   ├── menus/       # Menu, LevelSelect, Options, Extras, SaveSlot + NightSkyTheme.tres + SubMenuTheme.gd
 │   ├── hud/         # HUD.tscn (hearts, dash, fuel, item frame)
 │   ├── dialog/      # CinematicDialog, DialogTrigger, ChoicePanel
 │   ├── shop/        # ShopPanel (3 items, coin economy)
@@ -71,11 +72,11 @@ Shaders embedded in .tscn. Scripts use `@tool` for styling. `Engine.is_editor_hi
 
 - Viewport: 1280x720, canvas_items stretch, gl_compatibility
 - Rendering: `default_texture_filter=0` (Nearest), `snap_2d_*=true`
-- Autoloads (9, load order): EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle → QuestManager
+- Autoloads (11, load order): EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle → QuestManager → SaveManager → TelemetryManager
 - Audio buses: Master → Music, SFX, UI
 - All scene changes via `SceneTransition.transition_to()`
-- Debug: F3=overlay, F4=reset progress, F6=weather, F7=time +12%, F9=pause cycle, F10=+100 coins, F11=combat arena, F12=boss debug spawn
-- Save: `%APPDATA%/Godot/app_userdata/AnimePlatformer/progress.cfg`
+- Debug: F1=reset progress, F3=overlay, F4=flush telemetry, F6=weather, F7=time +12%, F9=pause cycle, F10=+100 coins, F11=combat arena, F12=boss debug spawn
+- Save: 3-slot system — `%APPDATA%/Godot/app_userdata/AnimePlatformer/progress_slot_N.cfg` + `save_meta.cfg`
 
 ## Key Patterns
 
@@ -107,6 +108,8 @@ Shaders embedded in .tscn. Scripts use `@tool` for styling. `Engine.is_editor_hi
 - **Jungle**: Green palette, JungleLevelController manages NPC visibility based on quest state
 - **Boss cutscene**: Pre-boss: 7 named segment functions (rumble, purple walks, others walk, absorption, white flash, assembly, fight start). CutsceneAnimPlayer holds reference animations. Await-driven flow with dialog pauses (purple_arrives, others_arrive, exodia_forms). Post-boss: 8-segment await chain (sad music + rain → defeat monologue → explosion → 4 Karims materialize → weather clears → victory dialog → Karims leave → reward). Boss assembly uses BossAnimPlayer "assembly" animation (7 value tracks for staged part drops).
 - **Church → Heaven**: Town church door → MysticalLevel, portal back to town (ChurchPortal spawn anchor)
+- **Save System**: SaveManager autoload, 3 slots, dynamic `ProgressData.SAVE_PATH` (static var). 5s periodic autosave + close_requested signal. Resume-to-exact-position via GameData.resumed_position. Legacy migration from single progress.cfg.
+- **Telemetry**: TelemetryManager autoload, anonymous UUID in `user://telemetry.cfg`, batched POST to Supabase every 10s, silent failures, opt-out via SettingsManager. Analytics tab in Game Bible dashboard (`quest_tool.py --dashboard`).
 
 ## Gotchas
 

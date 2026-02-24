@@ -35,7 +35,11 @@ func _on_dialog_ended(ended_dialog_id: String) -> void:
 		var popup_scene := preload("res://ui/popup/ItemAcquiredPopup.tscn")
 		var cb := func():
 			var popup = popup_scene.instantiate()
-			popup.setup("Butt Plug", null)
+			var item_def := ItemDefs.get_item("buttplug")
+			var icon: Texture2D = null
+			if not item_def.is_empty() and item_def.has("icon_path"):
+				icon = load(item_def["icon_path"])
+			popup.setup("Butt Plug", icon)
 			get_tree().current_scene.add_child(popup)
 		get_tree().create_timer(0.5).timeout.connect(cb, CONNECT_ONE_SHOT)
 

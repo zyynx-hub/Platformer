@@ -66,7 +66,7 @@ text = "OPTIONS"
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "QUIT TO MENU"
+text = "EXIT LEVEL"
 
 [node name="OptionsPanel" type="VBoxContainer" parent="."]
 visible = false

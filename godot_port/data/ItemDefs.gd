@@ -21,6 +21,24 @@ const ALL := {
 			"res://player/sprites/Owlet_Monster_Death_8.png": "res://items/sprites/rocket_boots_composited/death_8.png",
 		},
 	},
+	"dildo": {
+		"id": "dildo",
+		"name": "Dildo",
+		"icon_path": "res://assets/sprites/Items/sprite_item1.png",
+		"pickup_path": "res://assets/sprites/Items/sprite_item1.png",
+	},
+	"vibrator": {
+		"id": "vibrator",
+		"name": "Vibrator",
+		"icon_path": "res://assets/sprites/Items/sprite_item2.png",
+		"pickup_path": "res://assets/sprites/Items/sprite_item2.png",
+	},
+	"buttplug": {
+		"id": "buttplug",
+		"name": "Buttplug",
+		"icon_path": "res://assets/sprites/Items/sprite_item3.png",
+		"pickup_path": "res://assets/sprites/Items/sprite_item3.png",
+	},
 }
 
 # Shop items sold by BlueKarimNPC (ordered by display priority)

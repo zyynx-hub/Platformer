@@ -36,7 +36,7 @@ flowchart TD
     QUEST_ORANGE_KAR_S([start])
     QUEST_ORANGE_KAR_S -->|"orange_karim: intro"| QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_ACTIVE("quest_orange_karim_active")
     QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_ACTIVE -->|"orange_karim: complete"| QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_COMPLETE("quest_orange_karim_complete")
-    QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_COMPLETE --> QUEST_ORANGE_KAR_REWARD(["reward: Butt Plug"])
+    QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_COMPLETE --> QUEST_ORANGE_KAR_REWARD(["reward: buttplug"])
   end
 
   subgraph QUEST_PURPLE_KAR["Purple Karim's Debt"]
@@ -51,7 +51,7 @@ flowchart TD
     QUEST_PURPLE_KAR_HYDRA_BODY_3_GONE --> QUEST_PURPLE_KAR_HYDRA_BODIES_JOIN{all done?}
     QUEST_PURPLE_KAR_HYDRA_BODIES_JOIN -->|"three_headed_karim: encounter"| QUEST_PURPLE_KAR_THREE_HEADED_KARIM_PAID("three_headed_karim_paid")
     QUEST_PURPLE_KAR_THREE_HEADED_KARIM_PAID -->|"purple_karim: complete"| QUEST_PURPLE_KAR_QUEST_PURPLE_KARIM_COMPLETE("quest_purple_karim_complete")
-    QUEST_PURPLE_KAR_QUEST_PURPLE_KARIM_COMPLETE --> QUEST_PURPLE_KAR_REWARD(["reward: Vibrator"])
+    QUEST_PURPLE_KAR_QUEST_PURPLE_KARIM_COMPLETE --> QUEST_PURPLE_KAR_REWARD(["reward: vibrator"])
   end
 
   subgraph QUEST_RED_KARIM["Red Karim's Problem"]
@@ -60,7 +60,7 @@ flowchart TD
     QUEST_RED_KARIM_S -->|"choice: red_karim: intro"| QUEST_RED_KARIM_QUEST_RED_KARIM_ACCEPTED("quest_red_karim_accepted")
     QUEST_RED_KARIM_QUEST_RED_KARIM_ACCEPTED -->|"green_karim: confronted"| QUEST_RED_KARIM_QUEST_GREEN_KARIM_CONFRONTED("quest_green_karim_confronted")
     QUEST_RED_KARIM_QUEST_GREEN_KARIM_CONFRONTED -->|"red_karim: complete"| QUEST_RED_KARIM_QUEST_RED_KARIM_COMPLETE("quest_red_karim_complete")
-    QUEST_RED_KARIM_QUEST_RED_KARIM_COMPLETE --> QUEST_RED_KARIM_REWARD(["reward: Dildo"])
+    QUEST_RED_KARIM_QUEST_RED_KARIM_COMPLETE --> QUEST_RED_KARIM_REWARD(["reward: dildo"])
   end
 
   %% Cross-quest prerequisites

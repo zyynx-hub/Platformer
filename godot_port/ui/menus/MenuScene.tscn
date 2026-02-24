@@ -114,12 +114,20 @@ offset_right = 320.0
 offset_bottom = 120.0
 theme_override_constants/separation = 12
 
-[node name="StartButton" type="Button" parent="ButtonContainer" unique_id=1046872718]
+[node name="ContinueButton" type="Button" parent="ButtonContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "START"
+text = "CONTINUE"
+alignment = 0
+
+[node name="NewGameButton" type="Button" parent="ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "NEW GAME"
 alignment = 0
 
 [node name="OptionsButton" type="Button" parent="ButtonContainer" unique_id=246676498]

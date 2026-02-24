@@ -91,6 +91,8 @@ func _process(delta: float) -> void:
 
 func _compute_level_states() -> void:
 	for def in LevelDefs.ALL:
+		if def.get("hidden", false):
+			continue
 		var id: String = def["id"]
 		var req: String = def["unlock_requires"]
 		if _progress.is_level_completed(id):
@@ -106,15 +108,22 @@ func _compute_star_positions() -> void:
 	var margin := Vector2(100.0, 80.0)
 	var usable := viewport_size - margin * 2.0
 	for def in LevelDefs.ALL:
+		if def.get("hidden", false):
+			continue
 		var uv: Vector2 = def["star_pos"]
 		_star_positions[def["id"]] = margin + Vector2(uv.x * usable.x, uv.y * usable.y)
 
 
 func _find_default_selection() -> int:
-	# Select first unlocked-but-not-completed level, fallback to first
+	# Select first unlocked-but-not-completed visible level, fallback to first visible
 	for i in range(LevelDefs.ALL.size()):
+		if LevelDefs.ALL[i].get("hidden", false):
+			continue
 		var id: String = LevelDefs.ALL[i]["id"]
 		if _level_states.get(id) == "unlocked":
+			return i
+	for i in range(LevelDefs.ALL.size()):
+		if not LevelDefs.ALL[i].get("hidden", false):
 			return i
 	return 0
 
@@ -124,9 +133,13 @@ func _find_default_selection() -> int:
 func _on_star_canvas_draw() -> void:
 	# 1. Draw constellation lines
 	for def in LevelDefs.ALL:
+		if def.get("hidden", false):
+			continue
 		var from_pos: Vector2 = _star_positions[def["id"]]
 		var from_state: String = _level_states.get(def["id"], "locked")
 		for conn_id in def["connections"]:
+			if LevelDefs.get_def(conn_id).get("hidden", false):
+				continue
 			# Avoid drawing each line twice
 			if LevelDefs.get_index(conn_id) < LevelDefs.get_index(def["id"]):
 				continue
@@ -142,6 +155,8 @@ func _on_star_canvas_draw() -> void:
 	# 2. Draw each star (or special icon for non-level entries)
 	for i in range(LevelDefs.ALL.size()):
 		var def: Dictionary = LevelDefs.ALL[i]
+		if def.get("hidden", false):
+			continue
 		var id: String = def["id"]
 		var pos: Vector2 = _star_positions[id]
 		var state: String = _level_states.get(id, "locked")
@@ -278,6 +293,8 @@ func _navigate(dir: Vector2) -> void:
 	var best_index := -1
 	var best_score := INF
 	for conn_id in current_def["connections"]:
+		if LevelDefs.get_def(conn_id).get("hidden", false):
+			continue
 		var idx := LevelDefs.get_index(conn_id)
 		if idx < 0:
 			continue
@@ -300,6 +317,8 @@ func _find_star_at(pos: Vector2) -> int:
 	var best_index := -1
 	var best_dist := CLICK_RADIUS
 	for i in range(LevelDefs.ALL.size()):
+		if LevelDefs.ALL[i].get("hidden", false):
+			continue
 		var id: String = LevelDefs.ALL[i]["id"]
 		if _level_states.get(id) == "locked":
 			continue

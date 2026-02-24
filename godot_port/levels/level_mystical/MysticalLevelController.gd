@@ -360,7 +360,6 @@ func _run_post_boss_cutscene() -> void:
 	await _seg_post_02_defeat_dialog()
 	await _seg_post_03_explosion()
 	await _seg_post_04_karim_materialization()
-	await _seg_post_05_weather_clears()
 	await _seg_post_06_victory_dialog()
 	await _seg_post_07_karims_leave()
 	await _seg_post_08_reward_and_cleanup()
@@ -474,21 +473,6 @@ func _seg_post_04_karim_materialization() -> void:
 	await get_tree().create_timer(0.5).timeout
 
 
-# --- Post Seg 5: Rain stops, music crossfades back to mystical theme ---
-func _seg_post_05_weather_clears() -> void:
-	# Stop rain
-	if _weather:
-		_weather.set_weather(0)  # Weather.CLEAR
-
-	# Crossfade to mystical level music
-	AudioManager.play_music("level_mystical", 1.5)
-
-	# Restore sky brightness
-	var bright_tween := create_tween()
-	bright_tween.tween_property(_sky, "modulate", Color(1, 1, 1, 1), 2.0)
-	await bright_tween.finished
-
-
 # --- Post Seg 6: Camera release + victory dialog ---
 func _seg_post_06_victory_dialog() -> void:
 	EventBus.camera_cinematic_release.emit(0.8)
@@ -535,6 +519,14 @@ func _seg_post_07_karims_leave() -> void:
 		clone.visible = false
 
 	_cutscene_nodes.visible = false
+
+	# Karims gone — now clear the rain and restore the mood
+	if _weather:
+		_weather.set_weather(0)  # Weather.CLEAR
+	AudioManager.play_music("level_mystical", 1.5)
+	var bright_tween := create_tween()
+	bright_tween.tween_property(_sky, "modulate", Color(1, 1, 1, 1), 2.0)
+	# Don't await — sky restores in the background while reward shows
 
 
 # --- Post Seg 8: Quest complete, item popup, portal, camera unlock ---

@@ -784,6 +784,24 @@ _data = {
 [node name="ExodiaKarim" unique_id=1123162871 instance=ExtResource("1_enemy_scene")]
 position = Vector2(400, -16)
 script = ExtResource("2_boss_script")
+phase1_walk_speed = 40.0
+phase1_charge_speed = 300.0
+phase1_telegraph_duration = 0.8
+phase1_recovery_duration = 2.0
+phase1_stomps_needed = 2
+phase1_charge_range = 100.0
+phase2_rise_duration = 0.6
+phase2_telegraph_duration = 0.6
+phase2_dive_duration = 0.4
+phase2_recovery_duration = 2.0
+phase2_stomps_needed = 2
+phase3_telegraph_duration = 0.5
+phase3_recovery_duration = 1.5
+phase3_speed_multiplier = 1.3
+phase3_stomps_needed = 1
+stomp_launch_h = 120.0
+stomp_launch_v = -250.0
+recovery_blink_before_end = 1.2
 max_health = 5.0
 
 [node name="Sprite" parent="." index="0"]
@@ -801,17 +819,22 @@ position = Vector2(1, -10)
 shape = SubResource("boss_body_shape")
 
 [node name="Hurtbox" parent="." index="2"]
+visible = false
 monitoring = false
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
 position = Vector2(1, -88)
 shape = SubResource("boss_hurtbox_shape")
 
+[node name="Hitbox" parent="." index="3"]
+visible = false
+
 [node name="HitboxShape" parent="Hitbox" index="0"]
 position = Vector2(0, -40)
 shape = SubResource("boss_hitbox_shape")
 
 [node name="PlayerDetector" parent="." index="4"]
+visible = false
 monitoring = false
 
 [node name="DetectorShape" parent="PlayerDetector" index="0"]

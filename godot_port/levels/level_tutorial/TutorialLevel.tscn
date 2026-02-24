@@ -1,7 +1,7 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cfk44vi5mhtb1"]
 
 [ext_resource type="PackedScene" uid="uid://uura78hvdgkr" path="res://levels/level_tutorial/tutorial_test.ldtk" id="1_ldtk"]
-[ext_resource type="Script" path="res://levels/level_tutorial/TutorialLevelController.gd" id="2_ctrl"]
+[ext_resource type="Script" uid="uid://84fpwdiv07ue" path="res://levels/level_tutorial/TutorialLevelController.gd" id="2_ctrl"]
 [ext_resource type="PackedScene" path="res://enemies/Enemy.tscn" id="3_enemy"]
 [ext_resource type="PackedScene" path="res://gates/ProgressionGate.tscn" id="4_gate"]
 [ext_resource type="PackedScene" path="res://gates/ProgressionTrigger.tscn" id="5_trigger"]
@@ -9,154 +9,149 @@
 [ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="7_portal"]
 [ext_resource type="PackedScene" path="res://levels/level_tutorial/TutorialButton.tscn" id="8_button"]
 [ext_resource type="PackedScene" path="res://levels/level_tutorial/Teleporter.tscn" id="9_tp"]
-[ext_resource type="Script" path="res://levels/level_tutorial/KeyPickup.gd" id="10_key"]
+[ext_resource type="Script" uid="uid://bpyp7p7q2ibs4" path="res://levels/level_tutorial/KeyPickup.gd" id="10_key"]
 [ext_resource type="Texture2D" path="res://levels/level_tutorial/sprites/fighter.png" id="11_fighter"]
 [ext_resource type="Texture2D" path="res://levels/level_tutorial/sprites/worm.png" id="12_worm"]
 [ext_resource type="Texture2D" path="res://levels/level_tutorial/sprites/thief.png" id="13_thief"]
-[ext_resource type="Texture2D" path="res://levels/level_tutorial/sprites/door.png" id="14_door"]
+[ext_resource type="Texture2D" uid="uid://4qa88uy3mqjc" path="res://levels/level_tutorial/sprites/door.png" id="14_door"]
 
 [sub_resource type="CircleShape2D" id="key_interact_shape"]
 radius = 12.0
 
-[node name="TutorialLevel" type="Node2D"]
+[node name="TutorialLevel" type="Node2D" unique_id=610538244]
 script = ExtResource("2_ctrl")
 
-[node name="tutorial_test" parent="." instance=ExtResource("1_ldtk")]
+[node name="tutorial_test" parent="." unique_id=1048131879 instance=ExtResource("1_ldtk")]
 
-[node name="SpawnPoint" type="Marker2D" parent="."]
-position = Vector2(72, 368)
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=1246102688]
+position = Vector2(71, 358)
 
-[node name="Enemies" type="Node2D" parent="."]
+[node name="Enemies" type="Node2D" parent="." unique_id=1850302532]
 
-[node name="FighterEnemy" parent="Enemies" unique_name_in_owner=true instance=ExtResource("3_enemy")]
+[node name="FighterEnemy" parent="Enemies" unique_id=1328985315 instance=ExtResource("3_enemy")]
 position = Vector2(232, 256)
 max_health = 3.0
-contact_damage = 1.0
 patrol_speed = 35.0
 chase_speed = 55.0
 
 [node name="Sprite" parent="Enemies/FighterEnemy" index="0"]
 texture = ExtResource("11_fighter")
 
-[node name="WormEnemy" parent="Enemies" instance=ExtResource("3_enemy")]
+[node name="WormEnemy" parent="Enemies" unique_id=1806087441 instance=ExtResource("3_enemy")]
 position = Vector2(504, 368)
-max_health = 2.0
-contact_damage = 1.0
 patrol_speed = 20.0
 chase_speed = 30.0
 
 [node name="Sprite" parent="Enemies/WormEnemy" index="0"]
 texture = ExtResource("12_worm")
 
-[node name="ThiefEnemy" parent="Enemies" instance=ExtResource("3_enemy")]
+[node name="ThiefEnemy" parent="Enemies" unique_id=31328279 instance=ExtResource("3_enemy")]
 position = Vector2(680, 400)
-max_health = 2.0
-contact_damage = 1.0
 patrol_speed = 40.0
 chase_speed = 60.0
 
 [node name="Sprite" parent="Enemies/ThiefEnemy" index="0"]
 texture = ExtResource("13_thief")
 
-[node name="Gates" type="Node2D" parent="."]
+[node name="Gates" type="Node2D" parent="." unique_id=1901154054]
 
-[node name="FighterKillGate" parent="Gates" instance=ExtResource("4_gate")]
+[node name="FighterKillGate" parent="Gates" unique_id=935351186 instance=ExtResource("4_gate")]
 position = Vector2(152, 232)
 scale = Vector2(1.5, 1.5)
 gate_id = "tut_fighter_kill"
 gate_color = Color(0.6, 0.3, 0.15, 1)
 
-[node name="DoorSprite" type="Sprite2D" parent="Gates/FighterKillGate"]
+[node name="DoorSprite" type="Sprite2D" parent="Gates/FighterKillGate" unique_id=1784396462]
 texture_filter = 1
 texture = ExtResource("14_door")
 
-[node name="WalkTriggerGate" parent="Gates" instance=ExtResource("4_gate")]
+[node name="WalkTriggerGate" parent="Gates" unique_id=1203621250 instance=ExtResource("4_gate")]
 position = Vector2(360, 352)
-scale = Vector2(1.5, 1.0)
+scale = Vector2(1.5, 1)
 gate_id = "tut_walk"
 gate_color = Color(0.5, 0.35, 0.2, 1)
 
-[node name="DoorSprite" type="Sprite2D" parent="Gates/WalkTriggerGate"]
+[node name="DoorSprite" type="Sprite2D" parent="Gates/WalkTriggerGate" unique_id=1463273441]
 texture_filter = 1
 texture = ExtResource("14_door")
 
-[node name="ButtonGate1" parent="Gates" instance=ExtResource("4_gate")]
+[node name="ButtonGate1" parent="Gates" unique_id=465382272 instance=ExtResource("4_gate")]
 position = Vector2(552, 352)
-scale = Vector2(1.5, 1.0)
+scale = Vector2(1.5, 1)
 gate_id = "tut_button"
 gate_color = Color(0.4, 0.25, 0.15, 1)
 
-[node name="DoorSprite" type="Sprite2D" parent="Gates/ButtonGate1"]
+[node name="DoorSprite" type="Sprite2D" parent="Gates/ButtonGate1" unique_id=505927087]
 texture_filter = 1
 texture = ExtResource("14_door")
 
-[node name="ButtonGate2" parent="Gates" instance=ExtResource("4_gate")]
+[node name="ButtonGate2" parent="Gates" unique_id=2010709679 instance=ExtResource("4_gate")]
 position = Vector2(440, 248)
 scale = Vector2(1.5, 1.5)
 gate_id = "tut_button"
 gate_color = Color(0.4, 0.25, 0.15, 1)
 
-[node name="DoorSprite" type="Sprite2D" parent="Gates/ButtonGate2"]
+[node name="DoorSprite" type="Sprite2D" parent="Gates/ButtonGate2" unique_id=1669886087]
 texture_filter = 1
 texture = ExtResource("14_door")
 
-[node name="ChestGate" parent="Gates" instance=ExtResource("4_gate")]
+[node name="ChestGate" parent="Gates" unique_id=754519400 instance=ExtResource("4_gate")]
 position = Vector2(700, 384)
-scale = Vector2(1.5, 1.0)
+scale = Vector2(1.5, 1)
 gate_id = "tut_has_key"
 gate_color = Color(0.7, 0.6, 0.1, 1)
 
-[node name="DoorSprite" type="Sprite2D" parent="Gates/ChestGate"]
+[node name="DoorSprite" type="Sprite2D" parent="Gates/ChestGate" unique_id=2047279316]
 texture_filter = 1
 texture = ExtResource("14_door")
 
-[node name="Triggers" type="Node2D" parent="."]
+[node name="Triggers" type="Node2D" parent="." unique_id=1999112248]
 
-[node name="WalkTrigger" parent="Triggers" instance=ExtResource("5_trigger")]
+[node name="WalkTrigger" parent="Triggers" unique_id=1937112239 instance=ExtResource("5_trigger")]
 position = Vector2(208, 344)
-scale = Vector2(2.0, 1.5)
+scale = Vector2(2, 1.5)
 gate_id = "tut_walk"
 
-[node name="WalkMessageTrigger" parent="Triggers" instance=ExtResource("6_dialog")]
+[node name="WalkMessageTrigger" parent="Triggers" unique_id=869186221 instance=ExtResource("6_dialog")]
 position = Vector2(208, 344)
-scale = Vector2(2.0, 1.5)
+scale = Vector2(2, 1.5)
 dialog_id = "level_tutorial/mechanism"
 
-[node name="SecretAreaTrigger" parent="Triggers" instance=ExtResource("6_dialog")]
+[node name="SecretAreaTrigger" parent="Triggers" unique_id=521618105 instance=ExtResource("6_dialog")]
 position = Vector2(656, 184)
-scale = Vector2(1.0, 1.5)
+scale = Vector2(1, 1.5)
 dialog_id = "level_tutorial/secret_area"
 
-[node name="WellDoneTrigger" parent="Triggers" instance=ExtResource("6_dialog")]
+[node name="WellDoneTrigger" parent="Triggers" unique_id=855468259 instance=ExtResource("6_dialog")]
 position = Vector2(128, 224)
-scale = Vector2(1.0, 2.0)
+scale = Vector2(1, 2)
 dialog_id = "level_tutorial/well_done"
 
-[node name="TutorialButton" parent="Triggers" instance=ExtResource("8_button")]
+[node name="TutorialButton" parent="Triggers" unique_id=1941013342 instance=ExtResource("8_button")]
 position = Vector2(632, 280)
 gate_id = "tut_button"
 
-[node name="Teleporters" type="Node2D" parent="."]
+[node name="Teleporters" type="Node2D" parent="." unique_id=1056097709]
 
-[node name="TeleporterA" parent="Teleporters" instance=ExtResource("9_tp")]
+[node name="TeleporterA" parent="Teleporters" unique_id=825450687 instance=ExtResource("9_tp")]
 position = Vector2(88, 248)
 destination = NodePath("../TeleporterB")
 
-[node name="TeleporterB" parent="Teleporters" instance=ExtResource("9_tp")]
+[node name="TeleporterB" parent="Teleporters" unique_id=2072967355 instance=ExtResource("9_tp")]
 position = Vector2(136, 104)
 destination = NodePath("../TeleporterA")
 
-[node name="Items" type="Node2D" parent="."]
+[node name="Items" type="Node2D" parent="." unique_id=1866346092]
 
-[node name="KeyPickup" type="Area2D" parent="Items"]
+[node name="KeyPickup" type="Area2D" parent="Items" unique_id=1237591519]
 position = Vector2(568, 296)
 script = ExtResource("10_key")
 gate_id = "tut_has_key"
 
-[node name="CollisionShape" type="CollisionShape2D" parent="Items/KeyPickup"]
+[node name="CollisionShape" type="CollisionShape2D" parent="Items/KeyPickup" unique_id=1800314852]
 shape = SubResource("key_interact_shape")
 
-[node name="ExitPortal" parent="." instance=ExtResource("7_portal")]
+[node name="ExitPortal" parent="." unique_id=1466914574 instance=ExtResource("7_portal")]
 position = Vector2(16, 80)
-portal_color = Color(0.1, 0.9, 0.3, 1)
 destination_level_id = "level_1"
+portal_color = Color(0.1, 0.9, 0.3, 1)

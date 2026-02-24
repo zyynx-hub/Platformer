@@ -6,7 +6,8 @@ extends Control
 
 # --- Node references (unique names set in editor) ---
 @onready var title_label = %TitleLabel if has_node("%TitleLabel") else null
-@onready var start_button = %StartButton if has_node("%StartButton") else null
+@onready var continue_button = %ContinueButton if has_node("%ContinueButton") else null
+@onready var new_game_button = %NewGameButton if has_node("%NewGameButton") else null
 @onready var options_button = %OptionsButton if has_node("%OptionsButton") else null
 @onready var extras_button = %ExtrasButton if has_node("%ExtrasButton") else null
 @onready var quit_button = %QuitButton if has_node("%QuitButton") else null
@@ -54,7 +55,7 @@ static var _has_visited := false
 func _ready() -> void:
 	# Collect valid buttons
 	_buttons.clear()
-	for btn in [start_button, options_button, extras_button, quit_button]:
+	for btn in [continue_button, new_game_button, options_button, extras_button, quit_button]:
 		if btn:
 			_buttons.append(btn)
 
@@ -68,14 +69,21 @@ func _ready() -> void:
 	# --- Runtime only below ---
 
 	# Connect button signals
-	if start_button:
-		start_button.pressed.connect(_on_start_pressed)
+	if continue_button:
+		continue_button.pressed.connect(_on_continue_pressed)
+	if new_game_button:
+		new_game_button.pressed.connect(_on_new_game_pressed)
 	if options_button:
 		options_button.pressed.connect(_on_options_pressed)
 	if extras_button:
 		extras_button.pressed.connect(_on_extras_pressed)
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
+
+	# Gray out Continue when no saves exist
+	if continue_button and not SaveManager.has_any_saves():
+		continue_button.disabled = true
+		continue_button.focus_mode = Control.FOCUS_NONE
 
 	# Connect hover/focus for all buttons
 	for btn in _buttons:
@@ -100,8 +108,10 @@ func _ready() -> void:
 		_intro_done = true
 		for btn in _buttons:
 			_button_origins[btn] = Vector2(btn.position.x, btn.position.y)
-		if _buttons.size() > 0:
-			_buttons[0].grab_focus()
+		for btn in _buttons:
+			if not btn.disabled:
+				btn.grab_focus()
+				break
 		_start_title_breathe()
 		SceneTransition.fade_from_black(0.4)
 	else:
@@ -214,10 +224,15 @@ func _play_entrance_animation() -> void:
 
 ## Unlock one button after its slide-in. The first button also enables interaction and grabs focus.
 func _enable_single_button(btn: Button, is_first: bool) -> void:
-	btn.focus_mode = Control.FOCUS_ALL
+	if not btn.disabled:
+		btn.focus_mode = Control.FOCUS_ALL
 	if is_first:
 		_intro_done = true
-		btn.grab_focus()
+		# Focus the first non-disabled button
+		for b in _buttons:
+			if not b.disabled:
+				b.grab_focus()
+				break
 
 
 # --- Title Breathing Effect ---------------------------------------------------
@@ -309,9 +324,27 @@ func _stop_button_pulse(btn: Button) -> void:
 
 # --- Button Actions -----------------------------------------------------------
 
-func _on_start_pressed() -> void:
+func _on_continue_pressed() -> void:
 	EventBus.sfx_play.emit("ui_confirm", 0.0)
-	SceneTransition.transition_to("res://ui/menus/LevelSelectScene.tscn")
+	var last_slot := SaveManager.get_last_played_slot()
+	if last_slot < 0:
+		return
+	SaveManager.activate_slot(last_slot)
+	var pd := ProgressData.new()
+	if not pd.last_level_scene.is_empty():
+		# Resume exactly where the player left off
+		GameData.selected_level_id = pd.last_level_id
+		GameData.selected_level_scene = pd.last_level_scene
+		GameData.resumed_position = Vector2(pd.last_player_x, pd.last_player_y)
+		SceneTransition.transition_to("res://game/GameScene.tscn")
+	else:
+		# No resume data — go to level select
+		SceneTransition.transition_to("res://ui/menus/LevelSelectScene.tscn")
+
+
+func _on_new_game_pressed() -> void:
+	EventBus.sfx_play.emit("ui_confirm", 0.0)
+	SceneTransition.transition_to("res://ui/menus/SaveSlotScene.tscn")
 
 
 func _on_options_pressed() -> void:

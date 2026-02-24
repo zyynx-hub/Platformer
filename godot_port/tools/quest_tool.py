@@ -1825,6 +1825,20 @@ body{background:var(--bg-0);color:var(--text-2);font-family:-apple-system,BlinkM
   .card-grid{grid-template-columns:1fr}
   .stat-grid{grid-template-columns:repeat(2,1fr)}
 }
+.analytics-container{padding:16px}
+.analytics-controls{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.analytics-section{margin-bottom:24px}
+.analytics-section h3{color:var(--text-1);margin-bottom:12px;font-size:16px}
+.funnel{display:flex;flex-direction:column;gap:6px}
+.funnel-row{display:flex;align-items:center;gap:8px}
+.funnel-label{width:180px;color:var(--text-2);font-size:12px;text-align:right;font-family:monospace}
+.funnel-bar-bg{flex:1;height:20px;background:var(--bg-2);border-radius:4px;overflow:hidden}
+.funnel-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:4px;transition:width 0.3s}
+.funnel-value{width:200px;color:var(--text-3);font-size:11px}
+.analytics-input{width:80px;background:var(--bg-2);color:var(--text-1);border:1px solid var(--border);padding:2px 6px;border-radius:4px}
+.analytics-select{background:var(--bg-2);color:var(--text-1);border:1px solid var(--border);padding:2px 6px;border-radius:4px}
+.analytics-btn{background:var(--blue);color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer}
+.analytics-btn:hover{opacity:0.85}
 """
 
 # ---------------------------------------------------------------------------
@@ -1833,7 +1847,7 @@ body{background:var(--bg-0);color:var(--text-2);font-family:-apple-system,BlinkM
 
 _DASHBOARD_JS = r"""
 const D = window.GAME_DATA;
-const VIEWS = {overview:renderOverview,graph:renderGraph,quests:renderQuests,npcs:renderNPCs,keys:renderKeys,world:renderWorld};
+const VIEWS = {overview:renderOverview,graph:renderGraph,quests:renderQuests,npcs:renderNPCs,keys:renderKeys,world:renderWorld,analytics:renderAnalytics};
 let searchIndex = [];
 let currentView = 'overview';
 
@@ -2397,6 +2411,195 @@ function renderWorld(app){
   app.innerHTML=h;
 }
 
+/* ---- Analytics ---- */
+let _sb=null;
+let _sbUrl='';
+let _sbKey='';
+
+function _initSupabase(){
+  if(_sb)return _sb;
+  if(!_sbUrl){
+    _sbUrl=localStorage.getItem('sb_url')||'';
+    _sbKey=localStorage.getItem('sb_key')||'';
+  }
+  if(!_sbUrl){
+    _sbUrl=prompt('Supabase URL (e.g. https://xxxx.supabase.co):');
+    _sbKey=prompt('Supabase anon key:');
+    if(!_sbUrl||!_sbKey){_sbUrl='';_sbKey='';return null}
+    localStorage.setItem('sb_url',_sbUrl);
+    localStorage.setItem('sb_key',_sbKey);
+  }
+  _sb=window.supabase.createClient(_sbUrl,_sbKey);
+  return _sb;
+}
+
+async function _fetchEvents(ver,days){
+  const sb=_initSupabase();
+  if(!sb)return null;
+  let q=sb.from('events').select('*');
+  if(ver)q=q.eq('game_version',ver);
+  if(days>0){
+    const since=new Date(Date.now()-days*86400000).toISOString();
+    q=q.gte('created_at',since);
+  }
+  q=q.order('created_at',{ascending:true}).limit(10000);
+  const{data,error}=await q;
+  if(error){console.error('Analytics error:',error);return null}
+  return data;
+}
+
+function renderAnalytics(app){
+  app.innerHTML='<div class="analytics-container">'
+    +'<h2 style="color:var(--text-1);margin-bottom:16px">Analytics Dashboard</h2>'
+    +'<div class="analytics-controls">'
+    +'<label style="color:var(--text-2)">Version: <input type="text" id="ana-ver" placeholder="all" class="analytics-input" /></label> '
+    +'<label style="color:var(--text-2)">Days back: <select id="ana-days" class="analytics-select">'
+    +'<option value="7">7</option><option value="30" selected>30</option><option value="90">90</option><option value="0">All</option></select></label> '
+    +'<button id="ana-fetch" class="analytics-btn">Load Data</button>'
+    +'<button id="ana-reset-creds" class="analytics-btn" style="background:var(--bg-3)">Reset Credentials</button>'
+    +'<span id="ana-status" style="color:var(--text-3);margin-left:12px"></span>'
+    +'</div>'
+    +'<div id="ana-results"><div class="muted">Click "Load Data" to fetch analytics from Supabase.</div></div>'
+    +'</div>';
+
+  document.getElementById('ana-fetch').onclick=async function(){
+    var ver=document.getElementById('ana-ver').value.trim()||null;
+    var days=parseInt(document.getElementById('ana-days').value);
+    document.getElementById('ana-status').textContent='Loading...';
+    var data=await _fetchEvents(ver,days);
+    if(!data){document.getElementById('ana-status').textContent='Failed — check credentials.';return}
+    document.getElementById('ana-status').textContent=data.length+' events loaded.';
+    _renderCharts(data);
+  };
+
+  document.getElementById('ana-reset-creds').onclick=function(){
+    localStorage.removeItem('sb_url');
+    localStorage.removeItem('sb_key');
+    _sb=null;_sbUrl='';_sbKey='';
+    document.getElementById('ana-status').textContent='Credentials cleared.';
+  };
+}
+
+function _parseEventData(e){
+  if(!e.event_data)return{};
+  if(typeof e.event_data==='string'){try{return JSON.parse(e.event_data)}catch(x){return{}}}
+  return e.event_data;
+}
+
+function _renderCharts(events){
+  var el=document.getElementById('ana-results');
+  if(!events.length){el.innerHTML='<div class="muted">No events found.</div>';return}
+
+  var sessions=new Set(events.map(function(e){return e.session_id}));
+  var players=new Set(events.map(function(e){return e.player_id}));
+  var byType={};
+  events.forEach(function(e){
+    if(!byType[e.event_name])byType[e.event_name]=[];
+    byType[e.event_name].push(e);
+  });
+
+  var h='';
+
+  /* Engagement */
+  h+='<div class="analytics-section"><h3>Engagement</h3><div class="stat-grid">';
+  h+='<div class="stat-card"><div class="stat-value">'+players.size+'</div><div class="stat-label">Unique Players</div></div>';
+  h+='<div class="stat-card"><div class="stat-value">'+sessions.size+'</div><div class="stat-label">Sessions</div></div>';
+  h+='<div class="stat-card"><div class="stat-value">'+events.length+'</div><div class="stat-label">Total Events</div></div>';
+  var versions={};
+  events.forEach(function(e){versions[e.game_version]=(versions[e.game_version]||0)+1});
+  Object.keys(versions).forEach(function(v){
+    h+='<div class="stat-card"><div class="stat-value">'+versions[v]+'</div><div class="stat-label">v'+esc(v)+'</div></div>';
+  });
+  h+='</div></div>';
+
+  /* Session funnel */
+  var funnelSteps=['session_start','level_started','player_died','level_completed',
+    'quest_progressed','boss_fight_started','boss_fight_ended','achievement_unlocked'];
+  var funnelCounts=funnelSteps.map(function(s){
+    var evts=byType[s]||[];
+    return{step:s,sessions:new Set(evts.map(function(e){return e.session_id})).size,total:evts.length};
+  });
+  var maxS=funnelCounts[0]?funnelCounts[0].sessions:1;
+  if(maxS<1)maxS=1;
+  h+='<div class="analytics-section"><h3>Session Funnel</h3><div class="funnel">';
+  funnelCounts.forEach(function(f){
+    var pct=Math.round(f.sessions/maxS*100);
+    var barW=Math.max(pct,2);
+    h+='<div class="funnel-row">';
+    h+='<span class="funnel-label">'+esc(f.step)+'</span>';
+    h+='<div class="funnel-bar-bg"><div class="funnel-bar" style="width:'+barW+'%"></div></div>';
+    h+='<span class="funnel-value">'+f.sessions+' sessions ('+f.total+' events)</span>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+
+  /* Deaths by level */
+  var deathsByLvl={};
+  (byType['player_died']||[]).forEach(function(e){
+    var lid=e.level_id||'unknown';
+    deathsByLvl[lid]=(deathsByLvl[lid]||0)+1;
+  });
+  h+='<div class="analytics-section"><h3>Deaths by Level</h3><div class="stat-grid">';
+  Object.keys(deathsByLvl).sort(function(a,b){return deathsByLvl[b]-deathsByLvl[a]}).forEach(function(lvl){
+    h+='<div class="stat-card"><div class="stat-value" style="color:var(--red)">'+deathsByLvl[lvl]+'</div><div class="stat-label">'+esc(lvl)+'</div></div>';
+  });
+  if(!Object.keys(deathsByLvl).length)h+='<div class="muted">No deaths recorded.</div>';
+  h+='</div></div>';
+
+  /* Level completion rates */
+  var startsByLvl={};
+  var compsByLvl={};
+  (byType['level_started']||[]).forEach(function(e){
+    var d=_parseEventData(e);
+    var lid=d.level_id||e.level_id||'unknown';
+    startsByLvl[lid]=(startsByLvl[lid]||0)+1;
+  });
+  (byType['level_completed']||[]).forEach(function(e){
+    var d=_parseEventData(e);
+    var lid=d.level_id||e.level_id||'unknown';
+    compsByLvl[lid]=(compsByLvl[lid]||0)+1;
+  });
+  h+='<div class="analytics-section"><h3>Level Completion Rates</h3><div class="stat-grid">';
+  Object.keys(startsByLvl).forEach(function(lvl){
+    var starts=startsByLvl[lvl]||0;
+    var comps=compsByLvl[lvl]||0;
+    var rate=starts>0?Math.round(comps/starts*100):0;
+    var color=rate>=50?'var(--green)':rate>=20?'var(--amber)':'var(--red)';
+    h+='<div class="stat-card"><div class="stat-value" style="color:'+color+'">'+rate+'%</div><div class="stat-label">'+esc(lvl)+'<br><span style="color:var(--text-3);font-size:11px">'+comps+'/'+starts+' completed</span></div></div>';
+  });
+  if(!Object.keys(startsByLvl).length)h+='<div class="muted">No level data.</div>';
+  h+='</div></div>';
+
+  /* Quest progression */
+  var questKeys={};
+  (byType['quest_progressed']||[]).forEach(function(e){
+    var d=_parseEventData(e);
+    var k=d.quest_key||'?';
+    questKeys[k]=(questKeys[k]||0)+1;
+  });
+  h+='<div class="analytics-section"><h3>Quest State Changes</h3><div class="stat-grid">';
+  Object.keys(questKeys).sort(function(a,b){return questKeys[b]-questKeys[a]}).forEach(function(k){
+    h+='<div class="stat-card"><div class="stat-value" style="color:var(--purple)">'+questKeys[k]+'</div><div class="stat-label">'+esc(k)+'</div></div>';
+  });
+  if(!Object.keys(questKeys).length)h+='<div class="muted">No quest data.</div>';
+  h+='</div></div>';
+
+  /* Recent events log */
+  h+='<div class="analytics-section"><h3>Recent Events (last 50)</h3>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px;color:var(--text-1)">Time</th><th style="text-align:left;padding:4px;color:var(--text-1)">Event</th><th style="text-align:left;padding:4px;color:var(--text-1)">Level</th><th style="text-align:left;padding:4px;color:var(--text-1)">Player</th><th style="text-align:left;padding:4px;color:var(--text-1)">Data</th></tr>';
+  var recent=events.slice(-50).reverse();
+  recent.forEach(function(e){
+    var t=new Date(e.created_at).toLocaleString();
+    var d=_parseEventData(e);
+    var dStr=Object.keys(d).length?JSON.stringify(d):'';
+    h+='<tr style="border-bottom:1px solid var(--bg-2)"><td style="padding:4px;color:var(--text-3)">'+esc(t)+'</td><td style="padding:4px;color:var(--blue)">'+esc(e.event_name)+'</td><td style="padding:4px">'+esc(e.level_id||'')+'</td><td style="padding:4px;color:var(--text-3);font-family:monospace;font-size:10px">'+esc((e.player_id||'').slice(0,8))+'</td><td style="padding:4px;color:var(--text-3);font-size:11px">'+esc(dStr)+'</td></tr>';
+  });
+  h+='</table></div>';
+
+  el.innerHTML=h;
+}
+
 /* ---- Init ---- */
 function init(){
   buildSearchIndex();
@@ -2475,6 +2678,7 @@ def generate_dashboard(quests: dict, password_hash: str = "") -> str:
             ("npcs", "NPCs"),
             ("keys", "State Keys"),
             ("world", "World"),
+            ("analytics", "Analytics"),
         ]
     )
 
@@ -2506,6 +2710,7 @@ def generate_dashboard(quests: dict, password_hash: str = "") -> str:
         '<div id="app"></div>\n'
         f'<div class="footer">{footer_text}</div>\n'
         '</div>\n'
+        '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>\n'
         '<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js"></script>\n'
         '<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>\n'
         '<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>\n'

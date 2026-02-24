@@ -4,9 +4,15 @@
 class_name Constants
 
 # ===== VERSION =====
-const APP_VERSION := "0.2.7"
+const APP_VERSION := "0.3.0"
 const ITCH_URL := "https://zyynx-hub.itch.io/platformer"
 const VERSION_CHECK_URL := "https://raw.githubusercontent.com/zyynx-hub/platformerv2/main/version.json"
+
+# ===== TELEMETRY =====
+const SUPABASE_URL := "https://klnywsnkwvycjunayeeg.supabase.co"
+const SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtsbnl3c25rd3Z5Y2p1bmF5ZWVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NjAxNjUsImV4cCI6MjA4NzUzNjE2NX0.YMGyfgjhBv1Y-5QR6-eA3G0Y8G5uTLObvFyq99Mo8fg"
+const TELEMETRY_BATCH_INTERVAL := 10.0  # seconds between batch sends
+const TELEMETRY_MAX_BUFFER := 200       # drop oldest if buffer exceeds this
 
 # ===== PHYSICS — designed for 426x240 SubViewport, 8px tiles =====
 # Jump design: ~5-tile (40px) height, 0.33s to apex

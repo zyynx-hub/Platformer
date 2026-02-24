@@ -68,9 +68,7 @@ func _process(delta: float) -> void:
 			_ambient_particle_timer = randf_range(0.15, 0.35)
 			_spawn_ambient_particle()
 
-	# Only redraw when the E-key prompt is visible — no cost when player is far away
-	if _player_in_range:
-		queue_redraw()
+	queue_redraw()
 
 # ===== Proximity detection =====
 
@@ -88,6 +86,21 @@ func _on_body_exited(body: Node2D) -> void:
 func _draw() -> void:
 	if Engine.is_editor_hint():
 		return
+	# Destination label (always visible)
+	var level_def := LevelDefs.get_def(destination_level_id)
+	if not level_def.is_empty():
+		var title: String = level_def["title"]
+		var label_font := ThemeDB.fallback_font
+		var font_size := 8
+		var text_w := label_font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var label_y := -48.0 * portal_scale
+		var label_color := Color(
+			minf(portal_color.r * 0.7 + 0.3, 1.0),
+			minf(portal_color.g * 0.7 + 0.3, 1.0),
+			minf(portal_color.b * 0.7 + 0.3, 1.0),
+			0.85)
+		draw_string(label_font, Vector2(-text_w * 0.5, label_y), title,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
 	if not _player_in_range or _activating:
 		return
 	var prompt_y := -38.0 * portal_scale + sin(_time * 4.0) * 1.5

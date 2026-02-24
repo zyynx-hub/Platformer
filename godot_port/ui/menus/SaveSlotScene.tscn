@@ -1,0 +1,314 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/SaveSlotScene.gd" id="1_script"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="2_theme"]
+[ext_resource type="Shader" path="res://shaders/menu_background.gdshader" id="3_menubg"]
+[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="4_vig"]
+[ext_resource type="Shader" path="res://shaders/menu_ground.gdshader" id="5_ground"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("3_menubg")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ground"]
+shader = ExtResource("5_ground")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vig"]
+shader = ExtResource("4_vig")
+shader_parameter/strength = 0.5
+shader_parameter/softness = 0.5
+shader_parameter/radius = 0.5
+shader_parameter/tint = Color(0.0, 0.0, 0.05, 1)
+
+[sub_resource type="StyleBoxFlat" id="slot_panel"]
+bg_color = Color(0.1, 0.12, 0.25, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.5, 0.8, 0.4)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id="confirm_panel"]
+bg_color = Color(0.08, 0.08, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.6, 0.9, 0.6)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 32.0
+content_margin_top = 24.0
+content_margin_right = 32.0
+content_margin_bottom = 24.0
+
+[node name="SaveSlotScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_bg")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.08, 1)
+
+[node name="GroundOverlay" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_ground")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_top = 60.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 42
+text = "SELECT SAVE SLOT"
+horizontal_alignment = 1
+
+[node name="SlotContainer" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -468.0
+offset_top = -120.0
+offset_right = 468.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="Slot0" type="PanelContainer" parent="SlotContainer"]
+custom_minimum_size = Vector2(280, 240)
+layout_mode = 2
+theme_override_styles/panel = SubResource("slot_panel")
+
+[node name="VBox0" type="VBoxContainer" parent="SlotContainer/Slot0"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SlotTitle0" type="Label" parent="SlotContainer/Slot0/VBox0"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 1.0, 0.9)
+theme_override_font_sizes/font_size = 22
+text = "SLOT 1"
+horizontal_alignment = 1
+
+[node name="SlotInfo0" type="Label" parent="SlotContainer/Slot0/VBox0"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "Empty"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotButton0" type="Button" parent="SlotContainer/Slot0/VBox0"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NEW SAVE"
+
+[node name="DeleteButton0" type="Button" parent="SlotContainer/Slot0/VBox0"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.4, 0.4, 0.7)
+theme_override_font_sizes/font_size = 12
+text = "DELETE"
+
+[node name="Slot1" type="PanelContainer" parent="SlotContainer"]
+custom_minimum_size = Vector2(280, 240)
+layout_mode = 2
+theme_override_styles/panel = SubResource("slot_panel")
+
+[node name="VBox1" type="VBoxContainer" parent="SlotContainer/Slot1"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SlotTitle1" type="Label" parent="SlotContainer/Slot1/VBox1"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 1.0, 0.9)
+theme_override_font_sizes/font_size = 22
+text = "SLOT 2"
+horizontal_alignment = 1
+
+[node name="SlotInfo1" type="Label" parent="SlotContainer/Slot1/VBox1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "Empty"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotButton1" type="Button" parent="SlotContainer/Slot1/VBox1"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NEW SAVE"
+
+[node name="DeleteButton1" type="Button" parent="SlotContainer/Slot1/VBox1"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.4, 0.4, 0.7)
+theme_override_font_sizes/font_size = 12
+text = "DELETE"
+
+[node name="Slot2" type="PanelContainer" parent="SlotContainer"]
+custom_minimum_size = Vector2(280, 240)
+layout_mode = 2
+theme_override_styles/panel = SubResource("slot_panel")
+
+[node name="VBox2" type="VBoxContainer" parent="SlotContainer/Slot2"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SlotTitle2" type="Label" parent="SlotContainer/Slot2/VBox2"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 1.0, 0.9)
+theme_override_font_sizes/font_size = 22
+text = "SLOT 3"
+horizontal_alignment = 1
+
+[node name="SlotInfo2" type="Label" parent="SlotContainer/Slot2/VBox2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "Empty"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotButton2" type="Button" parent="SlotContainer/Slot2/VBox2"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NEW SAVE"
+
+[node name="DeleteButton2" type="Button" parent="SlotContainer/Slot2/VBox2"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.4, 0.4, 0.7)
+theme_override_font_sizes/font_size = 12
+text = "DELETE"
+
+[node name="ConfirmPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -60.0
+offset_right = 200.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("confirm_panel")
+
+[node name="ConfirmVBox" type="VBoxContainer" parent="ConfirmPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ConfirmLabel" type="Label" parent="ConfirmPanel/ConfirmVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Start new game?"
+horizontal_alignment = 1
+
+[node name="ConfirmButtonRow" type="HBoxContainer" parent="ConfirmPanel/ConfirmVBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="ConfirmYes" type="Button" parent="ConfirmPanel/ConfirmVBox/ConfirmButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "YES"
+
+[node name="ConfirmNo" type="Button" parent="ConfirmPanel/ConfirmVBox/ConfirmButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NO"
+
+[node name="BackButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -70.0
+offset_right = 200.0
+offset_bottom = -30.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 22
+text = "BACK"
+alignment = 0
+
+[node name="VignetteOverlay" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_vig")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

@@ -9,7 +9,7 @@
   "complete_key": "quest_red_karim_complete",
   "reward": {
     "type": "item",
-    "item_id": "Dildo"
+    "item_id": "dildo"
   },
   "npcs": {
     "red_karim": {
@@ -40,7 +40,7 @@
         ],
         "level_town/red_karim/complete": [
           { "action": "set_key",    "key": "quest_red_karim_complete" },
-          { "action": "item_popup", "item_id": "Dildo", "delay": 0.5 }
+          { "action": "item_popup", "item_id": "dildo", "delay": 0.5 }
         ]
       }
     },

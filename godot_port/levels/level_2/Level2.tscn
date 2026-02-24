@@ -1,10 +1,24 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://bun7187n3nuf6"]
 
-[ext_resource type="PackedScene" path="res://levels/level_2/testlevel2.ldtk" id="1_ldtk"]
+[ext_resource type="PackedScene" uid="uid://dma6bxvd0ql2m" path="res://levels/level_2/Rooftops.ldtk" id="1_ldtk"]
+[ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="2_portal"]
+[ext_resource type="Texture2D" uid="uid://ihxg4x57ims7" path="res://levels/level_2/tileset/BG_Image.png" id="3_bg"]
 
-[node name="Level2" type="Node2D"]
+[node name="Level2" type="Node2D" unique_id=235635009]
 
-[node name="testlevel2" parent="." instance=ExtResource("1_ldtk")]
+[node name="Background" type="Sprite2D" parent="." unique_id=1505442819]
+z_index = -100
+texture_filter = 1
+position = Vector2(1664, 143)
+scale = Vector2(8.640625, 5.265625)
+texture = ExtResource("3_bg")
 
-[node name="SpawnPoint" type="Marker2D" parent="."]
-position = Vector2(40, 450)
+[node name="Rooftops" parent="." unique_id=18406524 instance=ExtResource("1_ldtk")]
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=1904451097]
+position = Vector2(94, 354)
+
+[node name="ExitPortal" parent="." unique_id=1859539574 instance=ExtResource("2_portal")]
+position = Vector2(3274, 285)
+destination_level_id = "level_1"
+portal_color = Color(0.3, 0.8, 1, 1)

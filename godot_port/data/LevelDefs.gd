@@ -17,7 +17,7 @@ const ALL: Array[Dictionary] = [
 		"title": "Awakening",
 		"scene": "res://levels/level_1/Level1.tscn",
 		"star_pos": Vector2(0.2, 0.55),
-		"connections": ["level_2", "level_town", "level_tutorial"],
+		"connections": ["level_2"],
 		"unlock_requires": "",
 	},
 	{
@@ -57,7 +57,7 @@ const ALL: Array[Dictionary] = [
 		"title": "Town",
 		"scene": "res://levels/level_town/TownLevel.tscn",
 		"star_pos": Vector2(0.1, 0.38),
-		"connections": ["level_1", "level_jungle"],
+		"connections": [],
 		"unlock_requires": "",
 	},
 	{
@@ -67,6 +67,7 @@ const ALL: Array[Dictionary] = [
 		"star_pos": Vector2(0.05, 0.62),
 		"connections": ["level_town", "level_mystical"],
 		"unlock_requires": "",
+		"hidden": true,
 	},
 	{
 		"id": "level_mystical",
@@ -75,6 +76,7 @@ const ALL: Array[Dictionary] = [
 		"star_pos": Vector2(0.05, 0.78),
 		"connections": ["level_jungle"],
 		"unlock_requires": "",
+		"hidden": true,
 	},
 	{
 		"id": "level_arena",
@@ -83,6 +85,7 @@ const ALL: Array[Dictionary] = [
 		"star_pos": Vector2(0.9, 0.7),
 		"connections": ["level_1"],
 		"unlock_requires": "",
+		"hidden": true,
 	},
 	{
 		"id": "level_tutorial",
@@ -91,6 +94,7 @@ const ALL: Array[Dictionary] = [
 		"star_pos": Vector2(0.35, 0.68),
 		"connections": ["level_1"],
 		"unlock_requires": "",
+		"hidden": true,
 	},
 ]
 

@@ -10,7 +10,7 @@
   "complete_key": "quest_orange_karim_complete",
   "reward": {
     "type": "item",
-    "item_id": "Butt Plug"
+    "item_id": "buttplug"
   },
   "npcs": {
     "orange_karim": {
@@ -29,7 +29,7 @@
         ],
         "level_jungle/orange_karim/complete": [
           { "action": "set_key", "key": "quest_orange_karim_complete" },
-          { "action": "item_popup", "item_id": "Butt Plug", "delay": 0.5 }
+          { "action": "item_popup", "item_id": "buttplug", "delay": 0.5 }
         ]
       }
     }

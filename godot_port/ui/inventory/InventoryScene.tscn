@@ -1,0 +1,78 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/inventory/InventoryScene.gd" id="1_script"]
+[ext_resource type="Theme" path="res://ui/menus/NightSkyTheme.tres" id="2_theme"]
+
+[node name="InventoryScene" type="CanvasLayer"]
+layer = 16
+process_mode = 3
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.02, 0.02, 0.08, 0.9)
+
+[node name="Panel" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -240.0
+offset_right = 340.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_shadow_color = Color(0.2, 0.3, 0.6, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 36
+text = "INVENTORY"
+horizontal_alignment = 1
+
+[node name="Sep1" type="HSeparator" parent="Panel"]
+layout_mode = 2
+
+[node name="UseablesLabel" type="Label" parent="Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.5, 0.9)
+theme_override_font_sizes/font_size = 16
+text = "USEABLES"
+
+[node name="UseablesGrid" type="HBoxContainer" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Sep2" type="HSeparator" parent="Panel"]
+layout_mode = 2
+
+[node name="QuestItemsLabel" type="Label" parent="Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.5, 0.9)
+theme_override_font_sizes/font_size = 16
+text = "QUEST ITEMS"
+
+[node name="QuestGrid" type="HBoxContainer" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CloseLabel" type="Label" parent="Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.7, 0.7)
+theme_override_font_sizes/font_size = 13
+text = "[I] to close"
+horizontal_alignment = 1

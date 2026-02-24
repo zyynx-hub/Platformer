@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-02-24 (Session 81 — Exodia Questline Step 8: Documentation + Polish)
+Last updated: 2026-02-24 (Session 86 — Telemetry System)
 
 ## Current Workstreams
 
@@ -37,7 +37,7 @@ Verified by F5 runtime testing:
 - Ceiling bonk (instant velocity cancel via apply_movement sync)
 - LDtk IntGrid tile collision (Cavernas tileset, 8px grid)
 - Camera follow (Camera2D in SubViewport, zoom=1, manual smooth+pixel snap via SubViewport at 426x240)
-- 9 autoloads registered: EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle → QuestManager
+- 11 autoloads registered: EventBus → GameData → SettingsManager → AudioManager → SceneTransition → DragonFlyby → DebugOverlay → DayNightCycle → QuestManager → SaveManager → TelemetryManager
 - Audio bus layout: Master → Music, SFX, UI (default_bus_layout.tres)
 - Music playback: menu_bgm crossfades to level music on scene transition (0.8s fade), same-stream detection prevents restart
 - Per-level music: Level 1 plays level1_bgm.mp3, other levels fall back to same track. Music continues seamlessly across portal transitions when same stream.
@@ -95,6 +95,7 @@ Verified by F5 runtime testing:
 - Boss spawn sequence: BossSpawningState scale-pop animation (0.8s), hitbox disabled during spawn, player gets 1.5s invulnerability
 - Boss camera zoom-out: 0.65x zoom during boss fight, restores on defeat
 - Portal hides during boss fight, reappears on defeat
+- Save slot system: 3-slot save management (SaveManager autoload), CONTINUE/NEW GAME menu buttons, SaveSlotScene picker, resume-to-exact-position, 5s periodic autosave, legacy progress.cfg migration. Continue grayed out when no saves exist.
 - Church building in town (X=950) with door leading to Mystical Level. Heaven portal returns to town.
 - Wall barriers in all house interiors (House1, House2, JungleHouse) and Mystical Level
 - Post-boss cutscene: 8-segment await chain (sad music + rain → defeat monologue → explosion + white flash → 4 Karims materialize → weather clears → victory dialog → Karims leave → Master of Pleasure reward). Aerith's Theme crossfade, WeatherController rain in MysticalLevel.
@@ -103,14 +104,15 @@ Verified by F5 runtime testing:
 
 ## Next Session Priority
 
-### Session 81 — Next priorities
+### Session 83 — Next priorities
 
+- **[save]** F5 playtest save system end-to-end: new game → play → quit → continue → resume position
+- **[save]** Test delete slot, overwrite existing slot, legacy migration from old progress.cfg
 - **[level]** Tutorial level F5 playtest — verify tile collision, enemy patrol, all 5 trigger chains, teleporter, key/gate, exit portal
 - **[level]** Tutorial level: add PointLight2D spotlights (need light texture), chest reward items
 - **[boss]** Visual polish: idle bob/sway for composite body, rumble/impact SFX
 - **[gameplay]** More enemy types (flying, ranged, etc.) using Enemy.tscn base
 - **[level]** Level 2 gameplay content
-- **[quest]** Full Exodia questline F5 playtest (start-to-finish or F12 shortcut)
 - **[boss]** Boss difficulty tuning (@export vars: speeds, timing windows)
 
 ---
@@ -146,6 +148,66 @@ Verified by F5 runtime testing:
 - Export / packaging (export preset exists — re-export via Project > Export when pushing updates)
 
 ## Session Log
+
+### Session 86 (2026-02-24) — Telemetry System
+
+Added anonymous funnel analytics: TelemetryManager autoload buffers gameplay events (session start, level start/complete, deaths, quest progress, boss fights, portals, achievements) and batch-POSTs to Supabase every 10s. Silent on failure — game works identically offline.
+
+**Files added:**
+- `core/TelemetryManager.gd` — 11th autoload, persistent HTTPRequest, anonymous UUID per install, opt-out toggle
+
+**Files modified:**
+- `core/Constants.gd` — SUPABASE_URL, SUPABASE_ANON_KEY, TELEMETRY_BATCH_INTERVAL, TELEMETRY_MAX_BUFFER
+- `core/SettingsManager.gd` — telemetry.enabled default (true, opt-out)
+- `project.godot` — registered TelemetryManager autoload
+- `ui/menus/OptionsScene.tscn` — Privacy tab with "Send Analytics" CheckButton
+- `ui/menus/OptionsScene.gd` — telemetry toggle handler
+- `tools/quest_tool.py` — Analytics tab in Game Bible dashboard (Supabase JS client, funnel charts, death/level stats, quest progression, event log)
+
+**Setup required:** Create Supabase project, fill SUPABASE_URL + SUPABASE_ANON_KEY in Constants.gd, create `events` table with RLS.
+
+### Session 85 (2026-02-24) — Inventory System
+
+Added [I] inventory overlay with two sections: Useables (Rocket Boots) and Quest Items (Dildo, Vibrator, Buttplug).
+
+**Files added:**
+- `ui/inventory/InventoryScene.tscn` — CanvasLayer 16, scene-first, NightSkyTheme
+- `ui/inventory/InventoryScene.gd` — I key toggle, pause-aware, populates from ProgressData
+
+**Files modified:**
+- `project.godot` — added `inventory` input action (I key, keycode=73)
+- `game/GameScene.tscn` — InventoryScene instanced as direct child (same pattern as QuestLogScene)
+
+**Logic:** Useables shows Rocket Boots if `equipped_item == "rocket_boots"`. Quest items shown if their respective quest complete key is set. Unowned items shown greyed out in Useables; absent from Quest Items section with "None yet" fallback.
+
+---
+
+### Session 83 (2026-02-24) — Save Slot System
+
+Implemented 3-slot save system with CONTINUE/NEW GAME flow and resume-to-exact-position.
+
+**Architecture:**
+- `ProgressData.SAVE_PATH` changed from `const` to `static var` — `SaveManager.activate_slot(i)` switches path, zero changes needed at 43+ call sites
+- `SaveManager.gd` autoload (10th): manages `save_meta.cfg` (slot metadata) + `progress_slot_N.cfg` (per-slot data)
+- Legacy migration: existing `progress.cfg` auto-copied to slot 0 on first run
+
+**Menu changes:**
+- MenuScene: START button replaced with CONTINUE + NEW GAME. Continue disabled (grayed) when no saves exist.
+- SaveSlotScene: 3 panel slots showing level progress / play time / last level. Empty → confirm dialog → create save. Occupied → activate + resume. Delete button per slot.
+
+**Resume system:**
+- ProgressData stores `last_level_id`, `last_level_scene`, `last_player_x`, `last_player_y` in `[resume]` section
+- GameData.resumed_position routes to GameScene spawn logic (before portal/SpawnPoint)
+- `_current_level_scene` tracked in GameScene, updated on door transitions for correct interior resume
+
+**Autosave:**
+- 5-second periodic autosave in GameScene._physics_process (primary safety net)
+- `get_tree().root.close_requested` signal as backup for window close
+- `auto_accept_quit = false` set in SaveManager._ready()
+- Lesson: `NOTIFICATION_WM_CLOSE_REQUEST` doesn't reliably propagate to autoloads on Windows
+
+Files created: SaveManager.gd, SaveSlotScene.tscn, SaveSlotScene.gd
+Files modified: ProgressData.gd, GameData.gd, GameScene.gd, MenuScene.tscn, MenuScene.gd, project.godot
 
 ### Session 81 (2026-02-24) — Exodia Questline Step 8: Documentation + Polish
 

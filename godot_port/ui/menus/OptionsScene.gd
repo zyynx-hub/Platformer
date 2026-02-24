@@ -14,6 +14,7 @@ const SCENE_MENU := "res://ui/menus/MenuScene.tscn"
 @onready var vsync_check: CheckButton = %VsyncCheck if has_node("%VsyncCheck") else null
 @onready var back_button: Button = %BackButton if has_node("%BackButton") else null
 @onready var reset_button: Button = %ResetButton if has_node("%ResetButton") else null
+@onready var telemetry_check: CheckButton = %TelemetryCheck if has_node("%TelemetryCheck") else null
 
 # --- Path-based nodes (not unique-named in .tscn) ---
 @onready var title_label: Label = $TitleLabel if has_node("TitleLabel") else null
@@ -64,6 +65,8 @@ func _populate_from_settings() -> void:
 		fullscreen_check.button_pressed = SettingsManager.get_value("display", "fullscreen", false)
 	if vsync_check:
 		vsync_check.button_pressed = SettingsManager.get_value("display", "vsync", true)
+	if telemetry_check:
+		telemetry_check.button_pressed = SettingsManager.get_value("telemetry", "enabled", true)
 
 
 func _connect_controls() -> void:
@@ -77,6 +80,8 @@ func _connect_controls() -> void:
 		fullscreen_check.toggled.connect(_on_fullscreen_toggle)
 	if vsync_check:
 		vsync_check.toggled.connect(_on_vsync_toggle)
+	if telemetry_check:
+		telemetry_check.toggled.connect(_on_telemetry_toggle)
 	if back_button:
 		back_button.pressed.connect(_on_back)
 	if reset_button:
@@ -98,6 +103,11 @@ func _on_vsync_toggle(pressed: bool) -> void:
 	SettingsManager.set_value("display", "vsync", pressed)
 	SettingsManager.save_settings()
 	SettingsManager.apply_display_settings()
+
+
+func _on_telemetry_toggle(pressed: bool) -> void:
+	SettingsManager.set_value("telemetry", "enabled", pressed)
+	SettingsManager.save_settings()
 
 
 func _on_back() -> void:

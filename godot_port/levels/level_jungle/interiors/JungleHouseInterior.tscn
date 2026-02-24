@@ -1,8 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bqi8yljp60w4g"]
 
 [ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
 [ext_resource type="PackedScene" uid="uid://bnvq1uurcis38" path="res://npcs/NPC.tscn" id="2_npc"]
-[ext_resource type="Script" path="res://npcs/OrangeKarimNPC.gd" id="3_orange"]
+[ext_resource type="Script" uid="uid://cmrgvd8unxaqs" path="res://npcs/OrangeKarimNPC.gd" id="3_orange"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="4_vignette"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("4_vignette")
+shader_parameter/strength = 0.7
+shader_parameter/softness = 0.55
+shader_parameter/radius = 0.4
+shader_parameter/tint = Color(0.02, 0.06, 0.01, 1)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(400, 16)
@@ -10,59 +18,170 @@ size = Vector2(400, 16)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
 size = Vector2(8, 200)
 
-[node name="JungleHouseInterior" type="Node2D"]
+[node name="JungleHouseInterior" type="Node2D" unique_id=2127863198]
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=642123474]
 offset_left = -300.0
 offset_top = -300.0
 offset_right = 500.0
 mouse_filter = 2
 color = Color(0.08, 0.12, 0.06, 1)
 
-[node name="FloorVisual" type="ColorRect" parent="."]
+[node name="FloorVisual" type="ColorRect" parent="." unique_id=1106441575]
 offset_left = -300.0
 offset_right = 500.0
 offset_bottom = 300.0
 mouse_filter = 2
-color = Color(0.10, 0.14, 0.05, 1)
+color = Color(0.1, 0.14, 0.05, 1)
 
-[node name="Floor" type="StaticBody2D" parent="."]
+[node name="WallPanelLeft" type="ColorRect" parent="." unique_id=1293391340]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = -108.0
+mouse_filter = 2
+color = Color(0.06, 0.09, 0.04, 1)
 
-[node name="FloorShape" type="CollisionShape2D" parent="Floor"]
+[node name="WallPanelRight" type="ColorRect" parent="." unique_id=1818198972]
+offset_left = 268.0
+offset_top = -112.0
+offset_right = 284.0
+mouse_filter = 2
+color = Color(0.06, 0.09, 0.04, 1)
+
+[node name="CeilingPanel" type="ColorRect" parent="." unique_id=491586237]
+offset_left = -124.0
+offset_top = -112.0
+offset_right = 284.0
+offset_bottom = -100.0
+mouse_filter = 2
+color = Color(0.05, 0.07, 0.03, 1)
+
+[node name="Baseboard" type="ColorRect" parent="." unique_id=234363752]
+offset_left = -124.0
+offset_top = -2.0
+offset_right = 284.0
+mouse_filter = 2
+color = Color(0.07, 0.1, 0.04, 1)
+
+[node name="WindowFrame" type="ColorRect" parent="." unique_id=381995717]
+offset_left = 150.0
+offset_top = -88.0
+offset_right = 186.0
+offset_bottom = -56.0
+mouse_filter = 2
+color = Color(0.05, 0.08, 0.04, 1)
+
+[node name="WindowPane" type="ColorRect" parent="." unique_id=994942659]
+offset_left = 153.0
+offset_top = -85.0
+offset_right = 183.0
+offset_bottom = -59.0
+mouse_filter = 2
+color = Color(0.25, 0.4, 0.2, 1)
+
+[node name="WindowLight" type="ColorRect" parent="." unique_id=1626346197]
+z_index = 1
+offset_left = 140.0
+offset_top = -56.0
+offset_right = 196.0
+mouse_filter = 2
+color = Color(0.4, 0.65, 0.25, 0.04)
+
+[node name="HangingVine1" type="ColorRect" parent="." unique_id=519104223]
+offset_left = -108.0
+offset_top = -100.0
+offset_right = -106.0
+offset_bottom = -55.0
+mouse_filter = 2
+color = Color(0.15, 0.3, 0.08, 1)
+
+[node name="HangingVine4" type="ColorRect" parent="." unique_id=1898174966]
+offset_left = 94.0
+offset_top = -100.0
+offset_right = 96.0
+offset_bottom = -55.0
+mouse_filter = 2
+color = Color(0.15, 0.3, 0.08, 1)
+
+[node name="HangingVine5" type="ColorRect" parent="." unique_id=962587967]
+offset_left = 98.0
+offset_top = -100.0
+offset_right = 100.0
+offset_bottom = -40.0
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.06, 1)
+
+[node name="HangingVine2" type="ColorRect" parent="." unique_id=989106912]
+offset_left = -104.0
+offset_top = -100.0
+offset_right = -102.0
+offset_bottom = -40.0
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.06, 1)
+
+[node name="HangingVine6" type="ColorRect" parent="." unique_id=607360568]
+offset_left = 90.0
+offset_top = -100.0
+offset_right = 92.0
+offset_bottom = -29.0
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.06, 1)
+
+[node name="HangingVine3" type="ColorRect" parent="." unique_id=1129260398]
+offset_left = 270.0
+offset_top = -100.0
+offset_right = 272.0
+offset_bottom = -60.0
+mouse_filter = 2
+color = Color(0.13, 0.28, 0.07, 1)
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=831679266]
+z_index = 50
+material = SubResource("ShaderMaterial_vignette")
+offset_left = -140.0
+offset_top = -170.0
+offset_right = 300.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=2047268011]
+
+[node name="FloorShape" type="CollisionShape2D" parent="Floor" unique_id=1921482254]
 position = Vector2(80, 8)
 shape = SubResource("RectangleShape2D_floor")
 
-[node name="SpawnPoint" type="Marker2D" parent="."]
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=411787386]
 position = Vector2(11, -13)
 
-[node name="BoundsMin" type="Marker2D" parent="."]
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=686139018]
 position = Vector2(-20, -120)
 
-[node name="BoundsMax" type="Marker2D" parent="."]
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=1278783901]
 position = Vector2(180, 30)
 
-[node name="OrangeKarim" parent="." instance=ExtResource("2_npc")]
-position = Vector2(150, 0)
+[node name="OrangeKarim" parent="." unique_id=1712311470 instance=ExtResource("2_npc")]
+position = Vector2(168, -2)
 script = ExtResource("3_orange")
 npc_name = "Orange Karim"
 
-[node name="Sprite" parent="OrangeKarim" index="0"]
-modulate = Color(1.0, 0.5, 0.0, 1)
+[node name="Sprite" parent="OrangeKarim" index="0" unique_id=823545071]
+modulate = Color(1, 0.5, 0, 1)
 
-[node name="ExitDoor" parent="." instance=ExtResource("1_door")]
+[node name="ExitDoor" parent="." unique_id=307514475 instance=ExtResource("1_door")]
 position = Vector2(10, 0)
 destination_scene = "res://levels/level_jungle/JungleLevel.tscn"
 is_exit_door = true
 
-[node name="WallLeft" type="StaticBody2D" parent="."]
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=2133849250]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft" unique_id=912625817]
 position = Vector2(-120, -100)
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="WallRight" type="StaticBody2D" parent="."]
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=442597010]
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight" unique_id=1617734167]
 position = Vector2(280, -100)
 shape = SubResource("RectangleShape2D_wall")
 
