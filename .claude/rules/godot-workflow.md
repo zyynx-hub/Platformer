@@ -1,3 +1,7 @@
+---
+paths: ["godot_port/**/*.gd", "godot_port/**/*.tscn", "godot_port/**/*.gdshader", "godot_port/**/*.tres"]
+---
+
 # Godot Workflow
 
 ## Verification
@@ -7,18 +11,17 @@ Headless parse check (no GPU required):
 "c:/Users/Robin/Desktop/Godot_v4.6.1-stable_win64.exe" --headless --path "c:/Users/Robin/Desktop/codex/godot_port" --quit 2>&1
 ```
 
-Runtime test: user opens project.godot in Godot 4, presses F5. Errors go in Output panel.
+Runtime test: open `project.godot` in Godot 4, press F5. Errors go in Output panel.
 
-## Editor–Runtime Parity (MANDATORY)
+## Editor-Runtime Parity (MANDATORY)
 
-**The Godot editor must always match runtime visuals.** This means:
+**The Godot editor must always match runtime visuals.**
 
-1. **Shaders go in .tscn** — embed ShaderMaterial as `[sub_resource]` referencing shader `[ext_resource]`. Never create ShaderMaterial at runtime via script.
-2. **Scripts are @tool** — any scene with visual styling (buttons, labels, tabs, sliders) must use `@tool` so the styling runs in the editor.
-3. **`Engine.is_editor_hint()` guard** — runtime-only code (music, SFX, signals, animations, particles, scene transitions) must be wrapped with `if Engine.is_editor_hint(): return` after the styling call.
-4. **Particles are runtime-only** — GPUParticles2D with ParticleProcessMaterial are too complex for .tscn sub_resources. Create them in script, guarded by the editor check.
+1. **Shaders in .tscn** — embed ShaderMaterial as `[sub_resource]` referencing shader `[ext_resource]`. Never create ShaderMaterial at runtime.
+2. **Scripts use @tool** — any scene with visual styling must use `@tool` so styling runs in editor.
+3. **`Engine.is_editor_hint()` guard** — runtime-only code (music, SFX, signals, animations, particles) wrapped with `if Engine.is_editor_hint(): return` after styling.
+4. **Particles are runtime-only** — GPUParticles2D + ParticleProcessMaterial too complex for .tscn. Create in script, guarded by editor check.
 
-Pattern for any UI scene:
 ```gdscript
 @tool
 extends Control
@@ -35,24 +38,24 @@ func _ready() -> void:
 
 ## Editing Rules
 
-- I edit `.gd` scripts directly and may edit `.tscn` files for shader/material embedding
-- User-built scene **structure** (do NOT change node hierarchy): `Level1.tscn`
-- Menu scenes (MenuScene, OptionsScene, ExtrasScene) may be edited for shader materials and overlay nodes
-- No build step — Godot hot-reloads scripts on F5
+- Edit `.gd` scripts directly. May edit `.tscn` files for shader/material embedding.
+- Do NOT change node hierarchy in user-built scenes: `Level1.tscn`
+- Menu scenes may be edited for shader materials and overlay nodes.
+- No build step — Godot hot-reloads scripts on F5.
 
-## Common .tscn Pitfalls
+## .tscn File Rules
 
-When touching a .tscn file:
+When editing .tscn files:
 1. No `.new()` calls — shapes/materials must be `[sub_resource]` definitions
 2. Define sub_resources BEFORE nodes that reference them
-3. `load_steps` must equal ext_resource + sub_resource count + 1
-4. Root node type must match script's `extends` declaration
+3. `load_steps` = ext_resource count + sub_resource count + 1
+4. Root node type must match script's `extends`
 5. Use `call_deferred` for `change_scene_to_file` during `_ready()`
-6. Set `unique_name_in_owner = true` in Inspector for `%NodeName` access
+6. `unique_name_in_owner = true` on its own line below `[node]` tag (not inside tag brackets)
 7. Preserve existing `unique_id` values on nodes
-8. New overlay nodes (GroundOverlay, VignetteOverlay) use `mouse_filter = 2` (IGNORE)
+8. New overlay nodes use `mouse_filter = 2` (IGNORE)
 
-## Export (when ready)
+## Export
 
 Use Godot's built-in Export dialog. No PyInstaller, no JS bundle, no bat files.
 

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://jq3eukjbt2t7"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Wat is dit? Waarom zijn jullie hier?"
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "Ik voelde iets...overal en nergens, vooral in mijn scrotum."
+voice_pitch = 0.9
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Green Karim"
+text = "Ik voelde niks, maarja, Rode Karim is weer bezig met een kankerstumper te zijn, waarom ben ik hier uberhaupt?"
+voice_pitch = 0.8
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Orange Karim"
+text = "Yo, maten. Zeg, wat is het hier druk."
+voice_pitch = 1.1
+
+[resource]
+script = ExtResource("1_seq")
+description = "Pre-boss — other Karims arrive, all four react"
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4")])

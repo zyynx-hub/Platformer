@@ -16,6 +16,7 @@
       "voice_pitch": 0.9,
       "role": "giver",
       "dialog_selection": [
+        { "requires": {"quest_exodia_complete": true},           "dialog": "level_town/red_karim/post_exodia" },
         { "requires": {"quest_red_karim_complete": true},        "dialog": "level_town/red_karim/done" },
         { "requires": {"quest_green_karim_confronted": true},    "dialog": "level_town/red_karim/complete" },
         { "requires": {"quest_red_karim_accepted": true},        "dialog": "level_town/red_karim/waiting" },
@@ -47,9 +48,11 @@
       "voice_pitch": 0.8,
       "role": "target",
       "dialog_selection": [
-        { "requires": {"quest_red_karim_complete": true},                                             "dialog": "level_town/green_karim/reformed" },
-        { "requires": {"quest_red_karim_accepted": true, "quest_green_karim_confronted": false},      "dialog": "level_town/green_karim/confronted" },
-        {                                                                                              "dialog": "level_town/green_karim/default" }
+        { "requires": {"quest_exodia_complete": true},                                                 "dialog": "level_town/green_karim/post_exodia" },
+        { "requires": {"quest_red_karim_complete": true, "quest_orange_karim_complete": true},         "dialog": "level_town/green_karim/reformed_plus" },
+        { "requires": {"quest_red_karim_complete": true},                                              "dialog": "level_town/green_karim/reformed" },
+        { "requires": {"quest_red_karim_accepted": true, "quest_green_karim_confronted": false},       "dialog": "level_town/green_karim/confronted" },
+        {                                                                                               "dialog": "level_town/green_karim/default" }
       ],
       "on_dialog_end": {
         "level_town/green_karim/confronted": [

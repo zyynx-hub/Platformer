@@ -35,15 +35,21 @@ const LOW_JUMP_GRAVITY_MULT = 2.5  # extra gravity when jump released early
 # ===== TIMINGS =====
 const COYOTE_TIME = 0.11  # seconds
 const JUMP_BUFFER_TIME = 0.13  # seconds
-const HURT_INVULN_TIME = 0.9  # seconds
+const HURT_INVULN_TIME = 0.3  # seconds of i-frames after taking damage
+const HURT_STUN_TIME = 0.15   # seconds of movement lock (lets knockback play out)
 
 # ===== DASH =====
 const DASH_SPEED = 300.0
 const DASH_DURATION = 0.14  # seconds
-const DASH_COOLDOWN = 0.9  # seconds
+const DASH_COOLDOWN = 0.0  # seconds
 
-# ===== ATTACK =====
-const ATTACK_COOLDOWN = 0.32  # seconds
+# ===== STOMP =====
+const STOMP_DAMAGE = 1.0
+const STOMP_BOUNCE_FORCE = 200.0  # upward velocity after stomp
+
+# ===== PLAYER KNOCKBACK (on taking contact damage) =====
+const PLAYER_KNOCKBACK_H = 120.0  # horizontal push away from enemy
+const PLAYER_KNOCKBACK_V = -100.0 # small upward pop
 
 # ===== WALL SLIDE / WALL JUMP =====
 const WALL_SLIDE_MAX_SPEED = 50.0  # max downward speed while sliding

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-02-22 (Session 53 — Dashboard graph fix + NPC levels)
+Last updated: 2026-02-24 (Session 81 — Exodia Questline Step 8: Documentation + Polish)
 
 ## Current Workstreams
 
@@ -84,41 +84,59 @@ Verified by F5 runtime testing:
 - Day/night debug hotkeys: F7 fast-forwards time by 12% (≈36 game-minutes), F9 toggles cycle pause — both show flash label. F8 reserved by Godot editor (stop game), remapped to F9.
 - Town house window glow: analytic radial gradient shader (window_glow.gdshader, blend_add, UV-centered, modulate.a = brightness from TownController)
 - ShopPanel: full buy/sell UI (Session 42). 3 item slots (Extra Heart 80c, Speed Charm 120c, Town Key 60c). Grey-out unaffordable, Owned state, 2-step confirm, red flash on denied. F10 debug adds 100 coins. ProgressData.coins + purchased_items persisted.
+- Enemy system: Enemy.tscn base (CharacterBody2D) + EnemyStateMachine (Idle/Patrol/Chase/Hurt/Dead states), hitbox/hurtbox Area2D, hit flash shader, Slime subclass with squash-stretch bob
+- Stomp-to-kill combat: jump on enemies from above to damage (STOMP_DAMAGE=1.0), player bounces off (STOMP_BOUNCE_FORCE=200.0). Continuous overlap detection in _physics_process with cooldown. Side contact deals contact_damage to player.
+- Combat arena: F11 debug key loads ArenaLevel (flat ground, platforms, slime enemies)
+- Orange Karim NPC: Quest giver in Jungle House Interior — De Butt Plug Quest (requires rocket boots equipped, manual dialog selection). 6 dialog .tres files, quest JSON. Green Karim gets extra line (reformed_plus.tres) after Orange Karim quest.
+- Item persistence: Equipped item (rocket boots) survives portal/scene transitions via ProgressData.equipped_item. Player restores on _ready(), HUD restores icon+fuel bar, Pickup self-destructs if already collected.
+- Gate persistence: ProgressionGate saves open state to ProgressData (gate_{gate_id} key), auto-opens on scene load.
+- Pre-boss cutscene: After all 3 pedestal items placed, 4 Karim clones walk in (Purple from right, Green/Red/Orange from left staggered), karims_arrive dialog (6 lines), white flash absorption animation (clones tween to cloud center, scale/alpha to 0), camera shake, Cloud Karim + pedestal removed, Exodia placeholder spawns (scale pop 0.1→2.5), exodia_forms dialog (3 lines). MysticalLevelController handles full sequence via cinematic_dialog_ended listeners.
+- Boss composite body: scene-first (7 Sprite2D children under CompositeBody Node2D in ExodiaKarim.tscn, each with hit_flash ShaderMaterial)
+- Boss spawn sequence: BossSpawningState scale-pop animation (0.8s), hitbox disabled during spawn, player gets 1.5s invulnerability
+- Boss camera zoom-out: 0.65x zoom during boss fight, restores on defeat
+- Portal hides during boss fight, reappears on defeat
+- Church building in town (X=950) with door leading to Mystical Level. Heaven portal returns to town.
+- Wall barriers in all house interiors (House1, House2, JungleHouse) and Mystical Level
+- Post-boss cutscene: 8-segment await chain (sad music + rain → defeat monologue → explosion + white flash → 4 Karims materialize → weather clears → victory dialog → Karims leave → Master of Pleasure reward). Aerith's Theme crossfade, WeatherController rain in MysticalLevel.
+- Post-quest flavor dialog: All 4 Karims show post-Exodia dialog after quest_exodia_complete (Red, Purple via JSON; Green, Orange via GDScript)
+- ItemAcquiredPopup for "Master of Pleasure" after victory dialog
 
 ## Next Session Priority
 
-### Session 51 — Quest graph cleanup (Session 3 of 3)
+### Session 81 — Next priorities
 
-**Goal:** Remove the old `QuestDefs.gd` system, wire `QuestLogScene` to use QuestManager, and write the how-to-add-a-quest guide.
-
-**Files to modify:**
-- `godot_port/ui/quest_log/QuestLogScene.gd` — replace `QuestDefs.ALL` with `QuestManager.get_all_quests()`. The returned dicts have the same `id`, `name`, `active_key`, `complete_key` fields — mostly a drop-in swap.
-- `godot_port/data/QuestDefs.gd` — delete (nothing else references it after QuestLogScene is updated)
-
-**Files to create:**
-- `docs/how-to-add-a-quest.md` — step-by-step guide: write JSON → validate → create .tres dialogs → place NPC → done
-
-**Also pending (can fold into Session 51):**
-- Refactor `HydraBodyNPC.gd` and `ThreeHeadedKarimNPC.gd` to use QuestManager (replace hardcoded `state_key` + `_fade_and_vanish` with `execute_dialog_end` + `_do_fade_and_remove`)
-- `BrownKarimNPC._do_fade_and_remove()` override: replace `_spooky_vanish()` name with `_do_fade_and_remove()` override so QuestManager can call it
-
-**purple_karim/accept and purple_karim/decline dialogs:** Created (Session 50). Dutch text, 2 lines each, voice_pitch 0.95. Accept is one_shot=true, decline is one_shot=false (repeatable).
+- **[level]** Tutorial level F5 playtest — verify tile collision, enemy patrol, all 5 trigger chains, teleporter, key/gate, exit portal
+- **[level]** Tutorial level: add PointLight2D spotlights (need light texture), chest reward items
+- **[boss]** Visual polish: idle bob/sway for composite body, rumble/impact SFX
+- **[gameplay]** More enemy types (flying, ranged, etc.) using Enemy.tscn base
+- **[level]** Level 2 gameplay content
+- **[quest]** Full Exodia questline F5 playtest (start-to-finish or F12 shortcut)
+- **[boss]** Boss difficulty tuning (@export vars: speeds, timing windows)
 
 ---
 
 ## Broken / Untested
 
+- ~~**[bug]** Pre-boss cutscene camera pan~~ — FIXED Session 65. Root cause: exodia_forms dialog played after camera released to player. Fix: dialog now plays while camera stays on body (1.5x zoom), release moved to _complete_cutscene. Also added dialog_restore_tween kill to _on_camera_cinematic_release.
+- **[boss]** S76 boss fight redesign — code compiles clean, needs F5 playtesting to verify stomp detection + @export var tuning
 - **[gameplay]** Rocket boots thrust — gravity bypass + thrust=600 working. Values may still need tuning.
 - **[UI]** HUD instanced inside SubViewport — hearts/dash/item box display at native 426x240. Not yet tested with actual damage (no enemies).
 - **[UI]** HUD fuel gauge — ColorRect drains inside item box. Color shifts at 50%/25%. Working with rocket boots.
 - **[menu]** Options/Extras particle effects are runtime-only (firefly particles appear at F5, not in editor)
 - **[distribution]** GitHub repo `zyynx-hub/platformerv2` only holds `version.json` — game source not tracked in git
-- **[dashboard]** ~~Quest graph chronological ordering~~ — FIXED Session 53. Python-computed ranks from state_keys array order. All quests display correct top-to-bottom flow. Remote NPCs show green border + level name.
+- **[dashboard]** ~~Quest graph chronological ordering~~ — FIXED Session 53. Python-computed ranks from state_keys array order. All quests display correct top-to-bottom flow. All NPCs show `@ Level` label. Travel indicator nodes between levels (Session 54).
+- **[UI]** ~~Quest log ESC bug~~ — FIXED Session 54. Opening quest log via ESC > Pause > Quest Log, then pressing ESC now correctly closes quest log first (not the pause menu). Fixed by using `_input` instead of `_unhandled_input` so quest log intercepts ESC before PauseScene.
+- **[UI]** ~~Quest log no UI sound on close~~ — FIXED Session 54. Added `AudioManager.play_ui_sfx("ui_tick")` to `_close()`.
+- **[audio]** ~~Music restarts after unpause~~ — FIXED Session 55. Added `suspend_music()`/`resume_music()` to AudioManager. GameScene saves playback position before crossfading to pause music, resumes from that position on unpause.
 - **[gameplay]** Portal in Level 1 — shader visual, particles, E-key interaction, cinematic activation need F5 testing. Level 2 scene exists, transition testable.
+- ~~**[combat, ONGOING]** Enemy collision rework~~ — FIXED Session 59. Three bugs: missing die() in take_damage, stomp_bounce not calling apply_movement, enemy-side contact missing knockback position. All resolved. Stomp kills, contact damage + knockback both directions, dash push all working.
+- ~~**[gameplay]** Spawn dialog auto-plays~~ — FIXED Session 60. Removed hardcoded spawn dialog from GameScene._initial_spawn(). Levels should use DialogTrigger Area2D nodes for all dialogs.
+- ~~**[gameplay]** Gate wall reappears after scene switch~~ — FIXED Session 60. ProgressionGate now persists open state via ProgressData quest key (gate_{gate_id}). Auto-opens on _ready() if previously opened.
+- ~~**[gameplay]** Equipped item lost on scene transition~~ — FIXED Session 60. ProgressData.equipped_item persisted on pickup, restored by Player._ready() and HUD._ready(). Pickup.gd self-destructs if item already collected.
 
 ## Not Started
 
-- Enemies and combat
+- ~~Enemies and combat~~ (working: Enemy base + Slime, stomp-to-kill, combat arena F11)
 - More collectible items
 - Checkpoints
 - Multiple levels (Level 3-5 are placeholder stars on constellation map; Level 2 has LDtk tilemap + scene)
@@ -128,6 +146,513 @@ Verified by F5 runtime testing:
 - Export / packaging (export preset exists — re-export via Project > Export when pushing updates)
 
 ## Session Log
+
+### Session 81 (2026-02-24) — Exodia Questline Step 8: Documentation + Polish
+
+Final documentation cleanup for the completed Exodia questline (Steps 1-7 done in Sessions 60-79).
+
+**CLAUDE.md updates:**
+- Directory tree: level_mystical expanded (dialogs/cloud_karim, pre_boss, exodia_karim, victory + audio/), level_town +church, F12 debug key
+- Boss cutscene description: updated pre-boss dialog split (purple_arrives + others_arrive), added post-boss 8-segment flow
+- Assembly animation: corrected "method call tracks" → "value tracks"
+
+**quest-registry.md updates:**
+- Purple/Red Karim dialog selection: added `quest_exodia_complete` → `post_exodia` as top priority entry
+- Dialog Registry: replaced `karims_arrive` (6 lines) → `purple_arrives` (2) + `others_arrive` (4), added 8 new entries (phase taunts ×3, defeat 11 lines, victory/reunion 9 lines, red/purple post_exodia ×2)
+- Exodia quest step table: Steps 5-7 fully documented with dialog IDs and mechanics
+- Dependency graph: expanded with full boss fight → cutscene → reward → post-quest dialog tree
+- Implementation notes: marked all steps complete
+
+**quest_tool.py:**
+- Added `set_by_code` flag support — state_keys managed by GDScript (not JSON actions) skip the "declared but no action sets it" validation
+- quest_exodia_karim.json: all 6 state_keys annotated with `"set_by_code": true`
+- Validation now passes: 5 files, 0 errors
+
+**Auto-docs regenerated:** storyline.md, quest-flowchart.md, quest-report.html
+
+### Session 80 (2026-02-24) — Tutorial Level from LDtk Entities Demo
+
+First LDtk entity-driven level. Used `tutorial_test.ldtk` (LDtk's built-in Entities Demo — 816x464px, 16px grid, Inca tileset theme) as the source of truth for level layout. LDtk importer handles tiles/collision; gameplay nodes placed manually in wrapper .tscn at LDtk entity coordinates.
+
+**Import setup:**
+- Fixed `.import` settings: `integer_grid_tilesets=true` + `tileset_post_import` for collision generation
+- Tilesets auto-copied by importer: Inca_front (320x224, walls) + Inca_back2 (160x224, bg)
+- Registered `level_tutorial` in LevelDefs.gd (always unlocked, connected to level_1)
+
+**Level structure (TutorialLevel.tscn):**
+- LDtk imported scene instance (tiles + collision)
+- 3 enemies (Fighter/Worm/Thief as Enemy.tscn instances with different HP/speed/color)
+- 5 ProgressionGates acting as locked doors
+- ProgressionTrigger + 3 DialogTriggers for trigger zones
+- Exit portal to level_1
+
+**New entity types (3 scripts + 2 .tscn):**
+- `TutorialButton.gd/.tscn` — E-key interactive button, emits `gate_opened`, draws button visual + prompt
+- `Teleporter.gd/.tscn` — bidirectional warp pair with cooldown, draws blue swirl visual
+- `KeyPickup.gd` — collectible key that emits `gate_opened` for matching chest gate, draws animated key
+
+**Trigger chains (mapped from LDtk entity-ref connections):**
+| LDtk Chain | Implementation |
+|---|---|
+| Walk into area → door + message | ProgressionTrigger + Gate + co-located DialogTrigger |
+| Kill fighter → door opens | TutorialLevelController.gd listens enemy_killed, emits gate_opened |
+| Press button → 2 doors open | TutorialButton emits gate_opened, 2 gates share gate_id |
+| Secret area → message | DialogTrigger (one-shot) |
+| Teleporter → upper area → "Well done!" → exit | Teleporter pair + DialogTrigger + Portal |
+
+**3 dialog .tres files:** mechanism, secret_area, well_done (no portrait, one_shot)
+
+**Controller:** TutorialLevelController.gd — enemy-kill-to-gate wiring + spotlight flicker tween
+
+**Not yet implemented (stretch goals):**
+- PointLight2D spotlights (need radial gradient texture)
+- Chest items (treasure behind key gate exists, but no reward pickup)
+- Repeater delay (gates open instantly, 1s delay skipped)
+
+Files created: TutorialLevel.tscn, TutorialLevelController.gd, TutorialButton.gd, TutorialButton.tscn, Teleporter.gd, Teleporter.tscn, KeyPickup.gd, 3 dialog .tres
+Files modified: tutorial_test.ldtk.import, LevelDefs.gd
+
+### Session 79 (2026-02-24) — Post-Boss Cutscene + Reward + Flavor Dialog
+
+**Exodia Step 6 — Post-Boss Cutscene:**
+8-segment cutscene in MysticalLevelController, mirrors pre-boss pattern:
+1. Freeze & Mood: crossfade to Aerith's Theme (2s), WeatherController rain starts, sky dims to Color(0.6, 0.6, 0.7)
+2. Defeat Dialog: camera cinematic move to arena center (1.3x zoom), 11-line defeat monologue (defeat.tres)
+3. Explosion: camera shake (1.5s, intensity 8), white flash, boss hidden, `exodia_boss_defeated` quest flag set
+4. Karim Materialization: 4 clones pop in with TRANS_BACK easing, staggered 0.3s, mini-shakes per landing
+5. Weather Clears: rain stops, Tchaikovsky crossfades back, sky brightens
+6. Victory Dialog: camera releases, 9-line multi-character reunion dialog (reunion.tres)
+7. Karims Leave: Purple walks right, others walk left, all fade out
+8. Reward & Cleanup: `quest_exodia_complete` set, ItemAcquiredPopup("Master of Pleasure"), portal shown, camera unlocked
+
+**Exodia Step 7 — Post-Quest Flavor Dialog:**
+- Red Karim: added `quest_exodia_complete` check to quest_red_karim.json dialog_selection + created post_exodia.tres
+- Purple Karim: added `quest_exodia_complete` check to quest_purple_karim.json dialog_selection + created post_exodia.tres
+- Green Karim: already had check (in quest_red_karim.json green_karim section)
+- Orange Karim: already had check (in OrangeKarimNPC.gd)
+
+Files changed: MysticalLevelController.gd, AudioManager.gd, MysticalLevel.tscn, quest_red_karim.json, quest_purple_karim.json
+Files created: defeat.tres, reunion.tres, red_karim/post_exodia.tres, purple_karim/post_exodia.tres
+
+### Session 78 (2026-02-24) — Boss Health Bar + Phase Transition Fix + Respawn
+
+**Bug fix — phase transition stuck:** BossStateMachine.transition_to() blocked self-transitions (`new_state == current_state` guard). After a stomp, `_resume_current_phase()` tried to re-enter the same phase state — silently rejected. Boss got permanently stuck in RECOVERY sub-state with `_stunnable = false`. Fix: removed self-transition guard from BossStateMachine.
+
+**Boss health bar (scene-first in HUD.tscn):**
+- 100px bar with dark background, phase-colored fill (green/orange/red)
+- Phase separator lines at 2/5 and 4/5 marks (2+2+1 HP split)
+- "PHASE X" label below bar
+- White flash on damage, fade-out on defeat
+- Driven by 3 new EventBus signals: boss_fight_started, boss_health_changed, boss_fight_ended
+
+**Boss respawn overhaul:**
+- `player_died` listener: immediately freezes boss (BossIdle), disables hitbox, hides indicators, snaps to arena center (handles off-screen Phase 2 RISE)
+- `player_respawned` listener: full reset — Phase 1, max health, 0 stomps. Re-emits `boss_fight_started` to reset HUD bar. Gives player 1.5s invulnerability. Calls `begin_phase1()`.
+- Two-phase approach: boss is safe/idle during entire death→retry→materialize sequence, only attacks after player_respawned fires.
+- SpawnPoint at (200, -16), boss at arena center (400, -16) — 200px gap, well outside charge_range (100px). Player has time to orient.
+
+Files changed: BossStateMachine.gd, EventBus.gd, ExodiaKarimBoss.gd, HUD.tscn, HUD.gd
+
+### Session 76 (2026-02-24) — Boss Fight Redesign: Code-Driven Telegraph/Recovery
+
+**Fundamental boss fight redesign — from AnimationPlayer-driven sweeps to code-driven telegraph→attack→recovery→stomp loop.**
+
+Problem (S75 video analysis): Boss fight was unplayable. Stomps never registered (AnimationPlayer position tracks teleport CharacterBody2D, breaking `get_slide_collision()`). No dodge/punish pattern — boss just slid left-right. No vulnerable windows.
+
+**New gameplay loop (all 3 phases):**
+1. Boss performs an attack (charge at wall / dive from sky)
+2. Attack ends → boss STATIONARY in recovery (dazed, head droop, hitbox disabled)
+3. Player stomps boss during recovery window (blink warning before it ends)
+4. If not stomped in time → boss resumes attacks
+
+**Phase 1 — Ground Charge:** Walk toward player → telegraph (flash+rumble) → charge at arena wall → wall impact (camera shake) → recovery
+**Phase 2 — Aerial Dive:** Rise off-screen → snap X to player → telegraph line → dive to ground → impact (camera shake) → recovery
+**Phase 3 — Combined:** Alternates charge and dive, scaled by `phase3_speed_multiplier` (1.3x), shorter telegraphs and recovery
+
+**All timing/speed via @export vars (16 vars in 4 Inspector groups):**
+- Phase 1: walk_speed, charge_speed, telegraph_duration, recovery_duration, stomps_needed, charge_range
+- Phase 2: rise_duration, telegraph_duration, dive_duration, recovery_duration, stomps_needed
+- Phase 3: telegraph_duration, recovery_duration, speed_multiplier, stomps_needed
+- Recovery: stomp_launch_h/v, recovery_blink_before_end
+
+**Key technical changes:**
+- Movement: code tweens + delta (not AnimationPlayer position tracks). BossAnimPlayer only for visual anims (spawn_in, recoil, defeated, assembly).
+- Each phase state manages its own recovery sub-state (boss stationary → `get_slide_collision()` works naturally).
+- `set_hitbox_active(false)` during recovery so player can safely approach for stomps.
+- Head droop visual (`droop_head()`/`restore_head()`) — 20px tween on Head sprite.
+- Per-phase stomp counter (`_phase_stomps`) with `_get_stomps_for_phase()`.
+- Removed all 13 BOSS_* constants from Constants.gd.
+- BossStunnedState simplified to fallback-only (not used in normal flow).
+
+**Bug fix:** `:=` type inference fails on `boss.get_player_ref()` / `boss.get_telegraph_line()` because `boss` is typed as `Node` (Variant return). Changed all `:=` to `=` across all 3 phase states.
+
+**Files modified:** `ExodiaKarimBoss.gd` (complete rewrite), `BossPhase1State.gd` (complete rewrite), `BossPhase2State.gd` (complete rewrite), `BossPhase3State.gd` (complete rewrite), `BossStunnedState.gd` (simplified), `Constants.gd` (removed BOSS_* constants)
+**Headless validation:** Clean. MCP scene run revealed `:=` parser error → fixed.
+
+### Session 73 (2026-02-24) — Boss Phase Rework + Godot MCP
+
+**Phase 1 rework:** Merged `phase1_sweep_left` + `phase1_sweep_right` into single `phase1_sweep` animation (80→720→80, 8s full round trip). State uses `animation_finished` signal instead of method call track. Removed `_on_phase1_pass_complete()` callback from ExodiaKarimBoss.gd. Each animation play = 1 cycle.
+
+**Phase 2 rework:** Completely rewritten as pass-through dive cycle. Boss rises off-screen above (tween 0.6s), then alternates dive_down/dive_up — passing through the ground each time without landing. Telegraph line shows between crossings. After all passes, smooth tween return to arena center → stunned. Off-screen Y values: -400 (top) / +200 (bottom). Dive speed slowed from 0.4s to 1.5s.
+
+**F12 debug:** Now auto-equips rocket boots via `EventBus.item_picked_up.emit(ItemDefs.get_item("rocket_boots"))`.
+
+**Godot MCP server:** Installed `godot-mcp` to `c:/Users/Robin/Desktop/godot-mcp/`. Built and configured in `~/.claude.json`. Provides tools: launch editor, run project in debug mode, capture console output/errors, scene management. Requires Claude Code restart to activate.
+
+**Files changed:**
+- `enemies/exodia/states/BossPhase1State.gd` — rewritten, single anim + signal
+- `enemies/exodia/states/BossPhase2State.gd` — rewritten, pass-through cycle
+- `enemies/exodia/ExodiaKarim.tscn` — phase1_sweep merged (8s), dive anims updated (1.5s, -400/+200)
+- `enemies/exodia/ExodiaKarimBoss.gd` — removed `_on_phase1_pass_complete()`
+- `levels/level_mystical/MysticalLevelController.gd` — F12 equips rocket boots
+
+### Session 71 (2026-02-24) — Boss Rewrite: AnimationPlayer-Driven
+
+**Full boss fight rewrite from invisible code tweens to AnimationPlayer-driven choreography.**
+
+Problem: All boss movement, hitbox toggling, cutscene choreography, and phase transitions were 100% code-driven tweens — invisible in the Godot editor. No way to see attack patterns, timing, or sequences without running the game.
+
+**BossAnimPlayer (13 animations in ExodiaKarim.tscn):**
+- RESET, spawn_in (scale-pop 0.8s), phase1_sweep_right/left (4s each, position:x curves)
+- phase2_dive_down/up (0.53s, position:y curves), phase3_pass_1-4 (2.56s each, position curves)
+- recoil (0.6s, squash-stretch), defeated (1.5s, fade+stretch), assembly (6.5s, 7 method call tracks)
+- All animations have visible property tracks you can scrub in the editor
+
+**Scene-first boss placement:**
+- ExodiaKarim pre-placed in MysticalLevel.tscn (visible=false, collision disabled until fight)
+- 5 Marker2D arena waypoints under BossArena (ArenaLeft/Right/TopLeft/TopRight/Center)
+- DebugStateLabel (Label) shows current boss state at runtime
+- Removed runtime `instantiate()` — boss is inspectable in editor
+
+**State scripts rewritten as thin wrappers:**
+- BossSpawningState: plays `spawn_in` animation (15 lines, was 57)
+- BossPhase1State: plays `phase1_sweep_left/right`, counts passes (45 lines, was 57)
+- BossPhase2State: hybrid — code tween for Y repositioning + player X targeting, AnimationPlayer for dives (100 lines, was 118)
+- BossPhase3State: plays `phase3_pass_1-4`, manages slash Area2Ds (95 lines, was 126)
+- BossStunnedState: code tween for move-to-center (minimal changes)
+- BossDefeatedState: plays `defeated` animation, callback calls die()
+
+**CutsceneAnimPlayer (7 reference segments in MysticalLevel.tscn):**
+- seg_01_rumble, seg_02_purple_walks, seg_03_others_walk, seg_04_absorption
+- seg_05_hydra_reveal, seg_06_assembly, seg_07_fight_start
+- Visible as named animations in editor. Actual flow is await-driven for correct timing.
+
+**MysticalLevelController rewrite:**
+- Removed `_boss_scene` / `_spawn_boss_entity()` / `_assemble_boss_body()` (runtime instantiation)
+- Added `@onready var _boss: Node2D = %ExodiaKarim` (pre-placed)
+- `setup_arena()` reads Marker2D positions into boss arena bounds
+- Cutscene split into 7 named `_seg_*()` async functions (was 200-line monolith)
+- Dialog pauses via `_wait_for_dialog()` between segments
+- Sequence visible at a glance in `_run_pre_boss_cutscene()`
+
+**ExodiaKarimBoss.gd rewrite:**
+- Added `@onready var _boss_anim: AnimationPlayer = %BossAnimPlayer`
+- Added `setup_arena(markers: Dictionary)` for Marker2D-based bounds
+- Added animation callback targets (routed to current state via has_method checks)
+- Replaced recoil tween with `_boss_anim.play("recoil")`
+- Added `_assemble_part(index)` for assembly animation method calls
+- Added debug label update in `_physics_process`
+
+**Files modified:** ExodiaKarim.tscn, ExodiaKarimBoss.gd, BossSpawningState.gd, BossPhase1State.gd, BossPhase2State.gd, BossPhase3State.gd, BossStunnedState.gd, BossDefeatedState.gd, MysticalLevel.tscn, MysticalLevelController.gd, CLAUDE.md
+**Headless validation:** Clean parse, no errors.
+
+### Session 68 (2026-02-23) — Boss Polish + Church + Walls
+
+**Boss sprite scene-first:**
+- Moved 7 composite Sprite2D nodes from programmatic `_build_composite()` into `ExodiaKarim.tscn` as `CompositeBody` Node2D with 7 children (LeftLeg, RightLeg, LeftTorso, RightTorso, LeftArm, RightArm, Head)
+- Each sprite has its own `hit_flash.gdshader` ShaderMaterial for independent flash
+- Removed `BODY_LAYOUT`, `BODY_COLORS` constants and `_build_composite()` from script
+
+**Boss spawn sequence:**
+- New `BossSpawningState.gd`: scale-pop from 0.1 to 1.0 over 0.8s, hitbox disabled during animation
+- Player gets 1.5s invulnerability on boss spawn (set in MysticalLevelController)
+- `start_fight()` now transitions to BossSpawning, which calls `begin_phase1()` on completion
+
+**Portal hidden during boss:**
+- `PortalBack` hidden + monitoring disabled in `_spawn_boss()`, restored in `_on_boss_defeated()`
+
+**Church in town → heaven:**
+- Added Church building (House.tscn instance at X=950, gray-purple colors, chimney as steeple)
+- `DoorChurch` leads directly to `MysticalLevel.tscn`
+- Hidden `ChurchPortal` at same position (spawn anchor for portal return)
+- `PortalBack` in mystical changed destination from `level_jungle` to `level_town`
+- Removed `MysticalPortal` from JungleLevel.tscn, cleaned up `_update_mystical_portal()` from JungleLevelController
+
+**Camera zoom-out during boss:**
+- `_on_camera_boss_lock()` tweens camera zoom to 0.65x over 0.5s
+- `_on_camera_boss_unlock()` restores saved zoom with tween
+
+**Wall barriers:**
+- Added `WallLeft` + `WallRight` StaticBody2D in House1Interior, House2Interior, JungleHouseInterior (x=-120 and x=280, matching 400px floor edges)
+- Added walls in MysticalLevel (x=0 and x=800, matching 800px ground edges)
+
+**Files created:** `enemies/exodia/states/BossSpawningState.gd`
+**Files modified:** `enemies/exodia/ExodiaKarim.tscn`, `enemies/exodia/ExodiaKarimBoss.gd`, `levels/level_mystical/MysticalLevel.tscn`, `levels/level_mystical/MysticalLevelController.gd`, `levels/level_town/TownLevel.tscn`, `levels/level_jungle/JungleLevel.tscn`, `levels/level_jungle/JungleLevelController.gd`, `levels/level_town/interiors/House1Interior.tscn`, `levels/level_town/interiors/House2Interior.tscn`, `levels/level_jungle/interiors/JungleHouseInterior.tscn`, `game/GameScene.gd`
+**Headless validation:** Clean parse, no errors.
+
+### Session 66-67 (2026-02-23) — Boss Fight Core
+
+**Exodia Boss Fight (Step 5 — IN PROGRESS, needs bug fixes):**
+- ExodiaKarimBoss.gd extends Enemy, BossStateMachine + 6 states (Idle/Phase1-3/Stunned/Defeated)
+- Phase 1: horizontal sweeps (tween, 6 passes at 160px/s)
+- Phase 2: vertical dives (target player X, red telegraph, 6 dives at 350px/s)
+- Phase 3: sinusoidal wave sweeps (6 passes at 200px/s)
+- Stunned: tween to center, 3.5s vulnerable window, blink warning at 1.2s
+- Composite body: 7 karim sprites (legs, torso, arms, head) matching cutscene assembly
+- Boss music: "Sudden Death" (Rabi-Ribi OST) crossfades in on exodia_forms dialog
+- Camera boss lock/unlock via EventBus signals + GameScene handlers
+- F12 debug shortcut skips cutscene, spawns boss directly
+- max_health=5, contact_damage=1
+- Collision shapes sized for composite: body (44x72), hurtbox/head (36x16), hitbox (40x64)
+- Phase taunts gated by cinematic_dialog_ended in MysticalLevelController
+- Boss spawns at ground level (y=-16), composite extends upward
+- BossArena unique_name_in_owner added to MysticalLevel.tscn
+
+**Known issues for next session:**
+- Composite sprites lack ShaderMaterial — hit flash and stun blink won't render
+- Need end-to-end playtest of all 3 phases + stomp detection + player death/respawn
+
+### Session 65 (2026-02-23) — Camera Bug Fix + Cutscene Polish
+
+**Camera bug FIXED:**
+- Root cause: `exodia_forms` dialog was emitted AFTER Phase F (camera release to player), so dialog showed body from player's perspective
+- Fix: moved dialog to BEFORE camera release — now plays while camera stays at body center (1.5x zoom)
+- Camera release moved to `_complete_cutscene()` (fires after dialog ends)
+- Added `_dialog_restore_tween` kill logic to `_on_camera_cinematic_release` (same safety as `_on_camera_cinematic_move`)
+- Tuned camera: EXODIA_BODY_CENTER y=-56→-80 (accounts for dialog box eating bottom third), zoom 2.5x→1.5x (overview framing)
+
+**Diagnostic prints added (to be stripped later):**
+- `[CAM-DBG]` prefix in GameScene.gd: cinematic_move/release/shake/dialog start/finish
+- `[CUTSCENE]` prefix in MysticalLevelController.gd: phase transitions A-F
+
+### Session 64 (2026-02-23) — Pre-Boss Cutscene Rework + Camera Bug
+
+**Cutscene rework:**
+- Split `karims_arrive.tres` (6 lines) into `purple_arrives.tres` (2 lines) + `others_arrive.tres` (4 lines)
+- Purple now arrives first from right → dialog → then Green/Red/Orange from left → dialog
+- Added Hydra Karim reveal (3-headed deep purple, cloud puffs dissolve staggered)
+- Added 7-part Exodia body assembly animation (legs→torso→arms→head, color-coded sprites, TRANS_BACK overshoot)
+- Camera zoom to 2.5x during assembly, zoom back after
+- State machine: all_placed → purple_arrives → others_arrive → absorption → body assembly → exodia_forms → complete
+
+**Camera system changes:**
+- Added `camera_cinematic_done` signal to EventBus (for await synchronization)
+- MysticalLevelController uses EventBus signals + `await camera_cinematic_done` for Phase D/F
+- GameScene tracks `_dialog_restore_tween` and kills it in `_on_camera_cinematic_move`
+- Three approaches tried for camera pan bug, none fully working yet (see memory/cutscene-camera-bug.md)
+
+**Other:**
+- F12 debug shortcut: sets all quest keys, clears dialog seen flags, teleports to Mystical Level
+- Mystical level music: Tchaikovsky Hymn of the Cherubim added to AudioManager
+- Removed 4 debug prints from Player.gd `_check_enemy_collisions()`
+
+### Session 63 (2026-02-23) — Exodia Step 4: Pre-Boss Cutscene
+
+**Pre-boss cutscene (MysticalLevelController.gd):**
+- Full cutscene sequence triggered when `all_placed` dialog ends (via `cinematic_dialog_ended` listener)
+- Phase 1: screen shake + rumble, Purple Karim clone walks in from right (1.2s tween)
+- Phase 2: Green/Red/Orange clones walk in from left (staggered 0.3s each)
+- Phase 3: `karims_arrive` dialog plays (6 lines, multi-character: Purple/Red/Green/Orange)
+- Phase 4: white flash overlay, 4 clones absorbed toward cloud center (scale 0, alpha 0), camera shake (1.0s intensity 6.0)
+- Phase 5: Cloud Karim + pedestal hidden, Exodia placeholder spawns (scale pop 0.1→2.5, golden tint)
+- Phase 6: fade from white, `exodia_forms` dialog plays (3 lines, Exodia at voice_pitch 0.3)
+- Boss defeated state persisted: if `exodia_boss_defeated` is true on level load, cloud+pedestal hidden and placeholder spawned
+
+**New dialog files (2):**
+- `pre_boss/karims_arrive.tres` — 6 lines (Purple 0.95, Red 0.9, Green 0.8, Orange 1.1)
+- `pre_boss/exodia_forms.tres` — 3 lines (Exodia 0.3, all caps dramatic entrance)
+
+**Karim clone system:**
+- Temporary Sprite2D nodes (not NPC instances) with modulate colors matching existing NPCs
+- Purple: Color(0.5, 0.1, 0.8), Green: Color(0.3, 0.8, 0.3), Red: Color(1.0, 0.3, 0.3), Orange: Color(1.0, 0.5, 0.0)
+- Cleaned up (queue_free) after absorption sequence
+
+### Session 62 (2026-02-23) — Exodia Step 3: Cloud Karim + Pedestal System
+
+**Cloud Karim NPC (`CloudKarimNPC.gd`):**
+- Created manual NPC script (extends NPC) with pedestal interaction logic
+- Dialog selection: intro → tip_menu/item_placed → all_placed (boss cutscene trigger)
+- Item placement: checks quest completion keys as "has item" proxy, sets pedestal keys
+- Tip ChoicePanel: dynamically filters to only show unplaced items, each tip hints at source quest
+- Auto-removes (`queue_free()`) on `quest_exodia_complete`
+
+**Pedestal system:**
+- MysticalLevelController updated with pedestal slot visual management
+- Listens to `quest_state_changed` for pedestal keys, toggles Slot1/2/3 visibility
+- Slot colors: orange (Butt Plug), red (Dildo), purple (Vibrator)
+
+**Cloud Karim dialogs (7 .tres files):**
+- `intro.tres` (8 lines, one_shot) — "Gegroet... Zoek deze objecten voor mij"
+- `tip_menu.tres` (2 lines) — "Moet je tips over de locaties van de objecten hebben?"
+- `tip_dildo.tres` (2 lines) — hints at Red/Green Karim conflict
+- `tip_vibrator.tres` (3 lines) — hints at Three-Headed Karim + purple
+- `tip_butt_plug.tres` (4 lines) — hints at lonely orange man + future tech
+- `item_placed.tres` (1 line) — acknowledgment when item auto-placed
+- `all_placed.tres` (3 lines, one_shot) — "Nu kan ik ontwaken" → triggers boss cutscene (Step 4)
+
+**Quest JSON:**
+- Created `quest_exodia_karim.json` — prerequisites on all 3 quests, 6 state keys (quest_exodia_active, 3 pedestal keys, exodia_boss_defeated, quest_exodia_complete), parallel_group on pedestal items
+
+**Cloud Karim visuals (cloud sprite):**
+- Layered 7 Puff Sprite2D children on NPC.tscn instance (same technique as Three-Headed Karim)
+- White-blue tint, translucent puffs forming a cloud silhouette
+- Scale 2.5x for god-like presence, z_index=-1 behind pedestal
+- Gentle floating bob animation (sin wave on Y position)
+
+**Camera + tip flow polish:**
+- Overrode `_interact()` — camera pans to midpoint between player and Cloud Karim before dialog starts (full overview)
+- Added `_start_centered_dialog()` — tip dialogs from ChoicePanel also get centered camera
+- Fixed double tip menu bug: `_in_tip_flow` flag keeps `_interacting=true` through tip_menu → ChoicePanel → tip dialog chain
+
+**Files created:** `npcs/CloudKarimNPC.gd`, `levels/level_mystical/dialogs/cloud_karim/*.tres` (7 files), `data/quests/quest_exodia_karim.json`
+**Files modified:** `levels/level_mystical/MysticalLevel.tscn`, `levels/level_mystical/MysticalLevelController.gd`, `docs/quest-registry.md`, `docs/status.md`
+
+### Session 61 (2026-02-23) — Exodia Step 2: Mystical Realm level shell
+
+**New level: The Mystical Realm (`level_mystical`):**
+- Created `levels/level_mystical/MysticalLevel.tscn` — flat ground 800px, cosmic sky shader, stone pedestal placeholder (3 item slots), boss arena markers, vignette overlay
+- Created `MysticalLevelController.gd` — basic atmosphere controller (camera-tracked sky + vignette, same pattern as JungleLevelController). No boss/pedestal logic yet.
+- Created `shaders/mystical_sky.gdshader` — permanent cosmic sky with twinkling stars, drifting purple/blue/gold nebula wisps. No day/night cycle.
+- Added `level_mystical` to `LevelDefs.gd` (star_pos below jungle on constellation map, connected to jungle)
+
+**Portal system:**
+- Added white-gold portal (`MysticalPortal`) to JungleLevel.tscn at x=1500 (far east). Starts invisible.
+- `JungleLevelController._update_mystical_portal()` — shows portal when all 3 quest rewards obtained (`quest_red_karim_complete` AND `quest_purple_karim_complete` AND `quest_orange_karim_complete`). Also controls `monitoring` to prevent interaction when hidden.
+- Return portal in MysticalLevel points back to `level_jungle` (white-gold color).
+
+**Level select mouse support:**
+- Added mouse click to LevelSelectScene — click a star to select it, click again to confirm/launch
+- Uses `_input()` handler (runs before GUI processing) with 30px click radius
+- Only unlocked/completed stars are clickable. BackButton still works (clicks not near stars pass through)
+- Play prompt updated to "Click or press ENTER to play"
+
+**Files created:** `levels/level_mystical/MysticalLevel.tscn`, `levels/level_mystical/MysticalLevelController.gd`, `shaders/mystical_sky.gdshader`
+**Files modified:** `data/LevelDefs.gd`, `levels/level_jungle/JungleLevel.tscn`, `levels/level_jungle/JungleLevelController.gd`, `ui/menus/LevelSelectScene.gd`, `CLAUDE.md`, `docs/quest-registry.md`
+
+### Session 60 (2026-02-23) — Exodia Step 1 (Orange Karim) + 3 bug fixes
+
+**Exodia Questline Step 1 — De Butt Plug Quest (COMPLETE):**
+- Created `OrangeKarimNPC.gd` (extends NPC, manual dialog selection — checks `Player._equipped_item_id == "rocket_boots"`)
+- Created 6 dialog .tres files in `levels/level_jungle/dialogs/orange_karim/` (not_ready, intro, waiting, complete, done, post_exodia)
+- Created `quest_orange_karim.json` with prerequisites, state_keys, dialog_selection, on_dialog_end
+- Placed Orange Karim in `JungleHouseInterior.tscn` (x=150, orange modulate)
+- Created `reformed_plus.tres` and `post_exodia.tres` for Green Karim
+- Updated `quest_red_karim.json` Green Karim dialog_selection with new top-priority conditions
+- Updated `quest-registry.md` with Orange Karim NPC, quest flow, dialog registry, state keys
+
+**Bug fix 1 — Spawn dialog auto-plays:**
+- Removed auto-play spawn dialog from `GameScene._initial_spawn()` (was hardcoding `{level_id}/spawn` dialog on every level load)
+- Levels should use DialogTrigger Area2D nodes for all dialogs
+
+**Bug fix 2 — Gate wall reappears after scene switch:**
+- `ProgressionGate.gd` now persists open state to ProgressData via `gate_{gate_id}` quest key
+- On `_ready()`, checks if gate was previously opened and auto-opens (transparent + collision disabled)
+
+**Bug fix 3 — Equipped item lost on scene transition:**
+- Added `ProgressData.equipped_item` field (save/load/reset)
+- `Player._on_item_picked_up()` now persists equipped item ID to save data
+- New `Player._restore_equipped_item()` called in `_ready()` — reads save, looks up ItemDefs, rebuilds composited sprites + fuel
+- New `HUD._restore_equipped_item()` called in `_ready()` — restores icon, item frame, fuel bar visibility
+- `Pickup._ready()` checks `ProgressData.equipped_item` and `queue_free()`s if already collected
+
+**Files created:** `npcs/OrangeKarimNPC.gd`, 6 dialog .tres (orange_karim), `quest_orange_karim.json`, `reformed_plus.tres`, `post_exodia.tres` (green_karim)
+**Files modified:** `Player.gd`, `HUD.gd`, `Pickup.gd`, `ProgressData.gd`, `ProgressionGate.gd`, `GameScene.gd`, `JungleHouseInterior.tscn`, `quest_red_karim.json`, `quest-registry.md`
+
+### Session 59 (2026-02-23) — Fix enemy combat bugs, add knockback
+
+**Three combat bugs fixed:**
+1. `Enemy.take_damage()` never called `die()` — death only happened after hurt stun timer, but repeated stomps reset it every frame. Fix: check `health <= 0` and call `die()` immediately.
+2. `Player.stomp_bounce()` didn't call `apply_movement()` — `is_on_floor()` stayed true next frame, resetting velocity_y=0. Fix: transition to Jump + call `apply_movement()` (same pattern as `start_jump()`).
+3. `Enemy._check_player_contact()` called `take_damage(amount)` without position — no player knockback on enemy-side contact. Fix: pass `global_position` + call `knockback_from()`.
+
+**Knockback system added:**
+- Player knockback on contact damage: `PLAYER_KNOCKBACK_H=120`, `PLAYER_KNOCKBACK_V=-100`
+- `Enemy.knockback_from(source_pos)` — push without damage, used on both contact paths
+- Enemy always knocked back on contact (even during player i-frames)
+- `Player.take_damage()` now accepts optional `from_position` for directional knockback
+
+**Timing tuning:**
+- Split `HURT_INVULN_TIME` (0.3s i-frames) from `HURT_STUN_TIME` (0.15s movement lock)
+- New `hurt_stun_timer` on Player, ticked alongside `hurt_invuln_timer`
+- HurtState exits on `hurt_stun_timer <= 0` (not invuln timer)
+
+**Files modified:** `Player.gd`, `HurtState.gd`, `Enemy.gd`, `Constants.gd`
+
+### Session 58 (2026-02-23) — Fix enemy ground-phasing collision bug
+
+**Changes made (all still in working tree, uncommitted):**
+
+1. Player collision_layer 3 → 2 (Player only). Updated 6 Area2D triggers from mask 1 → 2: `NPC.tscn`, `Door.tscn`, `Portal.tscn`, `Pickup.gd`, `ProgressionTrigger.gd`, `DialogTrigger.gd`.
+2. Player collision_mask 1 → 5 (World + Enemy). Also forced `collision_mask = 5` in `Player._ready()` to bypass .tscn cache.
+3. Enemy collision_mask 1 → 3 (World + Player). Ground-phase guard in `Enemy.apply_movement()`.
+4. Stomp + contact detection moved from Enemy hitbox Area2D `get_overlapping_bodies()` to slide collisions on BOTH sides: `Player._check_enemy_collisions()` (stomp via floor normal, contact via wall normal) + `Enemy._check_player_contact()` (contact when enemy walks into player).
+5. DashState: enemy push on dash collision, `_skip_enemy_contact` flag prevents double-hit.
+
+**Status: NOT WORKING.** Player-side slide collision detection not firing (stomp, contact, dash push all non-functional). Debug prints added to `Player._check_enemy_collisions()`. Next step: run F11, interact with slime, read `[DEBUG]` output to determine if `get_slide_collision_count()` returns 0 or if the `is Enemy` type check fails.
+
+**Bonus fix (confirmed working):** Enemy FloorChecker (mask=1) no longer falsely detects the player as "floor."
+
+### Session 57 (2026-02-23) — Stomp-to-kill combat, attack system removed
+
+**Melee/ranged attack system removed:**
+- Deleted `player/states/AttackState.gd`, `player/AttackHitbox.gd`, `player/Projectile.tscn`, `player/Projectile.gd`
+- Removed Attack state node, SlashEffect, AttackHitbox from Player.tscn
+- Removed attack vars/timers/input handlers from Player.gd
+- Removed ATTACK_* constants from Constants.gd
+- Removed attack/ranged_attack input actions from project.godot
+- Removed "Attack" case from StateMachine.gd
+
+**Stomp-to-kill mechanic added:**
+- `Constants.STOMP_DAMAGE = 1.0`, `Constants.STOMP_BOUNCE_FORCE = 200.0`
+- `Player.stomp_bounce()` — upward velocity + apex hang + stretch visual
+- `Enemy._check_player_contact()` — continuous overlap detection in `_physics_process` with cooldown
+- Stomp detection: player falling (`velocity_y > 0`) AND player feet above enemy midpoint (`global_position.y < enemy.y - 4`)
+- Stomp applies no knockback to enemy (prevents phasing through ground)
+- Side contact deals `contact_damage` to player
+
+**Enemy system fixes (from previous session carry-over):**
+- Fixed `sign()` Variant inference errors (`var kb_dir: float = sign(...)`)
+- Typed `EnemyState.enemy: Enemy` and `EnemyState.state_machine: EnemyStateMachine` to fix cascading Variant inference
+- Fixed Enemy.tscn `collision_layer` from 5 (World+Enemy) to 4 (Enemy only) — player was standing on enemies like solid ground
+
+**Known bug:** Enemy can phase through ground in some stomp+contact-damage scenarios.
+
+**Files deleted:** `player/states/AttackState.gd`, `player/AttackHitbox.gd`, `player/Projectile.tscn`, `player/Projectile.gd`
+**Files modified:** `player/Player.gd`, `player/Player.tscn`, `player/states/StateMachine.gd`, `core/Constants.gd`, `enemies/Enemy.gd`, `enemies/Enemy.tscn`, `enemies/states/EnemyState.gd`, `enemies/states/EnemyStateMachine.gd`, `enemies/states/EnemyChaseState.gd`, `project.godot`
+
+---
+
+### Session 56 (2026-02-22) — QuestLogScene migrated to QuestManager
+
+**QuestLogScene cleanup (safe part of Session 51 plan):**
+- Replaced `QuestDefs.ALL` with `QuestManager.get_all_quests()` in QuestLogScene.gd (3 references)
+- Fixed reward field: JSON uses `{"type": "item", "item_id": "..."}` — now reads `reward.item_id`
+- Added `_all_quests` cache so build-once + refresh pattern still works correctly
+- Deleted `godot_port/data/QuestDefs.gd` — only consumer was QuestLogScene
+- Archived `docs/scenario_quest_implementation_plan.md` → `docs/archive/scenario-quest-plan.md` (stale pre-QuestManager plan)
+
+**Decision: leave 4 NPC scripts manual** — BlueKarim (shop), BrownKarim (spooky vanish), HydraBody (dual-condition), ThreeHeadedKarim (ascension) all have bespoke behavior that QuestManager's generic actions can't fully express. High risk of breaking Purple Karim quest chain for little architectural gain.
+
+**Files modified:** `godot_port/ui/quest_log/QuestLogScene.gd`
+**Files deleted:** `godot_port/data/QuestDefs.gd`
+**Files moved:** `docs/scenario_quest_implementation_plan.md` → `docs/archive/scenario-quest-plan.md`
+**Headless validation:** Clean (no errors)
+
+---
+
+### Session 54 (2026-02-22) — Graph travel nodes + universal level labels
+
+**Dashboard graph improvements:**
+- All NPC nodes now show `@ Level` label (not just remote NPCs) — purple_karim shows `@ Town`, hydra_body_1 shows `@ Jungle`, etc.
+- Travel indicator nodes (`>> Jungle`, `>> Town`) inserted between level transitions within a quest
+- Cyan dashed styling for travel nodes and edges
+- Detection: collects NPC (rank, node_id, level) per quest, groups by rank, inserts travel node at midpoint when level changes
+- Unicode fix: `->` (U+2192) crashes on Windows cp1252 — replaced with ASCII `>>`
+
+**Files modified:** `godot_port/tools/quest_tool.py`, `docs/game-bible.html` (auto-regenerated)
+**Commit:** 6d993da
+
+---
 
 ### Session 53 (2026-02-22) — Dashboard graph fix + NPC level indicators
 

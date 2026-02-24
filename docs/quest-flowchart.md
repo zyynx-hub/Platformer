@@ -16,6 +16,29 @@ flowchart TD
     EVENT_BROWN_KARI_S -->|"brown_karim: spooky"| EVENT_BROWN_KARI_BROWN_KARIM_VANISHED("brown_karim_vanished")
   end
 
+  subgraph QUEST_EXODIA_KAR["The Grand Quest of Exodia Karim"]
+    direction LR
+    QUEST_EXODIA_KAR_S([start])
+    QUEST_EXODIA_KAR_S --> QUEST_EXODIA_KAR_QUEST_EXODIA_ACTIVE("quest_exodia_active")
+    QUEST_EXODIA_KAR_QUEST_EXODIA_ACTIVE --> QUEST_EXODIA_KAR_PEDESTAL_BUTT_PLUG("pedestal_butt_plug")
+    QUEST_EXODIA_KAR_PEDESTAL_BUTT_PLUG --> QUEST_EXODIA_KAR_PEDESTAL_ITEMS_JOIN{all done?}
+    QUEST_EXODIA_KAR_QUEST_EXODIA_ACTIVE --> QUEST_EXODIA_KAR_PEDESTAL_DILDO("pedestal_dildo")
+    QUEST_EXODIA_KAR_PEDESTAL_DILDO --> QUEST_EXODIA_KAR_PEDESTAL_ITEMS_JOIN{all done?}
+    QUEST_EXODIA_KAR_QUEST_EXODIA_ACTIVE --> QUEST_EXODIA_KAR_PEDESTAL_VIBRATOR("pedestal_vibrator")
+    QUEST_EXODIA_KAR_PEDESTAL_VIBRATOR --> QUEST_EXODIA_KAR_PEDESTAL_ITEMS_JOIN{all done?}
+    QUEST_EXODIA_KAR_PEDESTAL_ITEMS_JOIN --> QUEST_EXODIA_KAR_EXODIA_BOSS_DEFEATED("exodia_boss_defeated")
+    QUEST_EXODIA_KAR_EXODIA_BOSS_DEFEATED --> QUEST_EXODIA_KAR_QUEST_EXODIA_COMPLETE("quest_exodia_complete")
+    QUEST_EXODIA_KAR_QUEST_EXODIA_COMPLETE --> QUEST_EXODIA_KAR_REWARD(["reward: Master of Pleasure"])
+  end
+
+  subgraph QUEST_ORANGE_KAR["De Butt Plug Quest"]
+    direction LR
+    QUEST_ORANGE_KAR_S([start])
+    QUEST_ORANGE_KAR_S -->|"orange_karim: intro"| QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_ACTIVE("quest_orange_karim_active")
+    QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_ACTIVE -->|"orange_karim: complete"| QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_COMPLETE("quest_orange_karim_complete")
+    QUEST_ORANGE_KAR_QUEST_ORANGE_KARIM_COMPLETE --> QUEST_ORANGE_KAR_REWARD(["reward: Butt Plug"])
+  end
+
   subgraph QUEST_PURPLE_KAR["Purple Karim's Debt"]
     direction LR
     QUEST_PURPLE_KAR_S([start])
@@ -39,4 +62,10 @@ flowchart TD
     QUEST_RED_KARIM_QUEST_GREEN_KARIM_CONFRONTED -->|"red_karim: complete"| QUEST_RED_KARIM_QUEST_RED_KARIM_COMPLETE("quest_red_karim_complete")
     QUEST_RED_KARIM_QUEST_RED_KARIM_COMPLETE --> QUEST_RED_KARIM_REWARD(["reward: Dildo"])
   end
+
+  %% Cross-quest prerequisites
+  QUEST_RED_KARIM_REWARD -.->|"quest_red_karim_complete"| QUEST_EXODIA_KAR_S
+  QUEST_PURPLE_KAR_REWARD -.->|"quest_purple_karim_complete"| QUEST_EXODIA_KAR_S
+  QUEST_ORANGE_KAR_REWARD -.->|"quest_orange_karim_complete"| QUEST_EXODIA_KAR_S
+  QUEST_RED_KARIM_REWARD -.->|"quest_red_karim_complete"| QUEST_ORANGE_KAR_S
 ```

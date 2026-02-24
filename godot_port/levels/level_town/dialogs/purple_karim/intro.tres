@@ -66,5 +66,5 @@ voice_pitch = 0.95
 [resource]
 script = ExtResource("1_seq")
 description = "Purple Karim explains his debt and gives the quest"
-one_shot = true
+one_shot = false
 lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10")])

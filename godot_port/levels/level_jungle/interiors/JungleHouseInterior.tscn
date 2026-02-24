@@ -1,9 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://npcs/Door.tscn" id="1_door"]
+[ext_resource type="PackedScene" uid="uid://bnvq1uurcis38" path="res://npcs/NPC.tscn" id="2_npc"]
+[ext_resource type="Script" path="res://npcs/OrangeKarimNPC.gd" id="3_orange"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(400, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(8, 200)
 
 [node name="JungleHouseInterior" type="Node2D"]
 
@@ -36,7 +41,29 @@ position = Vector2(-20, -120)
 [node name="BoundsMax" type="Marker2D" parent="."]
 position = Vector2(180, 30)
 
+[node name="OrangeKarim" parent="." instance=ExtResource("2_npc")]
+position = Vector2(150, 0)
+script = ExtResource("3_orange")
+npc_name = "Orange Karim"
+
+[node name="Sprite" parent="OrangeKarim" index="0"]
+modulate = Color(1.0, 0.5, 0.0, 1)
+
 [node name="ExitDoor" parent="." instance=ExtResource("1_door")]
 position = Vector2(10, 0)
 destination_scene = "res://levels/level_jungle/JungleLevel.tscn"
 is_exit_door = true
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+position = Vector2(-120, -100)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+position = Vector2(280, -100)
+shape = SubResource("RectangleShape2D_wall")
+
+[editable path="OrangeKarim"]

@@ -16,6 +16,12 @@ var _sparkle_timer: float = 0.0
 var _sparkle_tex: ImageTexture = null
 
 func _ready() -> void:
+	# If this item is already equipped, don't show the pickup again
+	var pd := ProgressData.new()
+	if pd.equipped_item == item_id:
+		queue_free()
+		return
+
 	var item_def := ItemDefs.get_item(item_id)
 	if item_def.is_empty():
 		queue_free()
@@ -36,7 +42,7 @@ func _ready() -> void:
 
 	# Detect player overlap
 	collision_layer = 0
-	collision_mask = 1  # player is on layer 1
+	collision_mask = 2  # player is on layer 2
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 

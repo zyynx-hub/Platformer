@@ -14,7 +14,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	collision_layer = 0
-	collision_mask = 1  # player is on layer 1
+	collision_mask = 2  # player is on layer 2
 	body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body: Node2D) -> void:

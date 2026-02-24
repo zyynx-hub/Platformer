@@ -27,6 +27,9 @@ const COLOR_TOWN := Color(1.0, 0.8, 0.4, 0.9)
 const COLOR_TOWN_GLOW := Color(1.0, 0.85, 0.5, 1.0)
 const TOWN_ICON_SIZE := 10.0
 
+# Mouse
+const CLICK_RADIUS := 30.0
+
 # Animation
 const PULSE_SPEED := 2.0
 const GLOW_RADIUS := 24.0
@@ -223,9 +226,26 @@ func _draw_town_icon(pos: Vector2, state: String, is_selected: bool) -> void:
 
 # --- Input / Navigation -------------------------------------------------------
 
+func _input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
+	# Mouse click — select star or confirm if already selected
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var clicked_index := _find_star_at(event.position)
+		if clicked_index >= 0:
+			if clicked_index == _selected_index:
+				_on_level_confirm()
+			else:
+				_selected_index = clicked_index
+				EventBus.sfx_play.emit("ui_tick", 0.0)
+				_update_info_panel()
+			get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if Engine.is_editor_hint():
 		return
+
 	if event.is_action_pressed("pause"):
 		_on_back()
 		get_viewport().set_input_as_handled()
@@ -274,6 +294,21 @@ func _navigate(dir: Vector2) -> void:
 		_selected_index = best_index
 		EventBus.sfx_play.emit("ui_tick", 0.0)
 		_update_info_panel()
+
+
+func _find_star_at(pos: Vector2) -> int:
+	var best_index := -1
+	var best_dist := CLICK_RADIUS
+	for i in range(LevelDefs.ALL.size()):
+		var id: String = LevelDefs.ALL[i]["id"]
+		if _level_states.get(id) == "locked":
+			continue
+		var star_pos: Vector2 = _star_positions[id]
+		var dist := pos.distance_to(star_pos)
+		if dist < best_dist:
+			best_dist = dist
+			best_index = i
+	return best_index
 
 
 func _on_level_confirm() -> void:
@@ -328,7 +363,7 @@ func _update_info_panel() -> void:
 			play_prompt_label.visible = true
 			play_prompt_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.7, 0.5))
 		else:
-			play_prompt_label.text = "Press ENTER or SPACE to play"
+			play_prompt_label.text = "Click or press ENTER to play"
 			play_prompt_label.visible = true
 			play_prompt_label.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0, 0.7))
 

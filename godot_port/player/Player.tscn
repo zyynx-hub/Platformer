@@ -77,6 +77,8 @@ animations = [{
 }]
 
 [node name="Player" type="CharacterBody2D" unique_id=906924491]
+collision_layer = 2
+collision_mask = 5
 script = ExtResource("1_player_script")
 
 [node name="Sprite2D" type="AnimatedSprite2D" parent="." unique_id=1412124692]
@@ -142,3 +144,4 @@ script = ExtResource("13_dead_state")
 
 [node name="Spawn" type="Node" parent="StateMachine"]
 script = ExtResource("14_spawn_state")
+

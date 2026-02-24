@@ -30,6 +30,9 @@ var seen_dialogs: Array[String] = []
 # Quest state flags
 var quest_states: Dictionary = {}
 
+# Equipped item (persisted across scene transitions)
+var equipped_item: String = ""
+
 # Shop
 var coins: int = 0
 var purchased_items: Array[String] = []
@@ -63,6 +66,7 @@ func load_progress() -> void:
 	if cfg.has_section("quests"):
 		for key in cfg.get_section_keys("quests"):
 			quest_states[key] = cfg.get_value("quests", key, false)
+	equipped_item = cfg.get_value("equipment", "equipped_item", "")
 	coins = cfg.get_value("shop", "coins", 0)
 	purchased_items = cfg.get_value("shop", "purchased_items", [] as Array[String])
 
@@ -81,6 +85,7 @@ func save_progress() -> void:
 	cfg.set_value("dialogs", "seen", seen_dialogs)
 	for key in quest_states:
 		cfg.set_value("quests", key, quest_states[key])
+	cfg.set_value("equipment", "equipped_item", equipped_item)
 	cfg.set_value("shop", "coins", coins)
 	cfg.set_value("shop", "purchased_items", purchased_items)
 	cfg.save(SAVE_PATH)
@@ -158,6 +163,7 @@ func reset_all_progress() -> void:
 	completed_levels.clear()
 	seen_dialogs.clear()
 	quest_states.clear()
+	equipped_item = ""
 	coins = 0
 	purchased_items.clear()
 	save_progress()

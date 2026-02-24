@@ -10,7 +10,8 @@ extends "res://npcs/WanderingNPC.gd"
 
 func _ready() -> void:
 	var pd := ProgressData.new()
-	if pd.get_quest(state_key):
+	# Only stay removed if the quest was actually accepted AND this body was dismissed
+	if pd.get_quest("quest_purple_karim_active") and pd.get_quest(state_key):
 		queue_free()
 		return
 	super._ready()
@@ -18,7 +19,12 @@ func _ready() -> void:
 
 func _on_dialog_ended(ended_dialog_id: String) -> void:
 	if ended_dialog_id == dialog_id:
-		_fade_and_vanish()
+		# Only fade and set state when the purple karim quest is active.
+		# Without the quest, dialog plays normally but the body stays.
+		if ProgressData.new().get_quest("quest_purple_karim_active"):
+			_fade_and_vanish()
+		else:
+			super._on_dialog_ended(ended_dialog_id)
 	else:
 		super._on_dialog_ended(ended_dialog_id)
 

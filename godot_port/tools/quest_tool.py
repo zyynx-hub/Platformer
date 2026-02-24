@@ -203,7 +203,7 @@ def validate(quests: dict) -> int:
         actually_set = get_set_keys(q)
         for sk in q.get("state_keys", []):
             k = sk["key"]
-            if k not in actually_set:
+            if k not in actually_set and not sk.get("set_by_code", False):
                 errs.append(f"state_key '{k}' is declared but no action sets it in this quest")
 
         if errs:

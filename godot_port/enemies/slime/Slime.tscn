@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://enemies/Enemy.tscn" id="1_enemy_scene"]
+[ext_resource type="Script" path="res://enemies/slime/Slime.gd" id="2_slime_script"]
+
+[sub_resource type="GradientTexture2D" id="slime_tex"]
+width = 16
+height = 16
+
+[node name="Slime" instance=ExtResource("1_enemy_scene")]
+script = ExtResource("2_slime_script")
+max_health = 2.0
+contact_damage = 1.0
+patrol_speed = 25.0
+chase_speed = 40.0
+idle_duration = 2.0
+
+[node name="Sprite" parent="." index="0"]
+modulate = Color(0.2, 0.8, 0.3, 1)
+texture = SubResource("slime_tex")

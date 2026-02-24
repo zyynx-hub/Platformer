@@ -67,13 +67,66 @@ header code { color: #a5b4fc; }
 <body>
 <header>
   <h1>Quest Registry &mdash; AnimePlatformer</h1>
-  <p>Auto-generated 2026-02-22 &mdash; <code>tools/quest_tool.py --html --write</code>. Source of truth: <code>godot_port/data/quests/*.json</code></p>
+  <p>Auto-generated 2026-02-24 &mdash; <code>tools/quest_tool.py --html --write</code>. Source of truth: <code>godot_port/data/quests/*.json</code></p>
 </header>
 <div id="search-bar">
   <input type="text" id="search" placeholder="Filter by name, ID, NPC, key..." oninput="filterCards()" autofocus />
-  <span class="stats" id="stats">3 loaded</span>
+  <span class="stats" id="stats">5 loaded</span>
 </div>
 <div id="quest-list">
+<div class="card type-quest" data-search="quest_orange_karim de butt plug quest level_jungle quest_orange_karim_active quest_orange_karim_complete quest_orange_karim_active player accepted orange karim&#x27;s tech challenge quest_orange_karim_complete butt plug reward given orange_karim giver butt plug">
+  <div class="card-header" onclick="toggleCard(this)">
+    <div class="card-title">
+      <div class="card-name">De Butt Plug Quest</div>
+      <div class="card-id">quest_orange_karim</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-quest">quest</span><span class="badge badge-prereq">prereqs</span><span class="chevron">&#9654;</span></div>
+  </div>
+  <div class="card-body">
+    <div class="section">
+      <div class="row"><span class="row-label">level</span><span class="row-value">level_jungle</span></div>
+      <div class="row"><span class="row-label">also</span><span class="row-value">level_1</span></div>
+      <div class="row"><span class="row-label">reward</span><span class="row-value"><span class="reward-item">Butt Plug</span></span></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Prerequisites</div>
+        <div><span class="key-chip">quest_red_karim_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">Quest Keys</div>
+        <div><span class="row-label">active</span><span class="key-chip active">quest_orange_karim_active</span></div><div><span class="row-label">complete</span><span class="key-chip complete">quest_orange_karim_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">NPCs (1)</div>
+        <div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">orange_karim</span>
+              <span class="npc-role">giver</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_exodia_complete=True]</span> &rarr; <span class="act-dialog">level_jungle/orange_karim/post_exodia</span></div><div class="sel-row"><span class="sel-cond">[quest_orange_karim_complete=True]</span> &rarr; <span class="act-dialog">level_jungle/orange_karim/done</span></div><div class="sel-row"><span class="sel-cond">[quest_orange_karim_active=True]</span> &rarr; <span class="act-dialog">level_jungle/orange_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_jungle/orange_karim/intro</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_jungle/orange_karim/not_ready</span></div>
+            <div class="sub-title">on dialog end</div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/orange_karim/intro</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_orange_karim_active</span></div>
+            </div><div class="on-end-block">
+              <div class="on-end-trigger">after <span class="act-dialog">level_jungle/orange_karim/complete</span>:</div>
+              <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_orange_karim_complete</span></div><div class="action"><span class="act-kw">item_popup</span> <span class="act-item">Butt Plug</span> <span class="act-meta">delay 0.5s</span></div>
+            </div>
+          </div>
+      </div>
+    <div class="section">
+        <div class="section-title">State Keys (2)</div>
+        <div class="sk-row">
+            <div><span class="key-chip">quest_orange_karim_active</span></div>
+            <div class="sk-meaning">Player accepted Orange Karim&#x27;s tech challenge</div>
+            <div class="sk-setby">orange_karim — after intro dialog ends</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">quest_orange_karim_complete</span></div>
+            <div class="sk-meaning">Butt Plug reward given</div>
+            <div class="sk-setby">orange_karim — after showing rocket boots</div>
+          </div>
+      </div>
+  </div>
+</div>
 <div class="card type-quest" data-search="quest_purple_karim purple karim&#x27;s debt level_town quest_purple_karim_active quest_purple_karim_complete quest_purple_karim_active player accepted purple karim&#x27;s debt delivery quest hydra_body_1_gone hydra body 1 has been dismissed and removed hydra_body_2_gone hydra body 2 has been dismissed and removed hydra_body_3_gone hydra body 3 has been dismissed and removed three_headed_karim_paid payment delivered to hydra karim; player should return to purple karim quest_purple_karim_complete quest fully resolved, vibrator reward given purple_karim giver hydra_body_1 target hydra_body_2 target hydra_body_3 target three_headed_karim boss vibrator">
   <div class="card-header" onclick="toggleCard(this)">
     <div class="card-title">
@@ -100,7 +153,7 @@ header code { color: #a5b4fc; }
               <span class="npc-id">purple_karim</span>
               <span class="npc-role">giver</span>
             </div>
-            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/done</span></div><div class="sel-row"><span class="sel-cond">[three_headed_karim_paid=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_active=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/purple_karim/intro</span></div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_exodia_complete=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/post_exodia</span></div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/done</span></div><div class="sel-row"><span class="sel-cond">[three_headed_karim_paid=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_purple_karim_active=True]</span> &rarr; <span class="act-dialog">level_town/purple_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/purple_karim/intro</span></div>
             <div class="sub-title">on dialog end</div><div class="on-end-block">
               <div class="on-end-trigger">after <span class="act-dialog">level_town/purple_karim/intro</span>:</div>
               <div class="action"><span class="act-kw">choice_panel</span> <span class="act-meta">&ldquo;Wil je zijn schuld betalen?&rdquo;</span> <span class="act-meta">delay 0.5s</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[0] Ja, ik doe het</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">set_key</span> <span class="key-chip">quest_purple_karim_active</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/purple_karim/accept</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[1] Nee, geen tijd</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/purple_karim/decline</span></div>
@@ -206,7 +259,7 @@ header code { color: #a5b4fc; }
               <span class="npc-id">red_karim</span>
               <span class="npc-role">giver</span>
             </div>
-            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/done</span></div><div class="sel-row"><span class="sel-cond">[quest_green_karim_confronted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/red_karim/intro</span></div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_exodia_complete=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/post_exodia</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/done</span></div><div class="sel-row"><span class="sel-cond">[quest_green_karim_confronted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/complete</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True]</span> &rarr; <span class="act-dialog">level_town/red_karim/waiting</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/red_karim/intro</span></div>
             <div class="sub-title">on dialog end</div><div class="on-end-block">
               <div class="on-end-trigger">after <span class="act-dialog">level_town/red_karim/intro</span>:</div>
               <div class="action"><span class="act-kw">choice_panel</span> <span class="act-meta">&ldquo;Will you help Red Karim?&rdquo;</span> <span class="act-meta">delay 0.5s</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[0] Accept the quest</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">set_key</span> <span class="key-chip">quest_red_karim_accepted</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/red_karim/accept</span></div><div class="action act-branch">&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-branch-label">[1] Decline</span></div><div class="action">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="act-kw">play_dialog</span> <span class="act-dialog">level_town/red_karim/decline</span></div>
@@ -219,7 +272,7 @@ header code { color: #a5b4fc; }
               <span class="npc-id">green_karim</span>
               <span class="npc-role">target</span>
             </div>
-            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/green_karim/reformed</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True, quest_green_karim_confronted=False]</span> &rarr; <span class="act-dialog">level_town/green_karim/confronted</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/green_karim/default</span></div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_exodia_complete=True]</span> &rarr; <span class="act-dialog">level_town/green_karim/post_exodia</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True, quest_orange_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/green_karim/reformed_plus</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_complete=True]</span> &rarr; <span class="act-dialog">level_town/green_karim/reformed</span></div><div class="sel-row"><span class="sel-cond">[quest_red_karim_accepted=True, quest_green_karim_confronted=False]</span> &rarr; <span class="act-dialog">level_town/green_karim/confronted</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_town/green_karim/default</span></div>
             <div class="sub-title">on dialog end</div><div class="on-end-block">
               <div class="on-end-trigger">after <span class="act-dialog">level_town/green_karim/confronted</span>:</div>
               <div class="action"><span class="act-kw">set_key</span> <span class="key-chip">quest_green_karim_confronted</span></div>
@@ -240,6 +293,69 @@ header code { color: #a5b4fc; }
             <div><span class="key-chip">quest_red_karim_complete</span></div>
             <div class="sk-meaning">Quest fully resolved, Dildo reward given</div>
             <div class="sk-setby">red_karim — after level_town/red_karim/complete ends</div>
+          </div>
+      </div>
+  </div>
+</div>
+<div class="card type-quest" data-search="quest_exodia_karim the grand quest of exodia karim level_mystical quest_exodia_active quest_exodia_complete quest_exodia_active player met cloud karim, quest to collect 3 items begun pedestal_butt_plug butt plug placed on stone pedestal pedestal_dildo dildo placed on stone pedestal pedestal_vibrator vibrator placed on stone pedestal exodia_boss_defeated exodia karim has been defeated in combat quest_exodia_complete entire exodia questline finished, weapon rewarded cloud_karim giver master of pleasure">
+  <div class="card-header" onclick="toggleCard(this)">
+    <div class="card-title">
+      <div class="card-name">The Grand Quest of Exodia Karim</div>
+      <div class="card-id">quest_exodia_karim</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-quest">quest</span><span class="badge badge-prereq">prereqs</span><span class="chevron">&#9654;</span></div>
+  </div>
+  <div class="card-body">
+    <div class="section">
+      <div class="row"><span class="row-label">level</span><span class="row-value">level_mystical</span></div>
+      <div class="row"><span class="row-label">also</span><span class="row-value">level_town, level_jungle</span></div>
+      <div class="row"><span class="row-label">reward</span><span class="row-value"><span class="reward-item">Master of Pleasure</span></span></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Prerequisites</div>
+        <div><span class="key-chip">quest_red_karim_complete</span><span class="key-chip">quest_purple_karim_complete</span><span class="key-chip">quest_orange_karim_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">Quest Keys</div>
+        <div><span class="row-label">active</span><span class="key-chip active">quest_exodia_active</span></div><div><span class="row-label">complete</span><span class="key-chip complete">quest_exodia_complete</span></div>
+      </div>
+    <div class="section">
+        <div class="section-title">NPCs (1)</div>
+        <div class="npc-block">
+            <div class="npc-header">
+              <span class="npc-id">cloud_karim</span>
+              <span class="npc-role">giver</span>
+            </div>
+            <div class="sub-title">dialog selection</div><div class="sel-row"><span class="sel-cond">[quest_exodia_complete=True]</span> &rarr; <span class="act-dialog">level_mystical/cloud_karim/done</span></div><div class="sel-row"><span class="sel-cond">[default]</span> &rarr; <span class="act-dialog">level_mystical/cloud_karim/intro</span></div>
+            
+          </div>
+      </div>
+    <div class="section">
+        <div class="section-title">State Keys (6)</div>
+        <div class="sk-row">
+            <div><span class="key-chip">quest_exodia_active</span></div>
+            <div class="sk-meaning">Player met Cloud Karim, quest to collect 3 items begun</div>
+            <div class="sk-setby">CloudKarimNPC — after intro dialog ends</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">pedestal_butt_plug</span> <span class="muted">[parallel: pedestal_items]</span></div>
+            <div class="sk-meaning">Butt Plug placed on stone pedestal</div>
+            <div class="sk-setby">CloudKarimNPC — auto on interact with pedestal while item obtained</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">pedestal_dildo</span> <span class="muted">[parallel: pedestal_items]</span></div>
+            <div class="sk-meaning">Dildo placed on stone pedestal</div>
+            <div class="sk-setby">CloudKarimNPC — same</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">pedestal_vibrator</span> <span class="muted">[parallel: pedestal_items]</span></div>
+            <div class="sk-meaning">Vibrator placed on stone pedestal</div>
+            <div class="sk-setby">CloudKarimNPC — same</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">exodia_boss_defeated</span></div>
+            <div class="sk-meaning">Exodia Karim has been defeated in combat</div>
+            <div class="sk-setby">MysticalLevelController — after boss death cutscene</div>
+          </div><div class="sk-row">
+            <div><span class="key-chip">quest_exodia_complete</span></div>
+            <div class="sk-meaning">Entire Exodia questline finished, weapon rewarded</div>
+            <div class="sk-setby">MysticalLevelController — after victory dialog + reward</div>
           </div>
       </div>
   </div>

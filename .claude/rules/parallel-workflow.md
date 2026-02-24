@@ -1,3 +1,7 @@
+---
+paths: ["**"]
+---
+
 # Parallel Workflow
 
 ## Starting a Parallel Session

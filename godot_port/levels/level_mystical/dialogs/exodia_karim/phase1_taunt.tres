@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3 uid="uid://jgbata5jknt3"]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="Resource_e3wg7"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Ah! Vuil schorem! Wie denk je wel niet dat je bent? IK BEN DE ULTIEME KARIM! IK! EN NIEMAND ANDERS!"
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Laten we eens kijken hoe je HIER mee omgaat!"
+voice_pitch = 0.4
+
+[resource]
+script = ExtResource("1_seq")
+description = "Exodia Phase 1 taunt — after first stomp"
+lines = Array[ExtResource("2_line")]([SubResource("Resource_e3wg7"), SubResource("line_2")])

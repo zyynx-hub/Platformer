@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "Je hebt ons gered! Oh mijn god..."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Orange Karim"
+text = "Jij held! Woohoo!"
+voice_pitch = 1.1
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Green Karim"
+text = "Goed werk... I guess."
+voice_pitch = 0.8
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "Top werk man! Lekker hoor!"
+voice_pitch = 0.9
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character_name = "Purple Karim"
+text = "We zijn allemaal anders, allemaal ons eigen persoon... ik zal er voortaan maar voor zorgen dat ik geen schulden meer krijg bij vage driekoppige Karims..."
+voice_pitch = 0.95
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character_name = "Orange Karim"
+text = "Vertel mij wat... misschien moet ik ook maar eens wat minder met de toekomst bezig zijn en meer met het heden."
+voice_pitch = 1.1
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "Nou, we steken deze ervaring mooi in onze zak dan. Green Karim, zin om over vrouwen te praten thuis?"
+voice_pitch = 0.9
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2_line")
+character_name = "Green Karim"
+text = "Rot op met je onzin! Altijd zeiken dat ik stil moet zijn! Ik wil... weet je wat? Waarom ook niet? Bepaalde dingen moeten we misschien matigen, maar we zijn nou eenmaal samen. Laten we er het beste van maken."
+voice_pitch = 0.8
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2_line")
+character_name = "Red Karim"
+text = "Zo is het! Nou jongens, maar eens tijd om naar huis te gaan."
+voice_pitch = 0.9
+
+[resource]
+script = ExtResource("1_seq")
+description = "Victory reunion — all 4 Karims freed from Exodia"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9")])

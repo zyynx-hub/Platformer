@@ -10,6 +10,7 @@ extends CanvasLayer
 
 var _was_paused: bool = false
 var _status_labels: Array[Label] = []  # cached per-quest status labels for refresh
+var _all_quests: Array = []  # cached from QuestManager on first build
 var _built: bool = false
 
 
@@ -20,7 +21,10 @@ func _ready() -> void:
 	EventBus.quest_log_requested.connect(_open)
 
 
-func _unhandled_input(event: InputEvent) -> void:
+# Use _input (not _unhandled_input) so quest log intercepts ESC before
+# PauseScene's _unhandled_input — PauseScene is added later in the tree
+# so its _unhandled_input fires first in reverse-tree-order.
+func _input(event: InputEvent) -> void:
 	if Engine.is_editor_hint():
 		return
 	if event.is_action_pressed("quest_log"):
@@ -44,6 +48,7 @@ func _open() -> void:
 
 func _close() -> void:
 	visible = false
+	AudioManager.play_ui_sfx("ui_tick")
 	if not _was_paused:
 		get_tree().paused = false
 
@@ -53,17 +58,18 @@ func _build_entries() -> void:
 		_refresh_status()
 		return
 	_built = true
+	_all_quests = QuestManager.get_all_quests()
 	var pd := ProgressData.new()
-	for quest in QuestDefs.ALL:
+	for quest in _all_quests:
 		_add_quest_entry(quest, pd)
 
 
 func _refresh_status() -> void:
 	var pd := ProgressData.new()
-	for i in QuestDefs.ALL.size():
+	for i in _all_quests.size():
 		if i >= _status_labels.size():
 			break
-		var quest := QuestDefs.ALL[i]
+		var quest: Dictionary = _all_quests[i]
 		var is_complete := pd.get_quest(quest["complete_key"])
 		var is_active   := pd.get_quest(quest["active_key"])
 		if is_complete:
@@ -120,7 +126,9 @@ func _add_quest_entry(quest: Dictionary, pd: ProgressData) -> void:
 
 	# Reward line
 	var reward_label := Label.new()
-	reward_label.text = "Reward: " + quest["reward"]
+	var reward = quest.get("reward", {})
+	var reward_text: String = reward.get("item_id", "Unknown") if reward is Dictionary else str(reward)
+	reward_label.text = "Reward: " + reward_text
 	reward_label.add_theme_font_size_override("font_size", 13)
 	reward_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.7, 0.8))
 	entry.add_child(reward_label)

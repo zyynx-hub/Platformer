@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Gegroet."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Ik ben de wolk der Karim."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Alle Karim's in deze wereld hebben mijn zegening."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Om het traject van wereld-dominatie van de Karim's te voltooien, heb ik drie objecten nodig."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Een object, bedoelt voor insertie. Maar slechts geschikt voor een specifiek gat..."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "De ander, wederom een insertie object, maar met meer flexibiliteit..."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "De laatste, een andere type object, gevoerd door electriciteit, maker van trillende bewegingen."
+voice_pitch = 0.15
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2_line")
+character_name = "Wolk der Karim"
+text = "Zoek deze objecten voor mij, en je beloning zal niet mals zijn."
+voice_pitch = 0.15
+
+[resource]
+script = ExtResource("1_seq")
+description = "Cloud Karim intro — sets quest_exodia_active"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8")])

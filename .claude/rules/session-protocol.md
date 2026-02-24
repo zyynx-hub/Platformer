@@ -1,3 +1,7 @@
+---
+paths: ["**"]
+---
+
 # Session Protocol
 
 ## Session Start

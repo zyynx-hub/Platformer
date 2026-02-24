@@ -8,6 +8,9 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(400, 16)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(8, 200)
+
 [node name="House2Interior" type="Node2D" unique_id=1179588705]
 
 [node name="Background" type="ColorRect" parent="." unique_id=516290814]
@@ -59,6 +62,18 @@ modulate = Color(1.0, 0.3, 0.3, 1)
 position = Vector2(10, 0)
 destination_scene = "res://levels/level_town/TownLevel.tscn"
 is_exit_door = true
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+position = Vector2(-120, -100)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+position = Vector2(280, -100)
+shape = SubResource("RectangleShape2D_wall")
 
 [editable path="GreenKarim"]
 [editable path="RedKarim"]

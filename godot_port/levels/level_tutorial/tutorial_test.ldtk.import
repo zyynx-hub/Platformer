@@ -1,0 +1,37 @@
+[remap]
+
+importer="ldtk.import"
+type="PackedScene"
+uid="uid://uura78hvdgkr"
+path="res://.godot/imported/tutorial_test.ldtk-b25e225e33d1af1592a3f01c50657158.scn"
+
+[deps]
+
+files=["res://levels/level_tutorial/tilesets/tileset_16px.res", "res://levels/level_tutorial/levels/Entities_demo.scn", "res://.godot/imported/tutorial_test.ldtk-b25e225e33d1af1592a3f01c50657158.scn"]
+
+source_file="res://levels/level_tutorial/tutorial_test.ldtk"
+dest_files=["res://.godot/imported/tutorial_test.ldtk-b25e225e33d1af1592a3f01c50657158.scn", "res://levels/level_tutorial/tilesets/tileset_16px.res", "res://levels/level_tutorial/levels/Entities_demo.scn", "res://.godot/imported/tutorial_test.ldtk-b25e225e33d1af1592a3f01c50657158.scn"]
+
+[params]
+
+World=""
+group_world_layers=false
+Level=""
+pack_levels=true
+Layer=""
+layers_always_visible=false
+Tileset=""
+tileset_custom_data=false
+integer_grid_tilesets=true
+atlas_texture_type=0
+Entity=""
+resolve_entityrefs=true
+use_entity_placeholders=false
+Post Import=""
+tileset_post_import="res://levels/shared/tileset_add_collision.gd"
+entities_post_import=""
+level_post_import=""
+world_post_import=""
+Debug=""
+force_tileset_reimport=false
+verbose_output=false

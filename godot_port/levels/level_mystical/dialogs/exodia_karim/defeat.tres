@@ -1,0 +1,76 @@
+[gd_resource type="Resource" script_class="DialogSequence" format=3]
+
+[ext_resource type="Script" uid="uid://kw02drnbl1h" path="res://data/DialogSequence.gd" id="1_seq"]
+[ext_resource type="Script" uid="uid://bu846m0x63vmq" path="res://data/DialogLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Nee..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Niet ik..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Waarom ik? Waarom niet iemand anders?"
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Ik wilde alleen het beste voor elke Karim... alle kleuren, alle liefde..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "We zouden samen een zijn... voor elkaar, met elkaar..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Samen sterk, nooit eenzaam, nooit alleen..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Mijn geduld, mijn kracht, mijn doel..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Alles in het niet, door de macht van een ander zink ik zelf in een oneindig dal, gedoemd tot eeuwig pijn en verlies..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Mijn tranen gaan verloren in de regen, zoals mijn doel vergeten zal worden door tijd..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_10"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "Dit is... mijn eeuwige bestemming... mijn..."
+voice_pitch = 0.4
+
+[sub_resource type="Resource" id="line_11"]
+script = ExtResource("2_line")
+character_name = "Exodia Karim"
+text = "... Einde."
+voice_pitch = 0.4
+
+[resource]
+script = ExtResource("1_seq")
+description = "Exodia Karim defeat monologue — sad rain, final words"
+one_shot = true
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11")])

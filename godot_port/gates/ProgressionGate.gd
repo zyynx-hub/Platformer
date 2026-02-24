@@ -16,6 +16,13 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	EventBus.gate_opened.connect(_on_gate_opened)
+	# Restore persisted open state so gates stay open across scene transitions
+	if not gate_id.is_empty():
+		var pd := ProgressData.new()
+		if pd.get_quest("gate_" + gate_id):
+			_opened = true
+			modulate.a = 0.0
+			_disable_collision()
 
 func _draw() -> void:
 	var shape_node = get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -29,6 +36,9 @@ func _on_gate_opened(id: String) -> void:
 	if id != gate_id or _opened:
 		return
 	_opened = true
+	# Persist so the gate stays open across scene transitions
+	if not gate_id.is_empty():
+		ProgressData.new().set_quest("gate_" + gate_id)
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(_disable_collision)

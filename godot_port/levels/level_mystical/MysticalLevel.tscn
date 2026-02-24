@@ -1,0 +1,577 @@
+[gd_scene format=3 uid="uid://dr2pj7fhftmxf"]
+
+[ext_resource type="Script" uid="uid://dojrscw0hdjr0" path="res://levels/level_mystical/MysticalLevelController.gd" id="1_controller"]
+[ext_resource type="Shader" uid="uid://d2jnufe2qmc8u" path="res://shaders/mystical_sky.gdshader" id="2_sky_shader"]
+[ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="3_vignette_shader"]
+[ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="4_portal"]
+[ext_resource type="PackedScene" uid="uid://bnvq1uurcis38" path="res://npcs/NPC.tscn" id="5_npc"]
+[ext_resource type="Script" uid="uid://ckrj6jsks41x" path="res://npcs/CloudKarimNPC.gd" id="6_cloud_karim"]
+[ext_resource type="Texture2D" uid="uid://c2ex083j4vhsg" path="res://assets/sprites/karim/karim_npc.png" id="7_karim"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/dash_swoosh.wav" id="8_swoosh"]
+[ext_resource type="PackedScene" uid="uid://c33dmnehlw3i7" path="res://enemies/exodia/ExodiaKarim.tscn" id="9_exodia"]
+[ext_resource type="PackedScene" path="res://levels/level_town/ambient/WeatherController.tscn" id="10_weather"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("2_sky_shader")
+shader_parameter/star_density = 80.0
+shader_parameter/star_brightness = 1.0
+shader_parameter/nebula_intensity = 0.3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(800, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(8, 300)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("3_vignette_shader")
+shader_parameter/strength = 0.5
+shader_parameter/softness = 0.45
+shader_parameter/radius = 0.5
+shader_parameter/tint = Color(0.1, 0.02, 0.15, 1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_slash"]
+size = Vector2(200, 250)
+
+[sub_resource type="Animation" id="Animation_cs_RESET"]
+resource_name = "RESET"
+length = 0.001
+
+[sub_resource type="Animation" id="Animation_cs_01"]
+resource_name = "seg_01_rumble"
+length = 0.6
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_01_rumble",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_02"]
+resource_name = "seg_02_purple_walks"
+length = 2.5
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_02_purple_walks",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_03"]
+resource_name = "seg_03_others_walk"
+length = 3.5
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_03_others_walk",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_04"]
+resource_name = "seg_04_absorption"
+length = 3.0
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_04_absorption",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_05"]
+resource_name = "seg_05_hydra_reveal"
+length = 3.5
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_05_hydra_reveal",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_06"]
+resource_name = "seg_06_assembly"
+length = 8.0
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_06_assembly",
+"args": []
+}]
+}
+
+[sub_resource type="Animation" id="Animation_cs_07"]
+resource_name = "seg_07_fight_start"
+length = 2.0
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"method": &"_seg_07_fight_start",
+"args": []
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_cutscene"]
+_data = {
+&"RESET": SubResource("Animation_cs_RESET"),
+&"seg_01_rumble": SubResource("Animation_cs_01"),
+&"seg_02_purple_walks": SubResource("Animation_cs_02"),
+&"seg_03_others_walk": SubResource("Animation_cs_03"),
+&"seg_04_absorption": SubResource("Animation_cs_04"),
+&"seg_05_hydra_reveal": SubResource("Animation_cs_05"),
+&"seg_06_assembly": SubResource("Animation_cs_06"),
+&"seg_07_fight_start": SubResource("Animation_cs_07")
+}
+
+[node name="MysticalLevel" type="Node2D" unique_id=747287582]
+script = ExtResource("1_controller")
+
+[node name="Sky" type="ColorRect" parent="." unique_id=355972281]
+unique_name_in_owner = true
+z_index = -100
+material = SubResource("ShaderMaterial_sky")
+offset_right = 1318.0
+offset_bottom = 599.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=1626723626]
+
+[node name="GroundShape" type="CollisionShape2D" parent="Ground" unique_id=822762609]
+position = Vector2(400, 8)
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="GroundVisual" type="ColorRect" parent="Ground" unique_id=1929845910]
+offset_left = -100.0
+offset_right = 900.0
+offset_bottom = 200.0
+mouse_filter = 2
+color = Color(0.15, 0.1, 0.2, 1)
+
+[node name="GroundLine" type="ColorRect" parent="Ground" unique_id=2111254203]
+offset_left = -100.0
+offset_top = -2.0
+offset_right = 900.0
+mouse_filter = 2
+color = Color(0.25, 0.15, 0.35, 1)
+
+[node name="StonePedestal" type="Node2D" parent="." unique_id=1426255826]
+unique_name_in_owner = true
+position = Vector2(400, 0)
+
+[node name="PedestalBase" type="ColorRect" parent="StonePedestal" unique_id=68668318]
+offset_left = -20.0
+offset_top = -24.0
+offset_right = 20.0
+mouse_filter = 2
+color = Color(0.35, 0.3, 0.4, 1)
+
+[node name="PedestalTop" type="ColorRect" parent="StonePedestal" unique_id=311919043]
+offset_left = -24.0
+offset_top = -26.0
+offset_right = 24.0
+offset_bottom = -24.0
+mouse_filter = 2
+color = Color(0.4, 0.35, 0.5, 1)
+
+[node name="Slot1" type="ColorRect" parent="StonePedestal" unique_id=1739257467]
+unique_name_in_owner = true
+visible = false
+offset_left = -14.0
+offset_top = -22.0
+offset_right = -8.0
+offset_bottom = -16.0
+mouse_filter = 2
+color = Color(0.9, 0.4, 0.2, 1)
+
+[node name="Slot2" type="ColorRect" parent="StonePedestal" unique_id=1661589768]
+unique_name_in_owner = true
+visible = false
+offset_left = -3.0
+offset_top = -22.0
+offset_right = 3.0
+offset_bottom = -16.0
+mouse_filter = 2
+color = Color(0.9, 0.2, 0.3, 1)
+
+[node name="Slot3" type="ColorRect" parent="StonePedestal" unique_id=1718983547]
+unique_name_in_owner = true
+visible = false
+offset_left = 8.0
+offset_top = -22.0
+offset_right = 14.0
+offset_bottom = -16.0
+mouse_filter = 2
+color = Color(0.5, 0.2, 0.9, 1)
+
+[node name="CloudKarim" parent="." unique_id=584110766 instance=ExtResource("5_npc")]
+unique_name_in_owner = true
+modulate = Color(0.85, 0.88, 1, 0.8)
+z_index = -1
+position = Vector2(400, -8.6976595)
+scale = Vector2(2.5, 2.5)
+script = ExtResource("6_cloud_karim")
+npc_name = "Wolk der Karim"
+dialog_id = "level_mystical/cloud_karim/intro"
+face_player_on_interact = false
+
+[node name="Sprite" parent="CloudKarim" index="0" unique_id=823545071]
+modulate = Color(0.9, 0.93, 1, 0.9)
+scale = Vector2(1.4, 1.4)
+
+[node name="Puff1" type="Sprite2D" parent="CloudKarim" unique_id=1708297415]
+modulate = Color(0.85, 0.88, 1, 0.8)
+show_behind_parent = true
+z_index = -1
+texture_filter = 1
+position = Vector2(-18, -4)
+scale = Vector2(1.1, 1)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="Puff2" type="Sprite2D" parent="CloudKarim" unique_id=1636072780]
+modulate = Color(0.88, 0.9, 1, 0.8)
+show_behind_parent = true
+z_index = -1
+texture_filter = 1
+position = Vector2(18, -4)
+scale = Vector2(1.1, 1)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+flip_h = true
+
+[node name="Puff3" type="Sprite2D" parent="CloudKarim" unique_id=225152182]
+modulate = Color(0.82, 0.85, 1, 0.7)
+show_behind_parent = true
+z_index = -1
+texture_filter = 1
+position = Vector2(-12, -12)
+scale = Vector2(0.9, 0.95)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="Puff4" type="Sprite2D" parent="CloudKarim" unique_id=1580877686]
+modulate = Color(0.82, 0.85, 1, 0.7)
+show_behind_parent = true
+z_index = -1
+texture_filter = 1
+position = Vector2(12, -12)
+scale = Vector2(0.9, 0.95)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+flip_h = true
+
+[node name="Puff5" type="Sprite2D" parent="CloudKarim" unique_id=992453150]
+modulate = Color(0.8, 0.82, 1, 0.6)
+show_behind_parent = true
+z_index = -2
+texture_filter = 1
+position = Vector2(-26, 0)
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="Puff6" type="Sprite2D" parent="CloudKarim" unique_id=410332825]
+modulate = Color(0.8, 0.82, 1, 0.6)
+show_behind_parent = true
+z_index = -2
+texture_filter = 1
+position = Vector2(26, 0)
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+flip_h = true
+
+[node name="Puff7" type="Sprite2D" parent="CloudKarim" unique_id=142529967]
+modulate = Color(0.78, 0.82, 1, 0.55)
+show_behind_parent = true
+z_index = -2
+texture_filter = 1
+position = Vector2(0, -18)
+scale = Vector2(1, 1.1)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="BossArena" type="Node2D" parent="." unique_id=1603249915]
+unique_name_in_owner = true
+
+[node name="CameraLeftLimit" type="Marker2D" parent="BossArena" unique_id=411514250]
+position = Vector2(200, -120)
+
+[node name="CameraRightLimit" type="Marker2D" parent="BossArena" unique_id=1938226521]
+position = Vector2(600, -120)
+
+[node name="ArenaLeft" type="Marker2D" parent="BossArena"]
+unique_name_in_owner = true
+position = Vector2(195, -16)
+
+[node name="ArenaRight" type="Marker2D" parent="BossArena"]
+unique_name_in_owner = true
+position = Vector2(605, -16)
+
+[node name="ArenaTopLeft" type="Marker2D" parent="BossArena"]
+unique_name_in_owner = true
+position = Vector2(195, -175)
+
+[node name="ArenaTopRight" type="Marker2D" parent="BossArena"]
+unique_name_in_owner = true
+position = Vector2(605, -175)
+
+[node name="ArenaCenter" type="Marker2D" parent="BossArena"]
+unique_name_in_owner = true
+position = Vector2(400, -16)
+
+[node name="DebugStateLabel" type="Label" parent="BossArena"]
+unique_name_in_owner = true
+visible = false
+z_index = 100
+offset_left = 360.0
+offset_top = -240.0
+offset_right = 440.0
+offset_bottom = -224.0
+text = "BossIdle"
+
+[node name="WeatherController" parent="." instance=ExtResource("10_weather")]
+unique_name_in_owner = true
+
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=1983019579]
+unique_name_in_owner = true
+z_index = 102
+material = SubResource("ShaderMaterial_vignette")
+offset_right = 1318.0
+offset_bottom = 599.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=63205703]
+position = Vector2(200, -16)
+
+[node name="BoundsMin" type="Marker2D" parent="." unique_id=1462968915]
+position = Vector2(-100, -300)
+
+[node name="BoundsMax" type="Marker2D" parent="." unique_id=1883874044]
+position = Vector2(900, 70)
+
+[node name="PortalBack" parent="." unique_id=661162350 instance=ExtResource("4_portal")]
+unique_name_in_owner = true
+position = Vector2(150, -24)
+destination_level_id = "level_town"
+portal_color = Color(1, 0.9, 0.6, 1)
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+position = Vector2(0, -150)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+position = Vector2(800, -150)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="ExodiaKarim" parent="." instance=ExtResource("9_exodia")]
+unique_name_in_owner = true
+visible = false
+position = Vector2(400, -16)
+
+[node name="CollisionShape" parent="ExodiaKarim" index="1"]
+disabled = true
+
+[node name="Hitbox" parent="ExodiaKarim" index="3"]
+monitoring = false
+
+[node name="CutsceneNodes" type="Node2D" parent="."]
+unique_name_in_owner = true
+visible = false
+
+[node name="PurpleClone" type="Sprite2D" parent="CutsceneNodes"]
+unique_name_in_owner = true
+modulate = Color(0.5, 0.1, 0.8, 1)
+z_index = 5
+texture_filter = 1
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="GreenClone" type="Sprite2D" parent="CutsceneNodes"]
+unique_name_in_owner = true
+modulate = Color(0.3, 0.8, 0.3, 1)
+z_index = 5
+texture_filter = 1
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="RedClone" type="Sprite2D" parent="CutsceneNodes"]
+unique_name_in_owner = true
+modulate = Color(1, 0.3, 0.3, 1)
+z_index = 5
+texture_filter = 1
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="OrangeClone" type="Sprite2D" parent="CutsceneNodes"]
+unique_name_in_owner = true
+modulate = Color(1, 0.5, 0, 1)
+z_index = 5
+texture_filter = 1
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="HydraReveal" type="Node2D" parent="CutsceneNodes"]
+unique_name_in_owner = true
+visible = false
+z_index = 5
+
+[node name="HydraMain" type="Sprite2D" parent="CutsceneNodes/HydraReveal"]
+unique_name_in_owner = true
+modulate = Color(0.3, 0.05, 0.5, 1)
+texture_filter = 1
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="LeftHead" type="Sprite2D" parent="CutsceneNodes/HydraReveal"]
+modulate = Color(0.3, 0.05, 0.5, 1)
+show_behind_parent = true
+texture_filter = 1
+position = Vector2(-14, -6)
+rotation = -0.3927
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+
+[node name="RightHead" type="Sprite2D" parent="CutsceneNodes/HydraReveal"]
+modulate = Color(0.3, 0.05, 0.5, 1)
+show_behind_parent = true
+texture_filter = 1
+position = Vector2(14, -6)
+rotation = 0.3927
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("7_karim")
+offset = Vector2(0, -16)
+flip_h = true
+
+[node name="WhiteFlash" type="ColorRect" parent="CutsceneNodes"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+z_index = 200
+offset_left = -1000.0
+offset_top = -1000.0
+offset_right = 1000.0
+offset_bottom = 1000.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="CutsceneRumbleSFX" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("8_swoosh")
+volume_db = 8.0
+pitch_scale = 0.13
+bus = &"SFX"
+
+[node name="CutsceneImpactSFX" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("8_swoosh")
+volume_db = 4.0
+pitch_scale = 0.4
+bus = &"SFX"
+
+[node name="CutsceneAnimPlayer" type="AnimationPlayer" parent="."]
+unique_name_in_owner = true
+libraries = {
+&"": SubResource("AnimationLibrary_cutscene")
+}
+
+[node name="SlashLeft" type="Area2D" parent="."]
+unique_name_in_owner = true
+visible = false
+position = Vector2(300, -125)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="SlashLeftShape" type="CollisionShape2D" parent="SlashLeft"]
+shape = SubResource("RectangleShape2D_slash")
+disabled = true
+
+[node name="SlashLeftVisual" type="ColorRect" parent="SlashLeft"]
+offset_left = -100.0
+offset_top = -125.0
+offset_right = 100.0
+offset_bottom = 125.0
+mouse_filter = 2
+color = Color(1, 0.3, 0.5, 0.3)
+
+[node name="SlashRight" type="Area2D" parent="."]
+unique_name_in_owner = true
+visible = false
+position = Vector2(500, -125)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="SlashRightShape" type="CollisionShape2D" parent="SlashRight"]
+shape = SubResource("RectangleShape2D_slash")
+disabled = true
+
+[node name="SlashRightVisual" type="ColorRect" parent="SlashRight"]
+offset_left = -100.0
+offset_top = -125.0
+offset_right = 100.0
+offset_bottom = 125.0
+mouse_filter = 2
+color = Color(1, 0.3, 0.5, 0.3)
+
+[editable path="CloudKarim"]
+[editable path="ExodiaKarim"]

@@ -1,3 +1,7 @@
+---
+paths: ["godot_port/npcs/**", "godot_port/data/quests/**", "godot_port/levels/**/dialogs/**", "docs/quest-registry.md"]
+---
+
 # Quest Registry Rule
 
 ## Mandatory: Always Update `docs/quest-registry.md`

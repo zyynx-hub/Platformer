@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://enemies/Enemy.gd" id="1_enemy_script"]
+[ext_resource type="Shader" path="res://shaders/hit_flash.gdshader" id="2_hit_flash"]
+[ext_resource type="Script" path="res://enemies/states/EnemyStateMachine.gd" id="3_sm_script"]
+[ext_resource type="Script" path="res://enemies/states/EnemyIdleState.gd" id="4_idle"]
+[ext_resource type="Script" path="res://enemies/states/EnemyPatrolState.gd" id="5_patrol"]
+[ext_resource type="Script" path="res://enemies/states/EnemyChaseState.gd" id="6_chase"]
+[ext_resource type="Script" path="res://enemies/states/EnemyHurtState.gd" id="7_hurt"]
+[ext_resource type="Script" path="res://enemies/states/EnemyDeadState.gd" id="8_dead"]
+
+[sub_resource type="ShaderMaterial" id="hit_flash_mat"]
+resource_local_to_scene = true
+shader = ExtResource("2_hit_flash")
+shader_parameter/flash_amount = 0.0
+shader_parameter/flash_color = Color(1, 1, 1, 1)
+
+[sub_resource type="RectangleShape2D" id="body_shape"]
+size = Vector2(12, 16)
+
+[sub_resource type="RectangleShape2D" id="hurtbox_shape"]
+size = Vector2(14, 18)
+
+[sub_resource type="RectangleShape2D" id="hitbox_shape"]
+size = Vector2(12, 16)
+
+[sub_resource type="CircleShape2D" id="detector_shape"]
+radius = 60.0
+
+[node name="Enemy" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_enemy_script")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+material = SubResource("hit_flash_mat")
+texture_filter = 1
+position = Vector2(0, -8)
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8)
+shape = SubResource("body_shape")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 8
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -8)
+shape = SubResource("hurtbox_shape")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 2
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -8)
+shape = SubResource("hitbox_shape")
+
+[node name="PlayerDetector" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="DetectorShape" type="CollisionShape2D" parent="PlayerDetector"]
+shape = SubResource("detector_shape")
+
+[node name="FloorChecker" type="RayCast2D" parent="."]
+target_position = Vector2(10, 16)
+collision_mask = 1
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm_script")
+initial_state = NodePath("Idle")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("4_idle")
+
+[node name="Patrol" type="Node" parent="StateMachine"]
+script = ExtResource("5_patrol")
+
+[node name="Chase" type="Node" parent="StateMachine"]
+script = ExtResource("6_chase")
+
+[node name="Hurt" type="Node" parent="StateMachine"]
+script = ExtResource("7_hurt")
+
+[node name="Dead" type="Node" parent="StateMachine"]
+script = ExtResource("8_dead")

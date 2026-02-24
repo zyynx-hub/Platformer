@@ -24,6 +24,11 @@ position = Vector2(190, 368.00003)
 rotation = -3.1392717
 dialog_id = "level_1/walljump_tut"
 
+[node name="Intro_Spawn" parent="." unique_id=1441868863 instance=ExtResource("3_68cyr")]
+position = Vector2(82, 378.00003)
+rotation = 0.0046418346
+dialog_id = "level_1/spawn"
+
 [node name="Intro_WallHoppingSucceed" parent="." unique_id=1754063805 instance=ExtResource("3_68cyr")]
 position = Vector2(188, 30)
 dialog_id = "level_1/walljump_tut_succeed"
@@ -37,8 +42,8 @@ position = Vector2(188, 30)
 gate_id = "wallhop_gate"
 
 [node name="WallhopGate" parent="." unique_id=1295841049 instance=ExtResource("5_prog_gate")]
-position = Vector2(220, 368.00003)
-scale = Vector2(0.9, 1.55)
+position = Vector2(232, 369)
+scale = Vector2(4, 1.55)
 physics_material_override = SubResource("PhysicsMaterial_vyu76")
 gate_id = "wallhop_gate"
 gate_color = Color(0.23223078, 0.03096376, 0.034480184, 1)

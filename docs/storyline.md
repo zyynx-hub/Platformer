@@ -1,6 +1,6 @@
 # Storyline Guide
 
-**Auto-generated** on 2026-02-22 by `tools/quest_tool.py --story --write`.
+**Auto-generated** on 2026-02-24 by `tools/quest_tool.py --story --write`.
 Source of truth: `godot_port/data/quests/*.json`.
 Do not edit by hand.
 
@@ -35,6 +35,7 @@ Do not edit by hand.
 
 | Dialog ID | NPC | Condition | Post-dialog actions |
 |-----------|-----|-----------|---------------------|
+| `level_town/purple_karim/post_exodia` | purple_karim | quest_exodia_complete=True | - |
 | `level_town/purple_karim/done` | purple_karim | quest_purple_karim_complete=True | - |
 | `level_town/purple_karim/complete` | purple_karim | three_headed_karim_paid=True | sets `quest_purple_karim_complete`; item popup: **Vibrator** (0.5s delay) |
 | `level_town/purple_karim/waiting` | purple_karim | quest_purple_karim_active=True | - |
@@ -81,10 +82,13 @@ Do not edit by hand.
 
 | Dialog ID | NPC | Condition | Post-dialog actions |
 |-----------|-----|-----------|---------------------|
+| `level_town/red_karim/post_exodia` | red_karim | quest_exodia_complete=True | - |
 | `level_town/red_karim/done` | red_karim | quest_red_karim_complete=True | - |
 | `level_town/red_karim/complete` | red_karim | quest_green_karim_confronted=True | sets `quest_red_karim_complete`; item popup: **Dildo** (0.5s delay) |
 | `level_town/red_karim/waiting` | red_karim | quest_red_karim_accepted=True | - |
 | `level_town/red_karim/intro` | red_karim | default | choice panel: "Will you help Red Karim?" |
+| `level_town/green_karim/post_exodia` | green_karim | quest_exodia_complete=True | - |
+| `level_town/green_karim/reformed_plus` | green_karim | quest_red_karim_complete=True, quest_orange_karim_complete=True | - |
 | `level_town/green_karim/reformed` | green_karim | quest_red_karim_complete=True | - |
 | `level_town/green_karim/confronted` | green_karim | quest_red_karim_accepted=True, quest_green_karim_confronted=False | sets `quest_green_karim_confronted` |
 | `level_town/green_karim/default` | green_karim | default | - |
@@ -96,6 +100,84 @@ Do not edit by hand.
 | `quest_red_karim_accepted` | Player agreed to help Red Karim silence Green Karim |
 | `quest_green_karim_confronted` | Player has spoken to Green Karim about the complaint |
 | `quest_red_karim_complete` | Quest fully resolved, Dildo reward given |
+
+---
+
+## De Butt Plug Quest
+
+**Level**: `level_jungle` + `level_1` | **Reward**: Butt Plug
+**Requires**: Red Karim's Problem
+**NPCs**: **orange_karim** (giver)
+
+> Orange Karim in the jungle house is obsessed with futuristic technology. Show him something truly impressive — your Rocket Boots from the Awakening level.
+
+### Steps
+
+1. Talk to **orange_karim** -> `level_jungle/orange_karim/intro`
+   - sets `quest_orange_karim_active`
+2. Talk to **orange_karim** -> `level_jungle/orange_karim/complete`
+   - item popup: **Butt Plug** (0.5s delay)
+   - sets `quest_orange_karim_complete`
+3. Reward: **Butt Plug**
+
+### All Dialogs
+
+| Dialog ID | NPC | Condition | Post-dialog actions |
+|-----------|-----|-----------|---------------------|
+| `level_jungle/orange_karim/post_exodia` | orange_karim | quest_exodia_complete=True | - |
+| `level_jungle/orange_karim/done` | orange_karim | quest_orange_karim_complete=True | - |
+| `level_jungle/orange_karim/waiting` | orange_karim | quest_orange_karim_active=True | - |
+| `level_jungle/orange_karim/intro` | orange_karim | quest_red_karim_complete=True | sets `quest_orange_karim_active` |
+| `level_jungle/orange_karim/not_ready` | orange_karim | default | - |
+
+### State Keys
+
+| Key | Meaning |
+|-----|---------|
+| `quest_orange_karim_active` | Player accepted Orange Karim's tech challenge |
+| `quest_orange_karim_complete` | Butt Plug reward given |
+
+---
+
+## The Grand Quest of Exodia Karim
+
+**Level**: `level_mystical` + `level_town`, `level_jungle` | **Reward**: Master of Pleasure
+**Requires**: Red Karim's Problem, Purple Karim's Debt, De Butt Plug Quest
+**NPCs**: **cloud_karim** (giver)
+
+> Cloud Karim in the Mystical Realm demands three sacred objects to complete the Karim world-domination ritual. Collect all three and place them on the stone pedestal — but beware what awakens.
+
+### Steps
+
+1. Talk to **?** -> `?`
+   - sets `quest_exodia_active`
+2. **pedestal_items** (any order):
+   - Talk to **?** -> `?` -> sets `pedestal_butt_plug`
+   - Talk to **?** -> `?` -> sets `pedestal_dildo`
+   - Talk to **?** -> `?` -> sets `pedestal_vibrator`
+3. Talk to **?** -> `?`
+   - sets `exodia_boss_defeated`
+4. Talk to **?** -> `?`
+   - sets `quest_exodia_complete`
+5. Reward: **Master of Pleasure**
+
+### All Dialogs
+
+| Dialog ID | NPC | Condition | Post-dialog actions |
+|-----------|-----|-----------|---------------------|
+| `level_mystical/cloud_karim/done` | cloud_karim | quest_exodia_complete=True | - |
+| `level_mystical/cloud_karim/intro` | cloud_karim | default | - |
+
+### State Keys
+
+| Key | Meaning |
+|-----|---------|
+| `quest_exodia_active` | Player met Cloud Karim, quest to collect 3 items begun |
+| `pedestal_butt_plug` *(parallel: pedestal_items)* | Butt Plug placed on stone pedestal |
+| `pedestal_dildo` *(parallel: pedestal_items)* | Dildo placed on stone pedestal |
+| `pedestal_vibrator` *(parallel: pedestal_items)* | Vibrator placed on stone pedestal |
+| `exodia_boss_defeated` | Exodia Karim has been defeated in combat |
+| `quest_exodia_complete` | Entire Exodia questline finished, weapon rewarded |
 
 ---
 

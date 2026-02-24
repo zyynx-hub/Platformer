@@ -21,6 +21,9 @@ var _music_fade_from_db := -20.0
 var _fade_tween: Tween
 var _duck_tween: Tween
 var _duck_db: float = 0.0
+var _suspended_stream: AudioStream = null
+var _suspended_position: float = 0.0
+var _suspended_key: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -101,12 +104,53 @@ func unduck_music(duration: float = 0.3) -> void:
 
 func stop_music(fade_time: float = 1.0) -> void:
 	_current_music_key = ""
+	_suspended_stream = null
+	_suspended_position = 0.0
+	_suspended_key = ""
 	if _active_music and _active_music.playing:
 		if _fade_tween:
 			_fade_tween.kill()
 		_fade_tween = create_tween()
 		_fade_tween.tween_property(_active_music, "volume_db", _music_fade_from_db, fade_time)
 		_fade_tween.tween_callback(_active_music.stop)
+
+func suspend_music() -> void:
+	if not _active_music or not _active_music.playing:
+		return
+	_suspended_stream = _active_music.stream
+	_suspended_position = _active_music.get_playback_position()
+	_suspended_key = _current_music_key
+
+func resume_music(fade_time: float = 0.8) -> bool:
+	if _suspended_stream == null:
+		return false
+	var old_player := _active_music
+	var resume_player := _get_inactive_music_player()
+
+	resume_player.stream = _suspended_stream
+	resume_player.volume_db = _music_fade_from_db
+	resume_player.play(_suspended_position)
+
+	_current_music_key = _suspended_key
+	_suspended_stream = null
+	_suspended_position = 0.0
+	_suspended_key = ""
+
+	if _fade_tween:
+		_fade_tween.kill()
+	_fade_tween = create_tween()
+
+	if old_player.playing:
+		_fade_tween.set_parallel(true)
+		_fade_tween.tween_property(old_player, "volume_db", _music_fade_from_db, fade_time)
+		_fade_tween.tween_property(resume_player, "volume_db", _music_target_db, fade_time)
+		_fade_tween.set_parallel(false)
+		_fade_tween.tween_callback(old_player.stop)
+	else:
+		_fade_tween.tween_property(resume_player, "volume_db", _music_target_db, fade_time)
+
+	_active_music = resume_player
+	return true
 
 func play_sfx(key: String, volume_db: float = 0.0) -> void:
 	var stream: AudioStream = _sfx_streams.get(key)
@@ -137,6 +181,9 @@ func _load_music_streams() -> void:
 		"pause": "res://assets/audio/music/pause_bgm.mp3",
 		"level_1": "res://levels/level_1/level1_bgm.mp3",
 		"level_town": "res://levels/level_1/level1_bgm.mp3",
+		"level_mystical": "res://levels/level_mystical/audio/Pyotr Ilyich Tchaikovsky - Hymn of the Cherubim.mp3",
+		"boss_exodia": "res://levels/level_mystical/audio/Sudden Death (Track 42) - Rabi-Ribi Official Soundtrack.mp3",
+		"post_boss_sad": "res://levels/level_mystical/audio/Final Fantasy VII OST - Aerith's Theme.mp3",
 	}
 	for key in tracks:
 		var path: String = tracks[key]

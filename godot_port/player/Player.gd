@@ -24,7 +24,7 @@ var jump_buffer_timer: float = 0.0
 var dash_timer: float = 0.0
 var dash_cooldown_timer: float = 0.0
 var hurt_invuln_timer: float = 0.0
-var attack_timer: float = 0.0
+var hurt_stun_timer: float = 0.0
 var wall_jump_timer: float = 0.0
 var var_jump_timer: float = 0.0
 
@@ -63,13 +63,20 @@ var rocket_thrusting: bool = false
 var _dissolve_material: ShaderMaterial = null
 var _is_dissolving: bool = false
 
+# Enemy collision: skip contact damage for one frame after dash-enemy hit
+var _skip_enemy_contact: bool = false
+
 func _ready() -> void:
 	add_to_group("player")
+	# Force collision mask in code (World=1 + Enemy=4 = 5) in case .tscn cache is stale
+	collision_mask = 5
 	_setup_animations()
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	# Dissolve material is defined in Player.tscn (shared by Sprite2D and EquipmentSprite)
 	_dissolve_material = sprite.material
 	state_machine.init(self)
+	# Restore equipped item from save data (survives portal scene transitions)
+	_restore_equipped_item()
 
 # Animation definitions: [name, sheet_path, total_frames, fps, loop, from_frame, to_frame]
 const _ANIM_DEFS := [
@@ -154,9 +161,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("dash"):
 		try_start_dash()
 
-	if event.is_action_pressed("attack"):
-		attack_timer = Constants.ATTACK_COOLDOWN
-
 	state_machine.forward_input(event)
 
 func _physics_process(delta: float) -> void:
@@ -183,7 +187,7 @@ func _physics_process(delta: float) -> void:
 	if _was_dash_cooling and dash_cooldown_timer <= 0.0:
 		EventBus.dash_cooldown_ended.emit()
 	hurt_invuln_timer = maxf(0, hurt_invuln_timer - delta)
-	attack_timer = maxf(0, attack_timer - delta)
+	hurt_stun_timer = maxf(0, hurt_stun_timer - delta)
 	wall_jump_timer = maxf(0, wall_jump_timer - delta)
 	if var_jump_timer > 0.0:
 		var_jump_timer -= delta
@@ -212,6 +216,9 @@ func _physics_process(delta: float) -> void:
 		_equipment_sprite.flip_h = not is_facing_right
 	if _flame_sprite:
 		_flame_sprite.flip_h = not is_facing_right
+
+	# Enemy stomp / contact detection via slide collisions
+	_check_enemy_collisions()
 
 	# Squash & stretch (visual only)
 	_apply_squash_stretch(delta)
@@ -349,12 +356,20 @@ func _get_dust_texture() -> ImageTexture:
 		_dust_texture = ImageTexture.create_from_image(img)
 	return _dust_texture
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> void:
 	if hurt_invuln_timer > 0.0:
 		return
 
 	health -= amount
 	hurt_invuln_timer = Constants.HURT_INVULN_TIME
+	hurt_stun_timer = Constants.HURT_STUN_TIME
+	# Knockback away from damage source
+	if from_position != Vector2.ZERO:
+		var kb_dir: float = sign(global_position.x - from_position.x)
+		if kb_dir == 0.0:
+			kb_dir = 1.0
+		velocity_x = kb_dir * Constants.PLAYER_KNOCKBACK_H
+		velocity_y = Constants.PLAYER_KNOCKBACK_V
 	state_machine.transition_to("Hurt")
 	EventBus.player_damaged.emit(amount)
 	EventBus.player_health_changed.emit(health, MAX_HEALTH)
@@ -377,6 +392,39 @@ func play_animation(anim_name: String) -> void:
 		if _equipment_sprite.sprite_frames.has_animation(anim_name):
 			_equipment_sprite.play(anim_name)
 
+func stomp_bounce() -> void:
+	velocity_y = -Constants.STOMP_BOUNCE_FORCE
+	_jumped = true  # enable apex hang for the bounce
+	_squash_target = Vector2(0.85, 1.15)
+	state_machine.transition_to("Jump")
+	# Run move_and_slide() so is_on_floor() updates this frame;
+	# without this, the stale on-floor flag resets velocity_y to 0 next frame.
+	apply_movement()
+
+# --- Enemy collision (stomp + contact) via slide collisions ---
+
+func _check_enemy_collisions() -> void:
+	if _skip_enemy_contact:
+		_skip_enemy_contact = false
+		return
+	var count := get_slide_collision_count()
+	for i in count:
+		var col := get_slide_collision(i)
+		var collider := col.get_collider()
+		if not (collider is Enemy) or collider._is_dead:
+			continue
+		if col.get_normal().y < -0.5:
+			# Floor normal = landed on enemy from above = stomp
+			collider.take_damage(Constants.STOMP_DAMAGE)
+			stomp_bounce()
+			return
+		else:
+			# Side/wall normal = contact — always push enemy back
+			collider.knockback_from(global_position)
+			if hurt_invuln_timer <= 0.0:
+				take_damage(collider.contact_damage, collider.global_position)
+			return
+
 func update_coyote_timer() -> void:
 	if is_on_floor():
 		coyote_timer = Constants.COYOTE_TIME
@@ -393,6 +441,24 @@ func _on_item_picked_up(item_data: Dictionary) -> void:
 	# Build equipment sprite with composited sheets (base sprite stays unchanged)
 	_setup_equipment_animations()
 	# Initialize rocket boots fuel
+	if _equipped_item_id == "rocket_boots":
+		_rocket_fuel = Constants.ROCKET_FUEL_MAX
+		EventBus.rocket_fuel_changed.emit(_rocket_fuel, Constants.ROCKET_FUEL_MAX)
+	# Persist equipped item so it survives portal/scene transitions
+	var pd := ProgressData.new()
+	pd.equipped_item = _equipped_item_id
+	pd.save_progress()
+
+func _restore_equipped_item() -> void:
+	var pd := ProgressData.new()
+	if pd.equipped_item.is_empty():
+		return
+	var item_def := ItemDefs.get_item(pd.equipped_item)
+	if item_def.is_empty():
+		return
+	_equipped_item_id = item_def["id"]
+	_sheet_overrides = item_def.get("composited_sheets", {})
+	_setup_equipment_animations()
 	if _equipped_item_id == "rocket_boots":
 		_rocket_fuel = Constants.ROCKET_FUEL_MAX
 		EventBus.rocket_fuel_changed.emit(_rocket_fuel, Constants.ROCKET_FUEL_MAX)
@@ -506,7 +572,7 @@ func reset_for_respawn(spawn_pos: Vector2) -> void:
 	dash_timer = 0.0
 	dash_cooldown_timer = 0.0
 	hurt_invuln_timer = 0.0
-	attack_timer = 0.0
+	hurt_stun_timer = 0.0
 	wall_jump_timer = 0.0
 	var_jump_timer = 0.0
 

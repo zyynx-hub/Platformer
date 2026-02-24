@@ -56,6 +56,21 @@ signal quest_log_requested
 # ===== CAMERA EVENTS =====
 signal camera_shake_requested(duration: float, intensity: float)
 signal camera_pan_requested(target: Vector2, pan_duration: float, hold_duration: float, return_duration: float)
+signal camera_cinematic_move(target: Vector2, zoom: Vector2, duration: float)
+signal camera_cinematic_release(duration: float)
+signal camera_cinematic_done
+
+# ===== ENEMY EVENTS =====
+signal enemy_damaged(enemy: Node2D, amount: float)
+signal enemy_killed(enemy: Node2D)
+
+# ===== BOSS EVENTS =====
+signal boss_phase_changed(phase: int)
+signal boss_fight_started(max_health: float)
+signal boss_health_changed(health: float, max_health: float)
+signal boss_fight_ended
+signal camera_boss_lock(left: float, right: float, top: float, bottom: float)
+signal camera_boss_unlock
 
 # ===== DOOR EVENTS =====
 signal door_entered(destination_scene: String, is_exit_door: bool)

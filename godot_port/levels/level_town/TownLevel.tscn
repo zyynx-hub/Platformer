@@ -23,6 +23,7 @@
 [ext_resource type="Shader" uid="uid://bkjmkomkmqcdo" path="res://shaders/vignette.gdshader" id="22_vignette_shader"]
 [ext_resource type="Script" uid="uid://ia7u0gcy35q8" path="res://npcs/PurpleKarimNPC.gd" id="23_purple"]
 [ext_resource type="PackedScene" uid="uid://dkeb1ss1sdd52" path="res://portals/Portal.tscn" id="24_portal"]
+[ext_resource type="PackedScene" path="res://levels/level_town/props/Church.tscn" id="25_church"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("6_sky_shader")
@@ -86,14 +87,16 @@ script = ExtResource("7_controller")
 unique_name_in_owner = true
 z_index = -100
 material = SubResource("ShaderMaterial_sky")
-offset_right = 1266.0
-offset_bottom = 623.0
+offset_left = 659.0
+offset_top = 311.5
+offset_right = 659.0
+offset_bottom = 311.5
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="FarMountains" type="Node2D" parent="." unique_id=1252602176]
 unique_name_in_owner = true
-position = Vector2(569.7, 0)
+position = Vector2(593.1, 0)
 
 [node name="Visual" type="ColorRect" parent="FarMountains" unique_id=1105211989]
 material = SubResource("ShaderMaterial_far_mountains")
@@ -105,7 +108,7 @@ color = Color(1, 1, 1, 0)
 
 [node name="NearMountains" type="Node2D" parent="." unique_id=245203538]
 unique_name_in_owner = true
-position = Vector2(474.75, 0)
+position = Vector2(494.25, 0)
 
 [node name="Visual" type="ColorRect" parent="NearMountains" unique_id=1291640228]
 material = SubResource("ShaderMaterial_near_mountains")
@@ -117,7 +120,7 @@ color = Color(1, 1, 1, 0)
 
 [node name="CloudLayer" type="Node2D" parent="." unique_id=1760188272]
 unique_name_in_owner = true
-position = Vector2(601.35, 0)
+position = Vector2(626.05, 0)
 
 [node name="Visual" type="ColorRect" parent="CloudLayer" unique_id=609154152]
 material = SubResource("ShaderMaterial_clouds")
@@ -395,8 +398,10 @@ color = Color(1, 1, 1, 0)
 unique_name_in_owner = true
 z_index = 102
 material = SubResource("ShaderMaterial_vignette")
-offset_right = 1266.0
-offset_bottom = 623.0
+offset_left = 659.0
+offset_top = 311.5
+offset_right = 659.0
+offset_bottom = 311.5
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
@@ -442,6 +447,24 @@ destination_scene = "res://levels/level_town/interiors/House1Interior.tscn"
 [node name="Door2" parent="." unique_id=2134928647 instance=ExtResource("3_door")]
 position = Vector2(450, 0)
 destination_scene = "res://levels/level_town/interiors/House2Interior.tscn"
+
+[node name="Church" parent="." instance=ExtResource("25_church")]
+position = Vector2(950, 0)
+wall_color = Color(0.58, 0.55, 0.50, 1)
+roof_color = Color(0.35, 0.28, 0.22, 1)
+door_color = Color(0.25, 0.15, 0.08, 1)
+stained_glass_color = Color(0.45, 0.30, 0.65, 1)
+
+[node name="DoorChurch" parent="." instance=ExtResource("3_door")]
+position = Vector2(950, 0)
+destination_scene = "res://levels/level_town/interiors/ChurchInterior.tscn"
+
+[node name="ChurchPortal" parent="." instance=ExtResource("24_portal")]
+visible = false
+position = Vector2(950, -24)
+monitoring = false
+destination_level_id = "level_mystical"
+portal_color = Color(0.6, 0.4, 0.9, 1)
 
 [node name="PurpleKarim" parent="." unique_id=1591829417 instance=ExtResource("2_npc")]
 position = Vector2(1400, 0)

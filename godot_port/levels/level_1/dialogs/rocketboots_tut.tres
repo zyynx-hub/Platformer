@@ -31,5 +31,4 @@ metadata/_custom_type_script = "uid://bu846m0x63vmq"
 [resource]
 script = ExtResource("3_1jvtq")
 description = "Player instructions on how to wall jump"
-one_shot = false
 lines = Array[ExtResource("1_ffwvw")]([SubResource("Resource_ffwvw"), SubResource("Resource_j27eh"), SubResource("Resource_qo2db")])

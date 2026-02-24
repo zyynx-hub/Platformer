@@ -1,0 +1,73 @@
+{
+  "id": "quest_exodia_karim",
+  "type": "quest",
+  "name": "The Grand Quest of Exodia Karim",
+  "description": "Cloud Karim in the Mystical Realm demands three sacred objects to complete the Karim world-domination ritual. Collect all three and place them on the stone pedestal — but beware what awakens.",
+  "level": "level_mystical",
+  "secondary_levels": ["level_town", "level_jungle"],
+  "prerequisites": ["quest_red_karim_complete", "quest_purple_karim_complete", "quest_orange_karim_complete"],
+  "active_key": "quest_exodia_active",
+  "complete_key": "quest_exodia_complete",
+  "reward": {
+    "type": "item",
+    "item_id": "Master of Pleasure"
+  },
+  "npcs": {
+    "cloud_karim": {
+      "voice_pitch": 0.15,
+      "role": "giver",
+      "dialog_selection": [
+        { "requires": {"quest_exodia_complete": true}, "dialog": "level_mystical/cloud_karim/done" },
+        { "dialog": "level_mystical/cloud_karim/intro" }
+      ],
+      "on_dialog_end": {}
+    }
+  },
+  "state_keys": [
+    {
+      "key": "quest_exodia_active",
+      "set_by": "CloudKarimNPC — after intro dialog ends",
+      "set_by_code": true,
+      "read_by": ["CloudKarimNPC", "MysticalLevelController"],
+      "meaning": "Player met Cloud Karim, quest to collect 3 items begun"
+    },
+    {
+      "key": "pedestal_butt_plug",
+      "set_by": "CloudKarimNPC — auto on interact with pedestal while item obtained",
+      "set_by_code": true,
+      "read_by": ["MysticalLevelController (pedestal visuals)", "CloudKarimNPC (tip filtering)"],
+      "meaning": "Butt Plug placed on stone pedestal",
+      "parallel_group": "pedestal_items"
+    },
+    {
+      "key": "pedestal_dildo",
+      "set_by": "CloudKarimNPC — same",
+      "set_by_code": true,
+      "read_by": ["MysticalLevelController", "CloudKarimNPC"],
+      "meaning": "Dildo placed on stone pedestal",
+      "parallel_group": "pedestal_items"
+    },
+    {
+      "key": "pedestal_vibrator",
+      "set_by": "CloudKarimNPC — same",
+      "set_by_code": true,
+      "read_by": ["MysticalLevelController", "CloudKarimNPC"],
+      "meaning": "Vibrator placed on stone pedestal",
+      "parallel_group": "pedestal_items"
+    },
+    {
+      "key": "exodia_boss_defeated",
+      "set_by": "MysticalLevelController — after boss death cutscene",
+      "set_by_code": true,
+      "read_by": ["MysticalLevelController"],
+      "meaning": "Exodia Karim has been defeated in combat"
+    },
+    {
+      "key": "quest_exodia_complete",
+      "set_by": "MysticalLevelController — after victory dialog + reward",
+      "set_by_code": true,
+      "read_by": ["all 4 Karims (post-exodia dialog)", "CloudKarimNPC", "MysticalLevelController"],
+      "meaning": "Entire Exodia questline finished, weapon rewarded"
+    }
+  ]
+}

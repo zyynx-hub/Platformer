@@ -50,6 +50,10 @@ func _input(event: InputEvent) -> void:
 			await get_tree().create_timer(1.0).timeout
 			if not _active:
 				visible = false
+	if event.is_action_pressed("debug_arena"):
+		GameData.selected_level_id = "level_arena"
+		GameData.selected_level_scene = "res://levels/level_arena/ArenaLevel.tscn"
+		SceneTransition.transition_to("res://game/GameScene.tscn")
 	if event.is_action_pressed("debug_add_coins"):
 		var p := ProgressData.new()
 		p.coins += 100
@@ -59,6 +63,19 @@ func _input(event: InputEvent) -> void:
 		await get_tree().create_timer(1.5).timeout
 		if not _active:
 			visible = false
+	if event.is_action_pressed("debug_exodia"):
+		var p := ProgressData.new()
+		# Set all quest keys needed for the pre-boss cutscene
+		for key in ["quest_exodia_active", "quest_red_karim_complete", "quest_purple_karim_complete", "quest_orange_karim_complete", "pedestal_butt_plug", "pedestal_dildo", "pedestal_vibrator"]:
+			p.set_quest(key)
+		# Clear one-shot dialog flags so cutscene can replay
+		for d_id in ["level_mystical/cloud_karim/all_placed", "level_mystical/pre_boss/purple_arrives", "level_mystical/pre_boss/others_arrive", "level_mystical/pre_boss/exodia_forms"]:
+			p.seen_dialogs.erase(d_id)
+		p.save_progress()
+		# Teleport to Mystical Level
+		GameData.selected_level_id = "level_mystical"
+		GameData.selected_level_scene = "res://levels/level_mystical/MysticalLevel.tscn"
+		SceneTransition.transition_to("res://game/GameScene.tscn")
 
 func _process(delta: float) -> void:
 	if not _active:

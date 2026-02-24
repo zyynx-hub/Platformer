@@ -1,0 +1,51 @@
+{
+  "id": "quest_orange_karim",
+  "type": "quest",
+  "name": "De Butt Plug Quest",
+  "description": "Orange Karim in the jungle house is obsessed with futuristic technology. Show him something truly impressive — your Rocket Boots from the Awakening level.",
+  "level": "level_jungle",
+  "secondary_levels": ["level_1"],
+  "prerequisites": ["quest_red_karim_complete"],
+  "active_key": "quest_orange_karim_active",
+  "complete_key": "quest_orange_karim_complete",
+  "reward": {
+    "type": "item",
+    "item_id": "Butt Plug"
+  },
+  "npcs": {
+    "orange_karim": {
+      "voice_pitch": 1.1,
+      "role": "giver",
+      "dialog_selection": [
+        { "requires": {"quest_exodia_complete": true},          "dialog": "level_jungle/orange_karim/post_exodia" },
+        { "requires": {"quest_orange_karim_complete": true},    "dialog": "level_jungle/orange_karim/done" },
+        { "requires": {"quest_orange_karim_active": true},      "dialog": "level_jungle/orange_karim/waiting" },
+        { "requires": {"quest_red_karim_complete": true},       "dialog": "level_jungle/orange_karim/intro" },
+        {                                                        "dialog": "level_jungle/orange_karim/not_ready" }
+      ],
+      "on_dialog_end": {
+        "level_jungle/orange_karim/intro": [
+          { "action": "set_key", "key": "quest_orange_karim_active" }
+        ],
+        "level_jungle/orange_karim/complete": [
+          { "action": "set_key", "key": "quest_orange_karim_complete" },
+          { "action": "item_popup", "item_id": "Butt Plug", "delay": 0.5 }
+        ]
+      }
+    }
+  },
+  "state_keys": [
+    {
+      "key": "quest_orange_karim_active",
+      "set_by": "orange_karim — after intro dialog ends",
+      "read_by": ["orange_karim"],
+      "meaning": "Player accepted Orange Karim's tech challenge"
+    },
+    {
+      "key": "quest_orange_karim_complete",
+      "set_by": "orange_karim — after showing rocket boots",
+      "read_by": ["orange_karim", "green_karim (extra line)", "MysticalLevelController (portal visibility)"],
+      "meaning": "Butt Plug reward given"
+    }
+  ]
+}

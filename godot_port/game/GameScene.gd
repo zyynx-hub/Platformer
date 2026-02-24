@@ -25,6 +25,8 @@ var _level_bounds := Rect2()
 var _respawning: bool = false
 var _camera_follow_enabled: bool = true
 var _respawn_immunity: float = 0.0
+var _cinematic_tween: Tween = null
+var _dialog_restore_tween: Tween = null
 
 # Reusable soul dot texture (created once, shared by all particles)
 var _soul_dot_texture: ImageTexture = null
@@ -45,6 +47,10 @@ var _in_portal: bool = false
 var _in_door_transition: bool = false
 var _cinematic_dialog: CanvasLayer = null
 var _original_camera_zoom := Vector2.ONE
+
+# Boss camera lock state
+var _boss_camera_active: bool = false
+var _saved_camera_limits: Dictionary = {}
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not _respawning and not _in_cinematic and not _in_portal:
@@ -69,7 +75,18 @@ func _ready() -> void:
 	# Spawn player inside the SubViewport (alongside the level)
 	player_instance = PlayerScene.instantiate()
 	game_viewport.add_child(player_instance)
-	player_instance.global_position = spawn_point.global_position
+
+	# Determine spawn position: portal arrival or default SpawnPoint
+	if GameData.arrived_via_portal:
+		var portal_pos := _find_return_portal(GameData.portal_source_level)
+		if portal_pos != Vector2.ZERO:
+			player_instance.global_position = portal_pos
+		else:
+			player_instance.global_position = spawn_point.global_position
+		GameData.arrived_via_portal = false
+		GameData.portal_source_level = ""
+	else:
+		player_instance.global_position = spawn_point.global_position
 
 	# Spawn HUD inside SubViewport (renders at native 426x240, camera-independent)
 	var hud_instance = HudScene.instantiate()
@@ -95,6 +112,12 @@ func _ready() -> void:
 	EventBus.door_entered.connect(_on_door_entered)
 	EventBus.camera_shake_requested.connect(_on_camera_shake)
 	EventBus.camera_pan_requested.connect(_on_camera_pan)
+	EventBus.camera_cinematic_move.connect(_on_camera_cinematic_move)
+	EventBus.camera_cinematic_release.connect(_on_camera_cinematic_release)
+	EventBus.enemy_damaged.connect(_on_enemy_damaged)
+	EventBus.enemy_killed.connect(_on_enemy_killed)
+	EventBus.camera_boss_lock.connect(_on_camera_boss_lock)
+	EventBus.camera_boss_unlock.connect(_on_camera_boss_unlock)
 
 	# Force NEAREST filtering on the SubViewportContainer upscale
 	$SubViewportContainer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -137,9 +160,10 @@ func _pause() -> void:
 	get_tree().paused = true
 	EventBus.game_paused.emit()
 
-	# Crossfade to pause music
+	# Suspend game music (save position) then crossfade to pause music
+	AudioManager.suspend_music()
 	if AudioManager.has_music("pause"):
-		EventBus.music_play.emit("pause")
+		AudioManager.play_music("pause")
 
 	# Instantiate pause overlay on GameScene root (renders at full 1280x720, not SubViewport 426x240)
 	_pause_overlay = PauseSceneRes.instantiate()
@@ -152,8 +176,9 @@ func _unpause() -> void:
 	get_tree().paused = false
 	EventBus.game_resumed.emit()
 
-	# Restore level music
-	EventBus.music_play.emit(_level_music_key)
+	# Resume game music from saved position, or start fresh as fallback
+	if not AudioManager.resume_music():
+		AudioManager.play_music(_level_music_key)
 
 	if _pause_overlay:
 		_pause_overlay.queue_free()
@@ -181,11 +206,6 @@ func _initial_spawn() -> void:
 			player_instance.call("prime_collision")
 			player_instance.state_machine.transition_to("Idle")
 			EventBus.player_spawned.emit()
-			# Start cinematic dialog after first spawn
-			var spawn_dialog_id = GameData.selected_level_id + "/spawn"
-			if _should_play_dialog(spawn_dialog_id):
-				_mark_dialog_played(spawn_dialog_id)
-				_start_cinematic_dialog(spawn_dialog_id)
 		)
 	tween.tween_callback(materialize_cb)
 
@@ -253,12 +273,13 @@ func _on_cinematic_finished() -> void:
 	Engine.time_scale = 1.0
 
 	# Smooth camera zoom back to original + restore music
-	var zoom_tween = create_tween()
-	zoom_tween.set_ease(Tween.EASE_IN_OUT)
-	zoom_tween.set_trans(Tween.TRANS_SINE)
-	zoom_tween.tween_property(camera, "zoom", _original_camera_zoom, Constants.DIALOG_CAMERA_RESTORE_DURATION)
+	_dialog_restore_tween = create_tween()
+	_dialog_restore_tween.set_ease(Tween.EASE_IN_OUT)
+	_dialog_restore_tween.set_trans(Tween.TRANS_SINE)
+	_dialog_restore_tween.tween_property(camera, "zoom", _original_camera_zoom, Constants.DIALOG_CAMERA_RESTORE_DURATION)
 	AudioManager.unduck_music(Constants.DIALOG_CAMERA_RESTORE_DURATION)
-	await zoom_tween.finished
+	await _dialog_restore_tween.finished
+	_dialog_restore_tween = null
 
 	# Player resumes naturally — velocity preserved through pause
 
@@ -456,6 +477,16 @@ func _collect_children(node: Node) -> Array:
 		result.append_array(_collect_children(child))
 	return result
 
+
+## Find the portal in the current level that points back to source_level_id.
+## Returns the portal's global_position, or Vector2.ZERO if not found.
+func _find_return_portal(source_level_id: String) -> Vector2:
+	for node in _collect_children(level_container):
+		if "destination_level_id" in node and node.destination_level_id == source_level_id:
+			return node.global_position
+	return Vector2.ZERO
+
+
 func _on_level_complete() -> void:
 	var progress := ProgressData.new()
 	progress.complete_level(GameData.selected_level_id)
@@ -505,6 +536,66 @@ func _on_camera_pan(target: Vector2, pan_duration: float, hold_duration: float, 
 	camera.position_smoothing_enabled = true
 	_camera_follow_enabled = true
 
+func _on_camera_cinematic_move(target: Vector2, zoom: Vector2, duration: float) -> void:
+	_camera_follow_enabled = false
+	camera.position_smoothing_enabled = false
+	# Kill lingering dialog zoom-restore so cutscene camera takes full authority
+	if _dialog_restore_tween and _dialog_restore_tween.is_valid():
+		_dialog_restore_tween.kill()
+		_dialog_restore_tween = null
+		# The await in _on_cinematic_finished will never resolve, so cleanup here
+		_in_cinematic = false
+		if _cinematic_dialog:
+			_cinematic_dialog.queue_free()
+			_cinematic_dialog = null
+	if _cinematic_tween and _cinematic_tween.is_valid():
+		_cinematic_tween.kill()
+	# Position leads with deceleration into target
+	_cinematic_tween = create_tween()
+	_cinematic_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_cinematic_tween.tween_property(camera, "global_position", target, duration)
+	# Zoom starts late (30% into duration) and catches up — separate tween
+	var zoom_tween := create_tween()
+	zoom_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	var zoom_delay := duration * 0.3
+	var zoom_dur := duration * 0.7
+	zoom_tween.tween_interval(zoom_delay)
+	zoom_tween.tween_property(camera, "zoom", zoom, zoom_dur)
+	await _cinematic_tween.finished
+	camera.global_position = target
+	camera.zoom = zoom
+	EventBus.camera_cinematic_done.emit()
+
+
+func _on_camera_cinematic_release(duration: float) -> void:
+	if not player_instance:
+		return
+	# Kill lingering dialog zoom-restore so cinematic release takes full authority
+	if _dialog_restore_tween and _dialog_restore_tween.is_valid():
+		_dialog_restore_tween.kill()
+		_dialog_restore_tween = null
+		_in_cinematic = false
+		if _cinematic_dialog:
+			_cinematic_dialog.queue_free()
+			_cinematic_dialog = null
+	if _cinematic_tween and _cinematic_tween.is_valid():
+		_cinematic_tween.kill()
+	_cinematic_tween = create_tween()
+	_cinematic_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
+	_cinematic_tween.set_parallel(true)
+	_cinematic_tween.tween_property(camera, "zoom", Vector2.ONE, duration)
+	_cinematic_tween.tween_property(camera, "global_position", player_instance.global_position, duration)
+	await _cinematic_tween.finished
+	# Gradual smoothing ramp: start with low smoothing speed, ramp up over 0.3s
+	camera.position_smoothing_speed = 3.0
+	camera.position_smoothing_enabled = true
+	_camera_follow_enabled = true
+	var ramp := create_tween()
+	ramp.tween_property(camera, "position_smoothing_speed", 10.0, 0.3)
+	await ramp.finished
+	EventBus.camera_cinematic_done.emit()
+
+
 func _on_camera_shake(duration: float, intensity: float) -> void:
 	var start := Time.get_ticks_msec()
 	while true:
@@ -518,6 +609,23 @@ func _on_camera_shake(duration: float, intensity: float) -> void:
 		)
 		await get_tree().process_frame
 	camera.offset = Vector2.ZERO
+
+# --- Enemy combat feedback ---
+
+func _on_enemy_damaged(_enemy: Node2D, _amount: float) -> void:
+	_hitstop(0.05)
+
+func _on_enemy_killed(_enemy: Node2D) -> void:
+	_hitstop(0.08)
+	EventBus.camera_shake_requested.emit(0.15, 3.0)
+
+func _hitstop(duration: float) -> void:
+	if _in_cinematic:
+		return
+	Engine.time_scale = 0.05
+	await get_tree().create_timer(duration, true, false, true).timeout
+	if not _in_cinematic:
+		Engine.time_scale = 1.0
 
 func _on_portal_entered(_destination_level_id: String) -> void:
 	_in_portal = true
@@ -576,3 +684,31 @@ func _on_door_entered(destination_scene: String, is_exit_door: bool) -> void:
 	# Fade from black
 	SceneTransition.fade_from_black(0.25)
 	_in_door_transition = false
+
+# --- Boss camera lock ---
+
+func _on_camera_boss_lock(left: float, right: float, top: float, bottom: float) -> void:
+	_boss_camera_active = true
+	_saved_camera_limits = {
+		"left": camera.limit_left,
+		"right": camera.limit_right,
+		"top": camera.limit_top,
+		"bottom": camera.limit_bottom,
+		"zoom": camera.zoom,
+	}
+	camera.limit_left = int(left)
+	camera.limit_right = int(right)
+	camera.limit_top = int(top)
+	camera.limit_bottom = int(bottom)
+	# Keep normal zoom — 0.65x made everything too small
+
+func _on_camera_boss_unlock() -> void:
+	if not _boss_camera_active:
+		return
+	_boss_camera_active = false
+	camera.limit_left = _saved_camera_limits.get("left", camera.limit_left)
+	camera.limit_right = _saved_camera_limits.get("right", camera.limit_right)
+	camera.limit_top = _saved_camera_limits.get("top", camera.limit_top)
+	camera.limit_bottom = _saved_camera_limits.get("bottom", camera.limit_bottom)
+	# Restore zoom to saved value (no tween needed — zoom wasn't changed)
+	camera.zoom = _saved_camera_limits.get("zoom", Vector2.ONE)

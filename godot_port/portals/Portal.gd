@@ -170,6 +170,8 @@ func _activate() -> void:
 	await get_tree().create_timer(0.15).timeout
 
 	# Phase 8: Scene transition to destination level
+	GameData.arrived_via_portal = true
+	GameData.portal_source_level = GameData.selected_level_id
 	GameData.selected_level_id = destination_level_id
 	GameData.selected_level_scene = level_def["scene"]
 	SceneTransition.transition_to("res://game/GameScene.tscn")

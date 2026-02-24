@@ -17,6 +17,7 @@
       "voice_pitch": 0.95,
       "role": "giver",
       "dialog_selection": [
+        { "requires": {"quest_exodia_complete": true},       "dialog": "level_town/purple_karim/post_exodia" },
         { "requires": {"quest_purple_karim_complete": true}, "dialog": "level_town/purple_karim/done" },
         { "requires": {"three_headed_karim_paid": true},     "dialog": "level_town/purple_karim/complete" },
         { "requires": {"quest_purple_karim_active": true},   "dialog": "level_town/purple_karim/waiting" },

@@ -16,7 +16,7 @@ character_name = "Owl man"
 text = "Godverdomme man ik moet hier weg.. Zo snel mogelijk!"
 portrait = ExtResource("2_kni77")
 
-[sub_resource type="Resource" id="line_3"]
+[sub_resource type="Resource" id="Resource_kni77"]
 script = ExtResource("2_line")
 character_name = "Owl man"
 text = "Er moet een manier zijn..."
@@ -25,5 +25,4 @@ portrait = ExtResource("2_kni77")
 [resource]
 script = ExtResource("1_seq")
 description = "Level 1 intro — player wakes up confused, wants to escape"
-one_shot = false
-lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("line_3")])
+lines = Array[ExtResource("2_line")]([SubResource("line_1"), SubResource("line_2"), SubResource("Resource_kni77")])
